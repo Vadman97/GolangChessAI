@@ -27,10 +27,6 @@ func (l *Location) Equals(v Location) bool {
 	return v.Row == l.Row && v.Col == l.Col
 }
 
-func (l *Location) Print() string {
-	return fmt.Sprintf("(R: %d, C: %d)", l.Row, l.Col)
-}
-
 func (l *Location) InBounds() bool {
 	// Row, Col cannot be < 0 because byte is unsigned
 	return l.Row < Height && l.Col < Width
@@ -58,7 +54,7 @@ func (m *Move) Equals(v *Move) bool {
 }
 
 func (m *Move) Print() string {
-	return fmt.Sprintf("move from %s to %s", m.Start.Print(), m.End.Print())
+	return fmt.Sprintf("move from %+v to %+v", m.Start, m.End)
 }
 
 func (m *Move) GetDistance() byte {

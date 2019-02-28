@@ -92,7 +92,7 @@ func decodeData(l Location, data byte) Piece {
 
 	var p Piece
 	if pieceTypeData == piece.RookType {
-		p = Rook{}
+		p = &Rook{}
 	} else if pieceTypeData == piece.NilType {
 		return p
 	} else {
