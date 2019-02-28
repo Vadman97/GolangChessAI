@@ -11,47 +11,55 @@ const (
 )
 
 type Location struct {
-	row, col byte
+	Row, Col byte
 }
 
-func (l *Location) Set(v *Location) {
-	l.row = v.row
-	l.col = v.col
+func (l *Location) Set(v Location) {
+	l.Row = v.Row
+	l.Col = v.Col
 }
 
-func (l *Location) Add(v *Location) {
-	l.row += v.row
-	l.col += v.col
+func (l *Location) Add(v Location) {
+	l.Row += v.Row
+	l.Col += v.Col
 }
 
-func (l *Location) Sub(v *Location) byte {
-	return byte(math.Abs(float64(v.row-l.row)) + math.Abs(float64(v.col-l.col)))
+func (l *Location) Sub(v Location) byte {
+	return byte(math.Abs(float64(v.Row-l.Row)) + math.Abs(float64(v.Col-l.Col)))
 }
 
-func (l *Location) Equals(v *Location) bool {
-	return v.row == l.row && v.col == l.col
+func (l *Location) Equals(v Location) bool {
+	return v.Row == l.Row && v.Col == l.Col
 }
 
 func (l *Location) Print() string {
-	return fmt.Sprintf("(R: %d, C: %d)", l.row, l.col)
+	return fmt.Sprintf("(R: %d, C: %d)", l.Row, l.Col)
 }
 
 func (l *Location) InBounds() bool {
-	// row, col cannot be < 0 because byte is unsigned
-	return l.row < Height && l.col < Width
+	// Row, Col cannot be < 0 because byte is unsigned
+	return l.Row < Height && l.Col < Width
 }
 
 type Move struct {
 	start, end Location
 }
 
+func (m *Move) GetStart() Location {
+	return m.start
+}
+
+func (m *Move) GetEnd() Location {
+	return m.end
+}
+
 func (m *Move) Set(v *Move) {
-	m.start.Set(&v.start)
-	m.end.Set(&v.end)
+	m.start.Set(v.start)
+	m.end.Set(v.end)
 }
 
 func (m *Move) Equals(v *Move) bool {
-	return m.start.Equals(&v.start) && m.end.Equals(&v.end)
+	return m.start.Equals(v.start) && m.end.Equals(v.end)
 }
 
 func (m *Move) Print() string {
@@ -59,5 +67,5 @@ func (m *Move) Print() string {
 }
 
 func (m *Move) GetDistance() byte {
-	return m.end.Sub(&m.start)
+	return m.end.Sub(m.start)
 }
