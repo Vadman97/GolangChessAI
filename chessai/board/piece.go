@@ -21,14 +21,17 @@ func basicMove(p Piece, m *Move, b *Board) {
 	// game tree stores as compressed game board -> have way to hash compressed game board fast
 	// location stored in board coordinates but can be expanded to piece objects
 	p.SetPosition(m.GetEnd())
-	b.Move(m)
+	b.move(m)
 }
 
 func MakeMove(p Piece, m *Move, b *Board) {
 	// no UnMove function because we delete the piece we destroy
 	// easier to store copy of board before making move
-	if m.GetEnd().Equals(m.GetStart()) {
-		log.Fatal("Invalid move attempted! Start and end same.", m.GetStart().Print())
+	end := m.GetEnd()
+	start := m.GetStart()
+	// TODO(Vadim) verify that you can take the piece - here or in getMoves?
+	if end.Equals(start) {
+		log.Fatal("Invalid move attempted! Start and End same.", start.Print())
 	} else {
 		basicMove(p, m, b)
 		rook, ok := p.(Rook)

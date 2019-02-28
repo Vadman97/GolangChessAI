@@ -37,30 +37,30 @@ func (l *Location) InBounds() bool {
 }
 
 type Move struct {
-	start, end Location
+	Start, End Location
 }
 
 func (m *Move) GetStart() Location {
-	return m.start
+	return m.Start
 }
 
 func (m *Move) GetEnd() Location {
-	return m.end
+	return m.End
 }
 
 func (m *Move) Set(v *Move) {
-	m.start.Set(v.start)
-	m.end.Set(v.end)
+	m.Start.Set(v.Start)
+	m.End.Set(v.End)
 }
 
 func (m *Move) Equals(v *Move) bool {
-	return m.start.Equals(v.start) && m.end.Equals(v.end)
+	return m.Start.Equals(v.Start) && m.End.Equals(v.End)
 }
 
 func (m *Move) Print() string {
-	return fmt.Sprintf("Move from %s to %s", m.start.Print(), m.end.Print())
+	return fmt.Sprintf("move from %s to %s", m.Start.Print(), m.End.Print())
 }
 
 func (m *Move) GetDistance() byte {
-	return m.end.Sub(m.start)
+	return m.End.Sub(m.Start)
 }
