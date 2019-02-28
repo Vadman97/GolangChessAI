@@ -28,7 +28,7 @@ const (
 )
 
 type Board struct {
-	// TODO(Vadim) more efficient to use ints - faster to copy int than set of bytes
+	// more efficient to use ints - faster to copy int than set of bytes
 	board [Height]uint32
 
 	// max 4 flags if we use byte
@@ -66,7 +66,7 @@ func (b *Board) SetFlag(flag byte, color byte, value bool) {
 }
 
 func (b *Board) GetFlag(flag byte, color byte) bool {
-	return (b.flags & ^((1 << flag) << (color * NumFlagBits))) != 0
+	return (b.flags & ((1 << flag) << (color * NumFlagBits))) != 0
 }
 
 func (b *Board) move(m *Move) {
