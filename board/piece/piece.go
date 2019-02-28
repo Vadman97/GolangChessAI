@@ -9,9 +9,10 @@ import (
 type Piece interface {
 	GetChar() rune
 	GetColor() byte
-	SetPosition(board.Location)
+	SetColor(byte)
 	GetPosition() board.Location
-	GetMoves(board *board.Board) *[]board.Move
+	SetPosition(board.Location)
+	GetMoves(*board.Board) *[]board.Move
 }
 
 func basicMove(p Piece, m *board.Move, b *board.Board) {
@@ -70,11 +71,15 @@ type Rook struct {
 }
 
 func (r Rook) GetChar() rune {
-	return 'R'
+	return RookChar
 }
 
 func (r Rook) GetColor() byte {
 	return r.color
+}
+
+func (r Rook) SetColor(color byte) {
+	r.color = color
 }
 
 func (r Rook) SetPosition(loc board.Location) {

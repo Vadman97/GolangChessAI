@@ -5,11 +5,6 @@ import (
 	"math"
 )
 
-const (
-	Height = 8
-	Width  = 8
-)
-
 type Location struct {
 	Row, Col byte
 }
