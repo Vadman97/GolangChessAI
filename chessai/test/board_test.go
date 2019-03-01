@@ -3,7 +3,9 @@ package test
 import (
 	"ChessAI3/chessai/board"
 	"ChessAI3/chessai/board/color"
+	"encoding/binary"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"reflect"
 	"testing"
 )
@@ -162,5 +164,42 @@ func BenchmarkBoardEquals(b *testing.B) {
 	for i := 0; i < b.N/2; i++ {
 		bo1.Equals(&bo2)
 		bo2.Equals(&bo1)
+	}
+}
+
+func BenchmarkBoardHashLookup(b *testing.B) {
+	var scoreMap = make(map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32)
+	bo1 := board.Board{}
+	bo1.ResetDefault()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		hash := bo1.Hash()
+		idx := make([]uint64, 4)
+		for x := 0; x < 32; x += 8 {
+			idx[x/8] = binary.BigEndian.Uint64(hash[x : x+8])
+		}
+
+		_, ok := scoreMap[idx[0]]
+		if !ok {
+			scoreMap[idx[0]] = make(map[uint64]map[uint64]map[uint64]map[byte]uint32)
+		}
+		_, ok = scoreMap[idx[0]][idx[1]]
+		if !ok {
+			scoreMap[idx[0]][idx[1]] = make(map[uint64]map[uint64]map[byte]uint32)
+		}
+		_, ok = scoreMap[idx[0]][idx[1]][idx[2]]
+		if !ok {
+			scoreMap[idx[0]][idx[1]][idx[2]] = make(map[uint64]map[byte]uint32)
+		}
+		_, ok = scoreMap[idx[0]][idx[1]][idx[2]][idx[3]]
+		if !ok {
+			scoreMap[idx[0]][idx[1]][idx[2]][idx[3]] = make(map[byte]uint32)
+		}
+
+		scoreMap[idx[0]][idx[1]][idx[2]][idx[3]][hash[32]] = rand.Uint32()
+
+		b.StopTimer()
+		bo1.RandomizeIllegal()
+		b.StartTimer()
 	}
 }

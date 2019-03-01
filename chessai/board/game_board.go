@@ -5,6 +5,7 @@ import (
 	"ChessAI3/chessai/board/piece"
 	"fmt"
 	"log"
+	"math/rand"
 )
 
 const (
@@ -60,7 +61,7 @@ type Board struct {
 }
 
 func (b *Board) Hash() (result [33]byte) {
-	// var scoreMap map[uint64]map[uint64]map[uint64]map[uint64]map[uint64]uint32
+	// store into map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32
 	// Want to lookup score for a board using hash value
 	// Board stored in (8 * 4 + 1) bytes = 33bytes
 	for i := 0; i < Height; i++ {
@@ -145,6 +146,19 @@ func (b *Board) Print() (result string) {
 		result += fmt.Sprintf("%#x\n", b.board[r])
 	}
 	return
+}
+
+func (b *Board) RandomizeIllegal() {
+	// random board with random pieces (not fully random cuz i'm lazy)
+	for r := byte(0); r < Height; r++ {
+		for c := byte(0); c < Width; c++ {
+			p := StartingRow[rand.Int()%len(StartingRow)]
+			p.SetPosition(Location{r, c})
+			p.SetColor(byte(rand.Int() % 2))
+			b.SetPiece(Location{r, c}, p)
+		}
+	}
+	b.flags = byte(rand.Uint32())
 }
 
 func (b *Board) move(m *Move) {
