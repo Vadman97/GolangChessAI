@@ -2,7 +2,9 @@ package test
 
 import (
 	"ChessAI3/chessai/board"
+	"ChessAI3/chessai/board/color"
 	"github.com/stretchr/testify/assert"
+	"reflect"
 	"testing"
 )
 
@@ -49,7 +51,45 @@ func TestBoardFlags(t *testing.T) {
 }
 
 func TestBoardSetAndCopy(t *testing.T) {
-	t.Fail()
+	bo1 := board.Board{}
+	bo2 := board.Board{}
+	bo1.ResetDefault()
+	bo1.SetFlag(board.FlagCastled, color.Black, true)
+	bo1.SetFlag(board.FlagRightRookMoved, color.Black, true)
+	bo1.SetFlag(board.FlagRightRookMoved, color.White, true)
+	bo1.SetFlag(board.FlagLeftRookMoved, color.White, true)
+	assert.False(t, bo1.Equals(&bo2))
+	assert.False(t, bo2.Equals(&bo1))
+	bo2 = *bo1.Copy()
+	assert.True(t, bo1.Equals(&bo2))
+	assert.True(t, bo2.Equals(&bo1))
+}
+
+func TestBoardResetDefault(t *testing.T) {
+	bo1 := board.Board{}
+	bo2 := board.Board{}
+	bo1.ResetDefault()
+	bo2.ResetDefaultSlow()
+	assert.True(t, bo1.Equals(&bo2))
+	assert.True(t, bo2.Equals(&bo1))
+	bo2.SetFlag(board.FlagCastled, color.Black, true)
+	assert.False(t, bo1.Equals(&bo2))
+	assert.False(t, bo2.Equals(&bo1))
+}
+
+func TestBoardHash(t *testing.T) {
+	bo1 := board.Board{}
+	bo2 := board.Board{}
+	bo1.ResetDefault()
+	bo1.SetFlag(board.FlagCastled, color.Black, true)
+	bo1.SetFlag(board.FlagRightRookMoved, color.Black, true)
+	bo1.SetFlag(board.FlagRightRookMoved, color.White, true)
+	bo1.SetFlag(board.FlagLeftRookMoved, color.White, true)
+	assert.False(t, bo1.Hash() == bo2.Hash())
+	assert.False(t, reflect.DeepEqual(bo1.Hash(), bo2.Hash()))
+	bo2 = *bo1.Copy()
+	assert.True(t, bo1.Hash() == bo2.Hash())
+	assert.True(t, reflect.DeepEqual(bo1.Hash(), bo2.Hash()))
 }
 
 func BenchmarkCopy(b *testing.B) {
@@ -90,5 +130,37 @@ func BenchmarkBoardMove(b *testing.B) {
 			Start: start,
 			End:   end,
 		}, &board2)
+	}
+}
+
+func BenchmarkBoardHash(b *testing.B) {
+	bo1 := board.Board{}
+	bo2 := board.Board{}
+	bo1.ResetDefault()
+	bo2.ResetDefaultSlow()
+	b.ResetTimer()
+	for i := 0; i < b.N/2; i++ {
+		bo2.Hash()
+		bo1.Hash()
+	}
+}
+
+func BenchmarkBoardResetDefault(b *testing.B) {
+	board2 := board.Board{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		board2.ResetDefault()
+	}
+}
+
+func BenchmarkBoardEquals(b *testing.B) {
+	bo1 := board.Board{}
+	bo2 := board.Board{}
+	bo1.ResetDefault()
+	bo2.ResetDefaultSlow()
+	b.ResetTimer()
+	for i := 0; i < b.N/2; i++ {
+		bo1.Equals(&bo2)
+		bo2.Equals(&bo1)
 	}
 }

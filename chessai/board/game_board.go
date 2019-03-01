@@ -1,7 +1,9 @@
 package board
 
 import (
+	"ChessAI3/chessai/board/color"
 	"ChessAI3/chessai/board/piece"
+	"fmt"
 	"log"
 )
 
@@ -12,9 +14,10 @@ const (
 
 const (
 	// 3 bits for piece type
-	// 1 bit for piece color
+	// 1 bit for piece Color
 	PiecesPerRow = Width
 	BitsPerPiece = 4
+	BytesPerRow  = Width * BitsPerPiece / 8
 	PieceMask    = 0xF // BitsPerPiece 1's
 	NumFlagBits  = 4
 )
@@ -27,12 +30,59 @@ const (
 	FlagRightRookMoved = iota
 )
 
+var StartingRow = [...]Piece{
+	&Rook{},
+	&Knight{},
+	&Bishop{},
+	&Queen{},
+	&King{},
+	&Bishop{},
+	&Knight{},
+	&Rook{},
+}
+
+var StartingRowHex = [...]uint32{
+	0x357b9753,
+	0xdddddddd,
+	0, 0, 0, 0,
+	0xcccccccc,
+	0x246a8642,
+}
+
 type Board struct {
+	// board stores entire layout of pieces on the Width * Height board
 	// more efficient to use ints - faster to copy int than set of bytes
 	board [Height]uint32
 
+	// flags store information global to board, eg has white king moved
 	// max 4 flags if we use byte
 	flags byte
+}
+
+func (b *Board) Hash() (result [33]byte) {
+	// var scoreMap map[uint64]map[uint64]map[uint64]map[uint64]map[uint64]uint32
+	// Want to lookup score for a board using hash value
+	// Board stored in (8 * 4 + 1) bytes = 33bytes
+	for i := 0; i < Height; i++ {
+		for bIdx := 0; bIdx < BytesPerRow; bIdx++ {
+			result[i*BytesPerRow+bIdx] |= byte(b.board[i] & (PieceMask << byte(bIdx*BytesPerRow)))
+		}
+	}
+	result[32] = b.flags
+	return
+}
+
+func (b *Board) Equals(board *Board) bool {
+	if board.flags == b.flags {
+		for i := 0; i < Height; i++ {
+			if board.board[i] != b.board[i] {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+	// return reflect.DeepEqual(board.Hash(), b.Hash())
 }
 
 func (b *Board) Copy() *Board {
@@ -42,6 +92,27 @@ func (b *Board) Copy() *Board {
 	}
 	newBoard.flags = b.flags
 	return &newBoard
+}
+
+func (b *Board) ResetDefault() {
+	b.board[0] = StartingRowHex[0]
+	b.board[1] = StartingRowHex[1]
+	b.board[6] = StartingRowHex[6]
+	b.board[7] = StartingRowHex[7]
+}
+
+func (b *Board) ResetDefaultSlow() {
+	for c := byte(0); c < Width; c++ {
+		StartingRow[c].SetPosition(Location{0, c})
+		StartingRow[c].SetColor(color.Black)
+		b.SetPiece(Location{0, c}, StartingRow[c])
+		b.SetPiece(Location{1, c}, &Pawn{Location{Row: 1, Col: c}, color.Black})
+
+		b.SetPiece(Location{6, c}, &Pawn{Location{Row: 6, Col: c}, color.White})
+		StartingRow[c].SetPosition(Location{7, c})
+		StartingRow[c].SetColor(color.White)
+		b.SetPiece(Location{7, c}, StartingRow[c])
+	}
 }
 
 func (b *Board) SetPiece(l Location, p Piece) {
@@ -69,14 +140,22 @@ func (b *Board) GetFlag(flag byte, color byte) bool {
 	return (b.flags & ((1 << flag) << (color * NumFlagBits))) != 0
 }
 
+func (b *Board) Print() (result string) {
+	for r := 0; r < Height; r++ {
+		result += fmt.Sprintf("%#x\n", b.board[r])
+	}
+	return
+}
+
 func (b *Board) move(m *Move) {
+	// more efficient function than using SetPiece(end, GetPiece(start)) - tested with benchmark
+
 	// copy Start piece to End
 	pos := getBitOffset(m.Start)
 	data := (b.board[m.Start.Row] & (PieceMask << pos)) >> pos
 	b.board[m.End.Row] &= PieceMask << pos
 	b.board[m.End.Row] |= data
 
-	// note: encode is fast, decode is slower TODO(Vadim) verify this
 	// clear piece at Start
 	b.SetPiece(m.Start, nil)
 }
@@ -86,7 +165,7 @@ func getBitOffset(l Location) byte {
 }
 
 func decodeData(l Location, data byte) Piece {
-	// constants: 3 upper bits contain piece type, bottom 1 bit contains color
+	// constants: 3 upper bits contain piece type, bottom 1 bit contains Color
 	pieceTypeData := (data & 0xE) >> 1
 	colorData := data & 0x1
 
@@ -106,7 +185,7 @@ func decodeData(l Location, data byte) Piece {
 
 // Returns piece data in lower bits
 func encodeData(p Piece) (data byte) {
-	// piece type in upper bits, color in bottom bit
+	// piece type in upper bits, Color in bottom bit
 	if p != nil {
 		data |= 0xE & (byte(p.GetPieceType()) << 1)
 		data |= 0x1 & p.GetColor()

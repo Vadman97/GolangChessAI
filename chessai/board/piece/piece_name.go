@@ -1,7 +1,12 @@
 package piece
 
 const (
-	RookChar = 'R'
+	RookChar   = 'R'
+	KnightChar = 'K'
+	BishopChar = 'B'
+	QueenChar  = 'Q'
+	KingChar   = '&'
+	PawnChar   = 'P'
 )
 
 const (

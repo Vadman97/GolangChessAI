@@ -2,7 +2,6 @@ package board
 
 import (
 	"ChessAI3/chessai/board/color"
-	"ChessAI3/chessai/board/piece"
 	"log"
 )
 
@@ -21,7 +20,7 @@ func MakeMove(m *Move, b *Board) {
 	// easier to store copy of board before making move
 	end := m.GetEnd()
 	start := m.GetStart()
-	// TODO(Vadim) verify that you can take the piece based on color - here or in getMoves?
+	// TODO(Vadim) verify that you can take the piece based on Color - here or in getMoves?
 	if end.Equals(start) {
 		log.Fatalf("Invalid move attempted! Start and End same: %+v", start)
 	} else {
@@ -50,56 +49,4 @@ func GetColorTypeRepr(p Piece) string {
 		result += "B_"
 	}
 	return result + string(p.GetChar())
-}
-
-type Rook struct {
-	pos   Location
-	color byte
-}
-
-func (r *Rook) GetChar() rune {
-	return piece.RookChar
-}
-
-func (r *Rook) GetPieceType() byte {
-	return piece.RookType
-}
-
-func (r *Rook) GetColor() byte {
-	return r.color
-}
-
-func (r *Rook) SetColor(color byte) {
-	r.color = color
-}
-
-func (r *Rook) SetPosition(loc Location) {
-	r.pos.Set(loc)
-}
-
-func (r *Rook) GetPosition() Location {
-	return r.pos
-}
-
-func (r *Rook) GetMoves(board *Board) *[]Move {
-	return nil
-}
-
-func (r *Rook) IsRightRook() bool {
-	return r.pos.Col == 7
-}
-
-func (r *Rook) IsLeftRook() bool {
-	return r.pos.Col == 0
-}
-
-func (r *Rook) IsStartingRow() bool {
-	if r.color == color.Black {
-		return r.pos.Row == 0
-	} else if r.color == color.White {
-		return r.pos.Row == 7
-	} else {
-		log.Fatal("Invalid color")
-	}
-	return false
 }
