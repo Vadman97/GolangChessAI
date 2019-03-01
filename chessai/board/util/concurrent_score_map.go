@@ -21,15 +21,15 @@ func getIdx(hash *[33]byte) *[]uint64 {
 }
 
 func (m *ConcurrentScoreMap) Store(hash *[33]byte, score uint32) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
 	idx := *getIdx(hash)
 
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	if m.scoreMap == nil {
 		m.scoreMap = make(map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32)
 	}
 
+	// TODO(Vadim) is there a way to do this with a loop or some recursive call to make it prettier
 	_, ok := m.scoreMap[idx[0]]
 	if !ok {
 		m.scoreMap[idx[0]] = make(map[uint64]map[uint64]map[uint64]map[byte]uint32)
@@ -51,10 +51,9 @@ func (m *ConcurrentScoreMap) Store(hash *[33]byte, score uint32) {
 }
 
 func (m *ConcurrentScoreMap) Read(hash *[33]byte) (uint32, error) {
+	idx := *getIdx(hash)
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-
-	idx := *getIdx(hash)
 	m1, ok := m.scoreMap[idx[0]]
 	if ok {
 		m2, ok := m1[idx[1]]

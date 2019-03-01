@@ -183,6 +183,29 @@ func BenchmarkBoardHashLookup(b *testing.B) {
 		scoreMap.Store(&hash, rand.Uint32())
 	}
 	b.StopTimer()
+	memStats()
+}
+
+func BenchmarkBoardParallelHashLookup(b *testing.B) {
+	scoreMap := util.ConcurrentScoreMap{}
+	b.SetParallelism(8)
+	b.RunParallel(func(pb *testing.PB) {
+		bo1 := board.Board{}
+		for pb.Next() {
+			bo1.RandomizeIllegal()
+			hash := bo1.Hash()
+			r := rand.Uint32()
+
+			scoreMap.Store(&hash, r)
+
+			val, err := scoreMap.Read(&hash)
+			assert.Nil(b, err)
+			assert.Equal(b, r, val)
+		}
+	})
+}
+
+func memStats() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	fmt.Printf("Alloc = %v MiB | NumGC = %v \n", bToMb(m.Alloc), m.NumGC)
