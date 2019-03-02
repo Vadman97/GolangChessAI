@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	NumLocks = 64
+	NumLocks = 2 ^ 8
 )
 
 type ConcurrentScoreMap struct {
@@ -17,12 +17,11 @@ type ConcurrentScoreMap struct {
 	locks    []sync.RWMutex
 }
 
-func getIdx(hash *[33]byte) *[]uint64 {
-	idx := make([]uint64, 4)
+func getIdx(hash *[33]byte) (idx [4]uint64) {
 	for x := 0; x < 32; x += 8 {
 		idx[x/8] = binary.BigEndian.Uint64((*hash)[x : x+8])
 	}
-	return &idx
+	return idx
 }
 
 func (m *ConcurrentScoreMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
@@ -35,7 +34,7 @@ func (m *ConcurrentScoreMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
 	var lockIdx, bitIdx uint32
 	for i := uint32(0); i < uint32(math.Log2(NumLocks)); i++ {
 		// 11 is arbitrary prime, 264 is length of hash in bits
-		bitIdx = (bitIdx + 11*i + 3) % 264
+		bitIdx = (bitIdx + 11*i + 7) % 264
 		hashBit := (*hash)[bitIdx/8] & (1 << (bitIdx % 8))
 		if hashBit != 0 {
 			lockIdx |= 1 << i
@@ -46,7 +45,7 @@ func (m *ConcurrentScoreMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
 }
 
 func (m *ConcurrentScoreMap) Store(hash *[33]byte, score uint32) {
-	idx := *getIdx(hash)
+	idx := getIdx(hash)
 
 	lock, lockIdx := m.getLock(hash)
 	lock.Lock()
@@ -76,7 +75,7 @@ func (m *ConcurrentScoreMap) Store(hash *[33]byte, score uint32) {
 }
 
 func (m *ConcurrentScoreMap) Read(hash *[33]byte) (uint32, error) {
-	idx := *getIdx(hash)
+	idx := getIdx(hash)
 
 	lock, lockIdx := m.getLock(hash)
 	lock.Lock()

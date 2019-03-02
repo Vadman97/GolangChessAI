@@ -84,7 +84,6 @@ func (b *Board) Equals(board *Board) bool {
 		return true
 	}
 	return false
-	// return reflect.DeepEqual(board.Hash(), b.Hash())
 }
 
 func (b *Board) Copy() *Board {
@@ -187,12 +186,21 @@ func decodeData(l Location, data byte) Piece {
 	var p Piece
 	if pieceTypeData == piece.RookType {
 		p = &Rook{}
+	} else if pieceTypeData == piece.KnightType {
+		p = &Knight{}
+	} else if pieceTypeData == piece.BishopType {
+		p = &Bishop{}
+	} else if pieceTypeData == piece.QueenType {
+		p = &Queen{}
+	} else if pieceTypeData == piece.KingType {
+		p = &King{}
+	} else if pieceTypeData == piece.PawnType {
+		p = &Pawn{}
 	} else if pieceTypeData == piece.NilType {
-		return p
+		return nil
 	} else {
 		log.Fatal("Unknown piece type - error during decode: ", pieceTypeData)
 	}
-	// TODO(Vadim) else if for all types
 	p.SetPosition(l)
 	p.SetColor(colorData)
 	return p

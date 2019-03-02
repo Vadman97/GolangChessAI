@@ -94,6 +94,30 @@ func TestBoardHash(t *testing.T) {
 	assert.True(t, reflect.DeepEqual(bo1.Hash(), bo2.Hash()))
 }
 
+func TestBoardHashLookupParallel(t *testing.T) {
+	const NumThreads = 256
+	scoreMap := util.ConcurrentScoreMap{}
+
+	done := make([]chan int, NumThreads)
+	for tIdx := 0; tIdx < NumThreads; tIdx++ {
+		done[tIdx] = make(chan int)
+		go func(thread int) {
+			bo1 := board.Board{}
+			for i := 0; i < 10000; i++ {
+				bo1.RandomizeIllegal()
+				hash := bo1.Hash()
+				r := rand.Uint32()
+				scoreMap.Store(&hash, r)
+				_, _ = scoreMap.Read(&hash)
+			}
+			done[thread] <- 1
+		}(tIdx)
+	}
+	for tIdx := 0; tIdx < NumThreads; tIdx++ {
+		<-done[tIdx]
+	}
+}
+
 func BenchmarkCopy(b *testing.B) {
 	board2 := board.Board{}
 	bNew := board2.Copy()
@@ -181,7 +205,6 @@ func BenchmarkBoardHashLookup(b *testing.B) {
 		scoreMap.Store(&hash, rand.Uint32())
 	}
 	b.StopTimer()
-	memStats()
 }
 
 func BenchmarkBoardParallelHashLookup(b *testing.B) {
