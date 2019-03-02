@@ -3,18 +3,30 @@ package util
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math"
 	"sync"
 )
 
 const (
-	NumLocks = 2 ^ 8
+	NumSlices = 256
 )
 
 type ConcurrentScoreMap struct {
 	// TODO(Vadim) optimize via locks for each map to avoid collisions...
-	scoreMap []map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32
-	locks    []sync.RWMutex
+	scoreMap  [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32
+	locks     [NumSlices]sync.RWMutex
+	lockUsage [NumSlices]int
+}
+
+func NewConcurrentScoreMap() *ConcurrentScoreMap {
+	var m ConcurrentScoreMap
+	for i := 0; i < NumSlices; i++ {
+		if m.scoreMap[i] == nil {
+			m.scoreMap[i] = make(map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32)
+		}
+	}
+	return &m
 }
 
 func getIdx(hash *[33]byte) (idx [4]uint64) {
@@ -25,14 +37,14 @@ func getIdx(hash *[33]byte) (idx [4]uint64) {
 }
 
 func (m *ConcurrentScoreMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
-	if m.locks == nil {
-		m.locks = make([]sync.RWMutex, NumLocks)
-		m.scoreMap = make([]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32, NumLocks)
-	}
+	s := binary.BigEndian.Uint32(hash[:8]) % NumSlices
+	// TODO(Vadim) fix bug - pick on of these methods
+	m.lockUsage[s]++
+	return &m.locks[s], s
 
-	//var lockIdx = (*hash)[0] % NumLocks
+	//var lockIdx = (*hash)[0] % NumSlices
 	var lockIdx, bitIdx uint32
-	for i := uint32(0); i < uint32(math.Log2(NumLocks)); i++ {
+	for i := uint32(0); i < uint32(math.Log2(NumSlices)); i++ {
 		// 11 is arbitrary prime, 264 is length of hash in bits
 		bitIdx = (bitIdx + 11*i + 7) % 264
 		hashBit := (*hash)[bitIdx/8] & (1 << (bitIdx % 8))
@@ -41,6 +53,7 @@ func (m *ConcurrentScoreMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
 		}
 	}
 	// TODO(Vadim) is there a way to verify that this results in uniformly distributed lockIdx?
+	m.lockUsage[lockIdx]++
 	return &m.locks[lockIdx], uint32(lockIdx)
 }
 
@@ -50,9 +63,6 @@ func (m *ConcurrentScoreMap) Store(hash *[33]byte, score uint32) {
 	lock, lockIdx := m.getLock(hash)
 	lock.Lock()
 	defer lock.Unlock()
-	if m.scoreMap[lockIdx] == nil {
-		m.scoreMap[lockIdx] = make(map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32)
-	}
 
 	_, ok := m.scoreMap[lockIdx][idx[0]]
 	if !ok {
@@ -96,4 +106,11 @@ func (m *ConcurrentScoreMap) Read(hash *[33]byte) (uint32, error) {
 	}
 
 	return 0, errors.New("hash not found")
+}
+
+func (m *ConcurrentScoreMap) PrintMetrics() {
+	fmt.Printf("Lock Usages: \n")
+	for i := 0; i < NumSlices; i++ {
+		fmt.Printf("Slice #%d, Used #%d times\n", i, m.lockUsage[i])
+	}
 }

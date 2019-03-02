@@ -71,6 +71,22 @@ func (b *Board) Hash() (result [33]byte) {
 		}
 	}
 	result[32] = b.flags
+	// 76 ns/op
+
+	//h := sha1.New()
+	//hashed := h.Sum(result[:])
+	//
+	//length := len(result)
+	//if len(hashed) < length {
+	//	length = len(hashed)
+	//}
+	//for i := 0; i < length; i++ {
+	//	result[i] = hashed[i]
+	//}
+	// SHA1     461 ns/op
+	// SHA2-256 630 ns/op
+	// SHA3-256 1415 ns/op
+
 	return result
 }
 

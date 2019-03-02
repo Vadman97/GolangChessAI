@@ -6,10 +6,12 @@ import (
 	"ChessAI3/chessai/board/util"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"log"
 	"math/rand"
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 )
 
 var start = board.Location{Row: 2, Col: 5}
@@ -95,15 +97,18 @@ func TestBoardHash(t *testing.T) {
 }
 
 func TestBoardHashLookupParallel(t *testing.T) {
-	const NumThreads = 256
-	scoreMap := util.ConcurrentScoreMap{}
+	const (
+		NumThreads = 256
+		NumOps     = 10000
+	)
+	scoreMap := util.NewConcurrentScoreMap()
 
 	done := make([]chan int, NumThreads)
 	for tIdx := 0; tIdx < NumThreads; tIdx++ {
 		done[tIdx] = make(chan int)
 		go func(thread int) {
 			bo1 := board.Board{}
-			for i := 0; i < 10000; i++ {
+			for i := 0; i < NumOps; i++ {
 				bo1.RandomizeIllegal()
 				hash := bo1.Hash()
 				r := rand.Uint32()
@@ -113,9 +118,14 @@ func TestBoardHashLookupParallel(t *testing.T) {
 			done[thread] <- 1
 		}(tIdx)
 	}
+	start := time.Now()
 	for tIdx := 0; tIdx < NumThreads; tIdx++ {
 		<-done[tIdx]
 	}
+	duration := time.Now().Sub(start)
+	nsPerOp := duration.Nanoseconds() / (NumOps * NumThreads)
+	log.Printf("Parallel write %d ops with %d ns/loop", NumOps*NumThreads, nsPerOp)
+	scoreMap.PrintMetrics()
 }
 
 func BenchmarkCopy(b *testing.B) {
@@ -192,7 +202,7 @@ func BenchmarkBoardEquals(b *testing.B) {
 }
 
 func BenchmarkBoardHashLookup(b *testing.B) {
-	scoreMap := util.ConcurrentScoreMap{}
+	scoreMap := util.NewConcurrentScoreMap()
 	bo1 := board.Board{}
 	bo1.ResetDefault()
 	b.ResetTimer()
@@ -208,7 +218,7 @@ func BenchmarkBoardHashLookup(b *testing.B) {
 }
 
 func BenchmarkBoardParallelHashLookup(b *testing.B) {
-	scoreMap := util.ConcurrentScoreMap{}
+	scoreMap := util.NewConcurrentScoreMap()
 	b.SetParallelism(8)
 	b.RunParallel(func(pb *testing.PB) {
 		bo1 := board.Board{}
