@@ -61,6 +61,7 @@ type Board struct {
 }
 
 func (b *Board) Hash() (result [33]byte) {
+	// TODO(Vadim) evenly distribute output over {1,0}^264 via SHA256?
 	// store into map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32
 	// Want to lookup score for a board using hash value
 	// Board stored in (8 * 4 + 1) bytes = 33bytes
@@ -70,7 +71,7 @@ func (b *Board) Hash() (result [33]byte) {
 		}
 	}
 	result[32] = b.flags
-	return
+	return result
 }
 
 func (b *Board) Equals(board *Board) bool {

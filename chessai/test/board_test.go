@@ -89,10 +89,8 @@ func TestBoardHash(t *testing.T) {
 	bo1.SetFlag(board.FlagRightRookMoved, color.Black, true)
 	bo1.SetFlag(board.FlagRightRookMoved, color.White, true)
 	bo1.SetFlag(board.FlagLeftRookMoved, color.White, true)
-	assert.False(t, bo1.Hash() == bo2.Hash())
 	assert.False(t, reflect.DeepEqual(bo1.Hash(), bo2.Hash()))
 	bo2 = *bo1.Copy()
-	assert.True(t, bo1.Hash() == bo2.Hash())
 	assert.True(t, reflect.DeepEqual(bo1.Hash(), bo2.Hash()))
 }
 
