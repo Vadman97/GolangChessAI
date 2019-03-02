@@ -4,12 +4,10 @@ import (
 	"ChessAI3/chessai/board"
 	"ChessAI3/chessai/board/color"
 	"ChessAI3/chessai/board/util"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"math/rand"
 	"reflect"
-	"runtime"
 	"testing"
 	"time"
 )
@@ -98,7 +96,7 @@ func TestBoardHash(t *testing.T) {
 
 func TestBoardHashLookupParallel(t *testing.T) {
 	const (
-		NumThreads = 256
+		NumThreads = 8
 		NumOps     = 10000
 	)
 	scoreMap := util.NewConcurrentScoreMap()
@@ -234,14 +232,4 @@ func BenchmarkBoardParallelHashLookup(b *testing.B) {
 			assert.Equal(b, r, val)
 		}
 	})
-}
-
-func memStats() {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	fmt.Printf("Alloc = %v MiB | NumGC = %v \n", bToMb(m.Alloc), m.NumGC)
-}
-
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
 }

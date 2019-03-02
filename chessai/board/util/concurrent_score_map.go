@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -13,10 +13,9 @@ const (
 )
 
 type ConcurrentScoreMap struct {
-	// TODO(Vadim) optimize via locks for each map to avoid collisions...
 	scoreMap  [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32
 	locks     [NumSlices]sync.RWMutex
-	lockUsage [NumSlices]int
+	lockUsage [NumSlices]uint64
 }
 
 func NewConcurrentScoreMap() *ConcurrentScoreMap {
@@ -37,24 +36,13 @@ func getIdx(hash *[33]byte) (idx [4]uint64) {
 }
 
 func (m *ConcurrentScoreMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
-	s := binary.BigEndian.Uint32(hash[:8]) % NumSlices
-	// TODO(Vadim) fix bug - pick on of these methods
-	m.lockUsage[s]++
-	return &m.locks[s], s
-
-	//var lockIdx = (*hash)[0] % NumSlices
-	var lockIdx, bitIdx uint32
-	for i := uint32(0); i < uint32(math.Log2(NumSlices)); i++ {
-		// 11 is arbitrary prime, 264 is length of hash in bits
-		bitIdx = (bitIdx + 11*i + 7) % 264
-		hashBit := (*hash)[bitIdx/8] & (1 << (bitIdx % 8))
-		if hashBit != 0 {
-			lockIdx |= 1 << i
-		}
+	var s uint32
+	for i := 0; i < 28; i += 4 {
+		s += (binary.BigEndian.Uint32(hash[i:i+4]) / NumSlices) % NumSlices
 	}
-	// TODO(Vadim) is there a way to verify that this results in uniformly distributed lockIdx?
-	m.lockUsage[lockIdx]++
-	return &m.locks[lockIdx], uint32(lockIdx)
+	s += uint32(hash[32]) % NumSlices
+	atomic.AddUint64(&m.lockUsage[s], 1)
+	return &m.locks[s], s
 }
 
 func (m *ConcurrentScoreMap) Store(hash *[33]byte, score uint32) {
