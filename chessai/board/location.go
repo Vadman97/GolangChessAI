@@ -5,8 +5,13 @@ import (
 	"math"
 )
 
+var RightMove = Location{0, 1}
+var LeftMove = Location{0, -1}
+var UpMove = Location{-1, 0}
+var DownMove = Location{1, 0}
+
 type Location struct {
-	Row, Col byte
+	Row, Col int8
 }
 
 func (l *Location) Set(v Location) {
@@ -14,9 +19,11 @@ func (l *Location) Set(v Location) {
 	l.Col = v.Col
 }
 
-func (l *Location) Add(v Location) {
-	l.Row += v.Row
-	l.Col += v.Col
+func (l *Location) Add(v Location) Location {
+	newLoc := Location{l.Row, l.Col}
+	newLoc.Row += v.Row
+	newLoc.Col += v.Col
+	return newLoc
 }
 
 func (l *Location) Sub(v Location) byte {

@@ -36,3 +36,5 @@ func (r *Bishop) GetPosition() Location {
 func (r *Bishop) GetMoves(board *Board) *[]Move {
 	return nil
 }
+
+func (r *Bishop) Move(m *Move, b *Board) {}

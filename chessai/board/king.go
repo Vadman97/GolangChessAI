@@ -36,3 +36,20 @@ func (r *King) GetPosition() Location {
 func (r *King) GetMoves(board *Board) *[]Move {
 	return nil
 }
+
+func (r *King) Move(m *Move, b *Board) {
+	if m.Start.Col == 4 && m.Start.Col-2 == m.End.Col {
+		// left castle
+		// piece right of king set to the rook from left of dest
+		b.SetPiece(m.End.Add(RightMove), b.GetPiece(m.End.Add(LeftMove)))
+		b.SetPiece(m.End.Add(LeftMove), nil)
+		b.SetFlag(FlagCastled, r.GetColor(), true)
+	} else if m.Start.Col == 4 && m.Start.Col+2 == m.End.Col {
+		// right castle
+		// piece right of king set to the rook from left of dest
+		b.SetPiece(m.End.Add(LeftMove), b.GetPiece(m.End.Add(RightMove)))
+		b.SetPiece(m.End.Add(RightMove), nil)
+		b.SetFlag(FlagCastled, r.GetColor(), true)
+	}
+	b.SetFlag(FlagKingMoved, r.GetColor(), true)
+}

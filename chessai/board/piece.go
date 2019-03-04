@@ -13,6 +13,7 @@ type Piece interface {
 	SetPosition(Location)
 	GetMoves(*Board) *[]Move
 	GetPieceType() byte
+	Move(m *Move, b *Board)
 }
 
 func MakeMove(m *Move, b *Board) {
@@ -28,16 +29,7 @@ func MakeMove(m *Move, b *Board) {
 		// game tree stores as compressed game board -> have way to hash compressed game board fast
 		// location stored in board coordinates but can be expanded to piece objects
 		b.move(m)
-		p := b.GetPiece(end)
-		rook, ok := p.(*Rook)
-		if ok {
-			if rook.IsRightRook() {
-				b.SetFlag(FlagRightRookMoved, rook.GetColor(), true)
-			}
-			if rook.IsLeftRook() {
-				b.SetFlag(FlagLeftRookMoved, rook.GetColor(), true)
-			}
-		}
+		b.GetPiece(end).Move(m, b)
 	}
 }
 

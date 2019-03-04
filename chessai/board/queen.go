@@ -36,3 +36,5 @@ func (r *Queen) GetPosition() Location {
 func (r *Queen) GetMoves(board *Board) *[]Move {
 	return nil
 }
+
+func (r *Queen) Move(m *Move, b *Board) {}

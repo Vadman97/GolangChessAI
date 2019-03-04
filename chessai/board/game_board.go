@@ -119,7 +119,7 @@ func (b *Board) ResetDefault() {
 }
 
 func (b *Board) ResetDefaultSlow() {
-	for c := byte(0); c < Width; c++ {
+	for c := int8(0); c < Width; c++ {
 		StartingRow[c].SetPosition(Location{0, c})
 		StartingRow[c].SetColor(color.Black)
 		b.SetPiece(Location{0, c}, StartingRow[c])
@@ -166,8 +166,8 @@ func (b *Board) Print() (result string) {
 
 func (b *Board) RandomizeIllegal() {
 	// random board with random pieces (not fully random cuz i'm lazy)
-	for r := byte(0); r < Height; r++ {
-		for c := byte(0); c < Width; c++ {
+	for r := int8(0); r < Height; r++ {
+		for c := int8(0); c < Width; c++ {
 			p := StartingRow[rand.Int()%len(StartingRow)]
 			p.SetPosition(Location{r, c})
 			p.SetColor(byte(rand.Int() % 2))
@@ -191,7 +191,7 @@ func (b *Board) move(m *Move) {
 }
 
 func getBitOffset(l Location) byte {
-	return (l.Col % PiecesPerRow) * BitsPerPiece
+	return byte(l.Col%PiecesPerRow) * BitsPerPiece
 }
 
 func decodeData(l Location, data byte) Piece {

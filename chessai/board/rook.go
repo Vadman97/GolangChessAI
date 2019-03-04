@@ -39,6 +39,15 @@ func (r *Rook) GetMoves(board *Board) *[]Move {
 	return nil
 }
 
+func (r *Rook) Move(m *Move, b *Board) {
+	if r.IsRightRook() {
+		b.SetFlag(FlagRightRookMoved, r.GetColor(), true)
+	}
+	if r.IsLeftRook() {
+		b.SetFlag(FlagLeftRookMoved, r.GetColor(), true)
+	}
+}
+
 func (r *Rook) IsRightRook() bool {
 	return r.Location.Col == 7
 }
