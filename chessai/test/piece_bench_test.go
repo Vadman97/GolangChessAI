@@ -72,3 +72,25 @@ func BenchmarkQueenGetMovesBlack(b *testing.B) {
 		End:   board.Location{Row: 2, Col: 3},
 	}, 18)
 }
+
+func BenchmarkRookGetMovesNone(b *testing.B) {
+	benchMoveCount(b, board.Location{Row: 7, Col: 7}, nil, 0)
+}
+
+func BenchmarkRookGetMoves(b *testing.B) {
+	benchMoveCount(b, board.Location{Row: 4, Col: 4}, &board.Move{
+		Start: board.Location{Row: 7, Col: 7},
+		End:   board.Location{Row: 4, Col: 4},
+	}, 11)
+}
+
+func BenchmarkRookGetMovesNoneBlack(b *testing.B) {
+	benchMoveCount(b, board.Location{Row: 0, Col: 0}, nil, 0)
+}
+
+func BenchmarkRookGetMovesBlack(b *testing.B) {
+	benchMoveCount(b, board.Location{Row: 3, Col: 3}, &board.Move{
+		Start: board.Location{Row: 0, Col: 0},
+		End:   board.Location{Row: 3, Col: 3},
+	}, 11)
+}

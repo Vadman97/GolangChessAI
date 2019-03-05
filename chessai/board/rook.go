@@ -36,7 +36,29 @@ func (r *Rook) GetPosition() Location {
 }
 
 func (r *Rook) GetMoves(board *Board) *[]Move {
-	return nil
+	var moves []Move
+	for i := 0; i < 4; i++ {
+		l := r.GetPosition()
+		for l.InBounds() {
+			if i == 0 {
+				l = l.Add(UpMove)
+			} else if i == 1 {
+				l = l.Add(RightMove)
+			} else if i == 2 {
+				l = l.Add(DownMove)
+			} else if i == 3 {
+				l = l.Add(LeftMove)
+			}
+			validMove, checkNext := CheckLocationForPiece(r.GetColor(), l, board)
+			if validMove {
+				moves = append(moves, Move{r.GetPosition(), l})
+			}
+			if !checkNext {
+				break
+			}
+		}
+	}
+	return &moves
 }
 
 func (r *Rook) Move(m *Move, b *Board) {
