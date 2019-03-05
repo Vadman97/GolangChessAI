@@ -111,7 +111,8 @@ func TestBoardHashLookupParallel(t *testing.T) {
 				hash := bo1.Hash()
 				r := rand.Uint32()
 				scoreMap.Store(&hash, r)
-				_, _ = scoreMap.Read(&hash)
+				score, _ := scoreMap.Read(&hash)
+				assert.Equal(t, r, score)
 			}
 			done[thread] <- 1
 		}(tIdx)
@@ -121,9 +122,9 @@ func TestBoardHashLookupParallel(t *testing.T) {
 		<-done[tIdx]
 	}
 	duration := time.Now().Sub(start)
-	nsPerOp := duration.Nanoseconds() / (NumOps * NumThreads)
-	log.Printf("Parallel write %d ops with %d ns/loop", NumOps*NumThreads, nsPerOp)
-	scoreMap.PrintMetrics()
+	timePerOp := duration.Nanoseconds() / (NumOps * NumThreads)
+	log.Printf("Parallel write %d ops with %d ns/loop", NumOps*NumThreads, timePerOp)
+	//scoreMap.PrintMetrics()
 }
 
 func BenchmarkCopy(b *testing.B) {
