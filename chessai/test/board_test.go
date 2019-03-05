@@ -257,28 +257,43 @@ func BenchmarkBoardParallelHashLookup(b *testing.B) {
 	})
 }
 
-func BenchmarkBishopGetMovesNone(b *testing.B) {
+func benchMoveCount(b *testing.B, l board.Location, initialMove *board.Move, expectedMoves int) {
 	bo1 := board.Board{}
 	bo1.ResetDefault()
+	if initialMove != nil {
+		board.MakeMove(initialMove, &bo1)
+	}
 	b.ResetTimer()
 	var moves *[]board.Move
 	for i := 0; i < b.N; i++ {
-		moves = bo1.GetPiece(board.Location{Row: 7, Col: 2}).GetMoves(&bo1)
+		moves = bo1.GetPiece(l).GetMoves(&bo1)
 	}
-	assert.Equal(b, 0, len(*moves))
+	assert.NotNil(b, moves)
+	if moves != nil {
+		assert.Equal(b, expectedMoves, len(*moves))
+	}
+}
+
+func BenchmarkBishopGetMovesNone(b *testing.B) {
+	benchMoveCount(b, board.Location{Row: 7, Col: 2}, nil, 0)
+	// todo(Vadim) b & w
+	// todo(Vadim) make these into tests
 }
 
 func BenchmarkBishopGetMoves(b *testing.B) {
-	bo1 := board.Board{}
-	bo1.ResetDefault()
-	board.MakeMove(&board.Move{
+	benchMoveCount(b, board.Location{Row: 5, Col: 4}, &board.Move{
 		Start: board.Location{Row: 7, Col: 2},
 		End:   board.Location{Row: 5, Col: 4},
-	}, &bo1)
-	b.ResetTimer()
-	var moves *[]board.Move
-	for i := 0; i < b.N; i++ {
-		moves = bo1.GetPiece(board.Location{Row: 5, Col: 4}).GetMoves(&bo1)
-	}
-	assert.Equal(b, 7, len(*moves))
+	}, 7)
+}
+
+func BenchmarkQueenGetMovesNone(b *testing.B) {
+	benchMoveCount(b, board.Location{Row: 7, Col: 3}, nil, 0)
+}
+
+func BenchmarkQueenGetMoves(b *testing.B) {
+	benchMoveCount(b, board.Location{Row: 5, Col: 3}, &board.Move{
+		Start: board.Location{Row: 7, Col: 3},
+		End:   board.Location{Row: 5, Col: 3},
+	}, 18)
 }
