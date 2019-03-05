@@ -254,7 +254,7 @@ func BenchmarkBishopGetMoves(b *testing.B) {
 	}, &bo1)
 	b.ResetTimer()
 	for i := 0; i < b.N/2; i++ {
-		moves := bo1.GetPiece(board.Location{Row: 7, Col: 2}).GetMoves(&bo1)
+		moves := bo1.GetPiece(board.Location{Row: 5, Col: 4}).GetMoves(&bo1)
 		assert.Equal(b, 7, len(*moves))
 	}
 }

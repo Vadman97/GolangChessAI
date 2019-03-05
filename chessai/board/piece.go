@@ -41,6 +41,7 @@ func CheckLocationForPiece(pieceColor byte, l Location, b *Board) (validMove boo
 		if p.GetColor() != pieceColor {
 			return true, false
 		}
+		return false, false
 	}
 	return true, true
 }
