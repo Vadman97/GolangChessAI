@@ -2,7 +2,6 @@ package util
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -72,7 +71,7 @@ func (m *ConcurrentScoreMap) Store(hash *[33]byte, score uint32) {
 	m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]] = score
 }
 
-func (m *ConcurrentScoreMap) Read(hash *[33]byte) (uint32, error) {
+func (m *ConcurrentScoreMap) Read(hash *[33]byte) (uint32, bool) {
 	idx := getIdx(hash)
 
 	lock, lockIdx := m.getLock(hash)
@@ -87,13 +86,13 @@ func (m *ConcurrentScoreMap) Read(hash *[33]byte) (uint32, error) {
 			if ok {
 				m4, ok := m3[idx[3]]
 				if ok {
-					return m4[(*hash)[32]], nil
+					return m4[(*hash)[32]], true
 				}
 			}
 		}
 	}
 
-	return 0, errors.New("hash not found")
+	return 0, false
 }
 
 func (m *ConcurrentScoreMap) PrintMetrics() {

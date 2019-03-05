@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"time"
 )
 
 const (
@@ -43,11 +44,11 @@ var StartingRow = [...]Piece{
 }
 
 var StartingRowHex = [...]uint32{
-	0x357b9753,
-	0xdddddddd,
+	0x3579B753,
+	0xDDDDDDDD,
 	0, 0, 0, 0,
-	0xcccccccc,
-	0x246a8642,
+	0xCCCCCCCC,
+	0x2468A642,
 }
 
 type Board struct {
@@ -58,6 +59,8 @@ type Board struct {
 	// flags store information global to board, eg has white king moved
 	// max 4 flags if we use byte
 	flags byte
+
+	TestRandGen *rand.Rand
 }
 
 func (b *Board) Hash() (result [33]byte) {
@@ -166,40 +169,49 @@ func (b *Board) Print() (result string) {
 
 func (b *Board) RandomizeIllegal() {
 	// random board with random pieces (not fully random cuz i'm lazy)
+	if b.TestRandGen == nil {
+		b.TestRandGen = rand.New(rand.NewSource(time.Now().UnixNano()))
+	}
 	for r := int8(0); r < Height; r++ {
 		for c := int8(0); c < Width; c++ {
-			p := StartingRow[rand.Int()%len(StartingRow)]
+			p := StartingRow[b.TestRandGen.Int()%len(StartingRow)]
 			p.SetPosition(Location{r, c})
-			p.SetColor(byte(rand.Int() % 2))
+			p.SetColor(byte(b.TestRandGen.Int() % 2))
 			b.SetPiece(Location{r, c}, p)
 		}
 	}
-	b.flags = byte(rand.Uint32())
+	b.flags = byte(b.TestRandGen.Uint32())
 }
 
 func (b *Board) move(m *Move) {
 	// more efficient function than using SetPiece(end, GetPiece(start)) - tested with benchmark
 
 	// copy Start piece to End
-	pos := getBitOffset(m.Start)
-	data := (b.board[m.Start.Row] & (PieceMask << pos)) >> pos
-	b.board[m.End.Row] &= PieceMask << pos
-	b.board[m.End.Row] |= data
+	startOff := getBitOffset(m.Start)
+	endOff := getBitOffset(m.End)
+	data := (b.board[m.Start.Row] & (PieceMask << startOff)) >> startOff
+	b.board[m.End.Row] &^= PieceMask << endOff
+	b.board[m.End.Row] |= data << endOff
 
 	// clear piece at Start
 	b.SetPiece(m.Start, nil)
 }
 
 func getBitOffset(l Location) byte {
-	return byte(l.Col%PiecesPerRow) * BitsPerPiece
+	// 28 = ((Width - 1) * BitsPerPiece)
+	return 28 - byte(l.Col*BitsPerPiece)
 }
 
 func decodeData(l Location, data byte) Piece {
 	// constants: 3 upper bits contain piece type, bottom 1 bit contains Color
 	pieceTypeData := (data & 0xE) >> 1
-	colorData := data & 0x1
+
+	if pieceTypeData == piece.NilType {
+		return nil
+	}
 
 	var p Piece
+	colorData := data & 0x1
 	if pieceTypeData == piece.RookType {
 		p = &Rook{}
 	} else if pieceTypeData == piece.KnightType {
@@ -212,8 +224,6 @@ func decodeData(l Location, data byte) Piece {
 		p = &King{}
 	} else if pieceTypeData == piece.PawnType {
 		p = &Pawn{}
-	} else if pieceTypeData == piece.NilType {
-		return nil
 	} else {
 		log.Fatal("Unknown piece type - error during decode: ", pieceTypeData)
 	}

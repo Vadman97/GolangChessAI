@@ -13,7 +13,7 @@ import (
 )
 
 var start = board.Location{Row: 2, Col: 5}
-var end = board.Location{Row: 4, Col: 5}
+var end = board.Location{Row: 4, Col: 6}
 
 func TestBoardMove(t *testing.T) {
 	board2 := board.Board{}
@@ -28,6 +28,18 @@ func TestBoardMove(t *testing.T) {
 	assert.Nil(t, board2.GetPiece(start))
 	assert.Equal(t, startPiece, board2.GetPiece(end))
 	assert.Equal(t, end, board2.GetPiece(end).GetPosition())
+}
+
+func TestBoardMoveClear(t *testing.T) {
+	board2 := board.Board{}
+	assert.Panics(t, func() {
+		for i := 0; i < 3; i++ {
+			board.MakeMove(&board.Move{
+				Start: start,
+				End:   end,
+			}, &board2)
+		}
+	})
 }
 
 func TestBoardFlags(t *testing.T) {
@@ -106,24 +118,33 @@ func TestBoardHashLookupParallel(t *testing.T) {
 		done[tIdx] = make(chan int)
 		go func(thread int) {
 			bo1 := board.Board{}
+			bo1.TestRandGen = rand.New(rand.NewSource(time.Now().UnixNano() + int64(thread)))
+			numStores := 0
 			for i := 0; i < NumOps; i++ {
 				bo1.RandomizeIllegal()
 				hash := bo1.Hash()
-				r := rand.Uint32()
-				scoreMap.Store(&hash, r)
-				score, _ := scoreMap.Read(&hash)
-				assert.Equal(t, r, score)
+				r := bo1.TestRandGen.Uint32()
+				_, ok := scoreMap.Read(&hash)
+				if !ok {
+					scoreMap.Store(&hash, r)
+					score, _ := scoreMap.Read(&hash)
+					assert.Equal(t, r, score)
+					numStores++
+				}
 			}
-			done[thread] <- 1
+			done[thread] <- numStores
 		}(tIdx)
 	}
 	start := time.Now()
+	totalNumStores := 0
 	for tIdx := 0; tIdx < NumThreads; tIdx++ {
-		<-done[tIdx]
+		totalNumStores += <-done[tIdx]
 	}
 	duration := time.Now().Sub(start)
-	timePerOp := duration / time.Microsecond / (NumOps * NumThreads)
-	log.Printf("Parallel randomize,hash,write,read %d ops with %d us/loop", NumOps*NumThreads, timePerOp)
+	timePerOp := duration.Nanoseconds() / int64(totalNumStores)
+	pSuccess := 100.0 * float64(totalNumStores) / (NumOps * NumThreads)
+	log.Printf("Parallel randomize,hash,write,read %d ops with %d us/loop. %.1f%% stores successful (%d)\n",
+		NumOps*NumThreads, timePerOp, pSuccess, totalNumStores)
 	//scoreMap.PrintMetrics()
 }
 
@@ -157,10 +178,10 @@ func BenchmarkGetPiece(b *testing.B) {
 
 func BenchmarkBoardMove(b *testing.B) {
 	board2 := board.Board{}
-	board2.SetPiece(end, &board.Rook{})
-	board2.SetPiece(start, &board.Rook{})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		board2.SetPiece(end, &board.Rook{})
+		board2.SetPiece(start, &board.Rook{})
 		board.MakeMove(&board.Move{
 			Start: start,
 			End:   end,
@@ -221,15 +242,16 @@ func BenchmarkBoardParallelHashLookup(b *testing.B) {
 	b.SetParallelism(8)
 	b.RunParallel(func(pb *testing.PB) {
 		bo1 := board.Board{}
+		randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
 		for pb.Next() {
 			bo1.RandomizeIllegal()
 			hash := bo1.Hash()
-			r := rand.Uint32()
+			r := randGen.Uint32()
 
 			scoreMap.Store(&hash, r)
 
-			val, err := scoreMap.Read(&hash)
-			assert.Nil(b, err)
+			val, ok := scoreMap.Read(&hash)
+			assert.True(b, ok)
 			assert.Equal(b, r, val)
 		}
 	})
@@ -239,10 +261,11 @@ func BenchmarkBishopGetMovesNone(b *testing.B) {
 	bo1 := board.Board{}
 	bo1.ResetDefault()
 	b.ResetTimer()
-	for i := 0; i < b.N/2; i++ {
-		moves := bo1.GetPiece(board.Location{Row: 7, Col: 2}).GetMoves(&bo1)
-		assert.Equal(b, 0, len(*moves))
+	var moves *[]board.Move
+	for i := 0; i < b.N; i++ {
+		moves = bo1.GetPiece(board.Location{Row: 7, Col: 2}).GetMoves(&bo1)
 	}
+	assert.Equal(b, 0, len(*moves))
 }
 
 func BenchmarkBishopGetMoves(b *testing.B) {
@@ -253,8 +276,9 @@ func BenchmarkBishopGetMoves(b *testing.B) {
 		End:   board.Location{Row: 5, Col: 4},
 	}, &bo1)
 	b.ResetTimer()
-	for i := 0; i < b.N/2; i++ {
-		moves := bo1.GetPiece(board.Location{Row: 5, Col: 4}).GetMoves(&bo1)
-		assert.Equal(b, 7, len(*moves))
+	var moves *[]board.Move
+	for i := 0; i < b.N; i++ {
+		moves = bo1.GetPiece(board.Location{Row: 5, Col: 4}).GetMoves(&bo1)
 	}
+	assert.Equal(b, 7, len(*moves))
 }
