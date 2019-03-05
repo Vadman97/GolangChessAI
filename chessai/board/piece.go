@@ -33,6 +33,18 @@ func MakeMove(m *Move, b *Board) {
 	}
 }
 
+func CheckLocationForPiece(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool) {
+	if !l.InBounds() {
+		return false, false
+	}
+	if p := b.GetPiece(l); p != nil {
+		if p.GetColor() != pieceColor {
+			return true, false
+		}
+	}
+	return true, true
+}
+
 func GetColorTypeRepr(p Piece) string {
 	var result string
 	if p.GetColor() == color.White {

@@ -5,10 +5,14 @@ import (
 	"math"
 )
 
-var RightMove = Location{0, 1}
-var LeftMove = Location{0, -1}
 var UpMove = Location{-1, 0}
+var RightUpMove = Location{-1, 1}
+var RightMove = Location{0, 1}
+var RightDownMove = Location{1, 1}
 var DownMove = Location{1, 0}
+var LeftDownMove = Location{1, -1}
+var LeftMove = Location{0, -1}
+var LeftUpMove = Location{-1, -1}
 
 type Location struct {
 	Row, Col int8
@@ -35,8 +39,7 @@ func (l *Location) Equals(v Location) bool {
 }
 
 func (l *Location) InBounds() bool {
-	// Row, Col cannot be < 0 because byte is unsigned
-	return l.Row < Height && l.Col < Width
+	return l.Row >= 0 && l.Col >= 0 && l.Row < Height && l.Col < Width
 }
 
 type Move struct {

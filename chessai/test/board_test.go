@@ -122,8 +122,8 @@ func TestBoardHashLookupParallel(t *testing.T) {
 		<-done[tIdx]
 	}
 	duration := time.Now().Sub(start)
-	timePerOp := duration.Nanoseconds() / (NumOps * NumThreads)
-	log.Printf("Parallel write %d ops with %d ns/loop", NumOps*NumThreads, timePerOp)
+	timePerOp := duration / time.Microsecond / (NumOps * NumThreads)
+	log.Printf("Parallel randomize,hash,write,read %d ops with %d us/loop", NumOps*NumThreads, timePerOp)
 	//scoreMap.PrintMetrics()
 }
 
@@ -233,4 +233,28 @@ func BenchmarkBoardParallelHashLookup(b *testing.B) {
 			assert.Equal(b, r, val)
 		}
 	})
+}
+
+func BenchmarkBishopGetMovesNone(b *testing.B) {
+	bo1 := board.Board{}
+	bo1.ResetDefault()
+	b.ResetTimer()
+	for i := 0; i < b.N/2; i++ {
+		moves := bo1.GetPiece(board.Location{Row: 7, Col: 2}).GetMoves(&bo1)
+		assert.Equal(b, 0, len(*moves))
+	}
+}
+
+func BenchmarkBishopGetMoves(b *testing.B) {
+	bo1 := board.Board{}
+	bo1.ResetDefault()
+	board.MakeMove(&board.Move{
+		Start: board.Location{Row: 7, Col: 2},
+		End:   board.Location{Row: 5, Col: 4},
+	}, &bo1)
+	b.ResetTimer()
+	for i := 0; i < b.N/2; i++ {
+		moves := bo1.GetPiece(board.Location{Row: 7, Col: 2}).GetMoves(&bo1)
+		assert.Equal(b, 7, len(*moves))
+	}
 }

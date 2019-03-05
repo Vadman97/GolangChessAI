@@ -34,7 +34,29 @@ func (r *Bishop) GetPosition() Location {
 }
 
 func (r *Bishop) GetMoves(board *Board) *[]Move {
-	return nil
+	var moves []Move
+	for i := 0; i < 4; i++ {
+		l := r.GetPosition()
+		for l.InBounds() {
+			if i == 0 {
+				l = l.Add(RightUpMove)
+			} else if i == 1 {
+				l = l.Add(RightDownMove)
+			} else if i == 2 {
+				l = l.Add(LeftUpMove)
+			} else if i == 3 {
+				l = l.Add(LeftDownMove)
+			}
+			validMove, checkNext := CheckLocationForPiece(r.GetColor(), l, board)
+			if validMove {
+				moves = append(moves, Move{r.GetPosition(), l})
+			}
+			if !checkNext {
+				break
+			}
+		}
+	}
+	return &moves
 }
 
 func (r *Bishop) Move(m *Move, b *Board) {}
