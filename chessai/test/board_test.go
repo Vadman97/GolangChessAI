@@ -12,22 +12,19 @@ import (
 	"time"
 )
 
-var start = board.Location{Row: 2, Col: 5}
-var end = board.Location{Row: 4, Col: 6}
-
 func TestBoardMove(t *testing.T) {
 	board2 := board.Board{}
-	board2.SetPiece(end, &board.Rook{})
-	board2.SetPiece(start, &board.Rook{})
-	startPiece := board2.GetPiece(start)
-	startPiece.SetPosition(end)
+	board2.SetPiece(util.End, &board.Rook{})
+	board2.SetPiece(util.Start, &board.Rook{})
+	startPiece := board2.GetPiece(util.Start)
+	startPiece.SetPosition(util.End)
 	board.MakeMove(&board.Move{
-		Start: start,
-		End:   end,
+		Start: util.Start,
+		End:   util.End,
 	}, &board2)
-	assert.Nil(t, board2.GetPiece(start))
-	assert.Equal(t, startPiece, board2.GetPiece(end))
-	assert.Equal(t, end, board2.GetPiece(end).GetPosition())
+	assert.Nil(t, board2.GetPiece(util.Start))
+	assert.Equal(t, startPiece, board2.GetPiece(util.End))
+	assert.Equal(t, util.End, board2.GetPiece(util.End).GetPosition())
 }
 
 func TestBoardMoveClear(t *testing.T) {
@@ -35,8 +32,8 @@ func TestBoardMoveClear(t *testing.T) {
 	assert.Panics(t, func() {
 		for i := 0; i < 3; i++ {
 			board.MakeMove(&board.Move{
-				Start: start,
-				End:   end,
+				Start: util.Start,
+				End:   util.End,
 			}, &board2)
 		}
 	})
@@ -146,154 +143,4 @@ func TestBoardHashLookupParallel(t *testing.T) {
 	log.Printf("Parallel randomize,hash,write,read %d ops with %d us/loop. %.1f%% stores successful (%d)\n",
 		NumOps*NumThreads, timePerOp, pSuccess, totalNumStores)
 	//scoreMap.PrintMetrics()
-}
-
-func BenchmarkCopy(b *testing.B) {
-	board2 := board.Board{}
-	bNew := board2.Copy()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		bNew = board2.Copy()
-	}
-	b.StopTimer()
-	bNew.Copy()
-}
-
-func BenchmarkSetPiece(b *testing.B) {
-	board2 := board.Board{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		board2.SetPiece(start, &board.Rook{})
-	}
-}
-
-func BenchmarkGetPiece(b *testing.B) {
-	board2 := board.Board{}
-	board2.SetPiece(start, &board.Rook{})
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		board2.GetPiece(start)
-	}
-}
-
-func BenchmarkBoardMove(b *testing.B) {
-	board2 := board.Board{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		board2.SetPiece(end, &board.Rook{})
-		board2.SetPiece(start, &board.Rook{})
-		board.MakeMove(&board.Move{
-			Start: start,
-			End:   end,
-		}, &board2)
-	}
-}
-
-func BenchmarkBoardHash(b *testing.B) {
-	bo1 := board.Board{}
-	bo2 := board.Board{}
-	bo1.ResetDefault()
-	bo2.ResetDefaultSlow()
-	b.ResetTimer()
-	for i := 0; i < b.N/2; i++ {
-		bo2.Hash()
-		bo1.Hash()
-	}
-}
-
-func BenchmarkBoardResetDefault(b *testing.B) {
-	board2 := board.Board{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		board2.ResetDefault()
-	}
-}
-
-func BenchmarkBoardEquals(b *testing.B) {
-	bo1 := board.Board{}
-	bo2 := board.Board{}
-	bo1.ResetDefault()
-	bo2.ResetDefaultSlow()
-	b.ResetTimer()
-	for i := 0; i < b.N/2; i++ {
-		bo1.Equals(&bo2)
-		bo2.Equals(&bo1)
-	}
-}
-
-func BenchmarkBoardHashLookup(b *testing.B) {
-	scoreMap := util.NewConcurrentScoreMap()
-	bo1 := board.Board{}
-	bo1.ResetDefault()
-	b.ResetTimer()
-	hash := bo1.Hash()
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		hash = bo1.Hash()
-		bo1.RandomizeIllegal()
-		b.StartTimer()
-		scoreMap.Store(&hash, rand.Uint32())
-	}
-	b.StopTimer()
-}
-
-func BenchmarkBoardParallelHashLookup(b *testing.B) {
-	scoreMap := util.NewConcurrentScoreMap()
-	b.SetParallelism(8)
-	b.RunParallel(func(pb *testing.PB) {
-		bo1 := board.Board{}
-		randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
-		for pb.Next() {
-			bo1.RandomizeIllegal()
-			hash := bo1.Hash()
-			r := randGen.Uint32()
-
-			scoreMap.Store(&hash, r)
-
-			val, ok := scoreMap.Read(&hash)
-			assert.True(b, ok)
-			assert.Equal(b, r, val)
-		}
-	})
-}
-
-func benchMoveCount(b *testing.B, l board.Location, initialMove *board.Move, expectedMoves int) {
-	bo1 := board.Board{}
-	bo1.ResetDefault()
-	if initialMove != nil {
-		board.MakeMove(initialMove, &bo1)
-	}
-	b.ResetTimer()
-	var moves *[]board.Move
-	for i := 0; i < b.N; i++ {
-		moves = bo1.GetPiece(l).GetMoves(&bo1)
-	}
-	assert.NotNil(b, moves)
-	if moves != nil {
-		assert.Equal(b, expectedMoves, len(*moves))
-	}
-}
-
-func BenchmarkBishopGetMovesNone(b *testing.B) {
-	benchMoveCount(b, board.Location{Row: 7, Col: 2}, nil, 0)
-	// todo(Vadim) b & w
-	// todo(Vadim) make these into tests
-}
-
-func BenchmarkBishopGetMoves(b *testing.B) {
-	benchMoveCount(b, board.Location{Row: 5, Col: 4}, &board.Move{
-		Start: board.Location{Row: 7, Col: 2},
-		End:   board.Location{Row: 5, Col: 4},
-	}, 7)
-}
-
-func BenchmarkQueenGetMovesNone(b *testing.B) {
-	benchMoveCount(b, board.Location{Row: 7, Col: 3}, nil, 0)
-}
-
-func BenchmarkQueenGetMoves(b *testing.B) {
-	benchMoveCount(b, board.Location{Row: 5, Col: 3}, &board.Move{
-		Start: board.Location{Row: 7, Col: 3},
-		End:   board.Location{Row: 5, Col: 3},
-	}, 18)
 }
