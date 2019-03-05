@@ -1,6 +1,6 @@
 package color
 
 const (
-	White = iota
-	Black = iota
+	White = byte(iota)
+	Black = byte(iota)
 )
