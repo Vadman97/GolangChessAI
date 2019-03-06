@@ -174,3 +174,33 @@ func TestPawnGetMovesBlackEnPassant(t *testing.T) {
 		},
 	}, 2)
 }
+
+func TestKingGetMovesStart(t *testing.T) {
+	benchMoveCount(t, board.Location{Row: 7, Col: 4}, nil, 0)
+}
+
+func TestKingGetMoves(t *testing.T) {
+	benchMoveCount(t, board.Location{Row: 4, Col: 4}, &[]board.Move{{
+		Start: board.Location{Row: 7, Col: 4},
+		End:   board.Location{Row: 4, Col: 4},
+	}}, 8)
+}
+
+func TestKingGetMovesStartBlack(t *testing.T) {
+	benchMoveCount(t, board.Location{Row: 0, Col: 4}, nil, 0)
+}
+
+func TestKingGetMovesBlack(t *testing.T) {
+	benchMoveCount(t, board.Location{Row: 3, Col: 4}, &[]board.Move{{
+		Start: board.Location{Row: 0, Col: 4},
+		End:   board.Location{Row: 3, Col: 4},
+	}}, 8)
+}
+
+func TestKingGetMovesProtection(t *testing.T) {
+	// TODO(Vadim) this test will fail until King getMoves() is fixed to check for protection
+	benchMoveCount(t, board.Location{Row: 4, Col: 4}, &[]board.Move{{
+		Start: board.Location{Row: 0, Col: 4},
+		End:   board.Location{Row: 4, Col: 4},
+	}}, 5)
+}
