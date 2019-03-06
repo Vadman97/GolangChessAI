@@ -191,7 +191,7 @@ func (b *Board) RandomizeIllegal() {
 	b.flags = byte(b.TestRandGen.Uint32())
 }
 
-func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
+func (b *Board) GetAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
 	var blackMoves, whiteMoves []Move
 	// TODO(Vadim) think of how to optimize this, profile it and write tests
 	for r := 0; r < Height; r++ {
@@ -199,13 +199,16 @@ func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
 			continue
 		}
 		for c := 0; c < Width; c++ {
-			p := b.GetPiece(Location{int8(r), int8(c)})
-			moves := p.GetMoves(b)
-			if moves != nil {
-				if getBlack && p.GetColor() == color.Black {
-					blackMoves = append(blackMoves, *moves...)
-				} else if getWhite && p.GetColor() == color.White {
-					whiteMoves = append(whiteMoves, *moves...)
+			l := Location{int8(r), int8(c)}
+			if !b.IsEmpty(l) {
+				p := b.GetPiece(l)
+				moves := p.GetMoves(b)
+				if moves != nil {
+					if getBlack && p.GetColor() == color.Black {
+						blackMoves = append(blackMoves, *moves...)
+					} else if getWhite && p.GetColor() == color.White {
+						whiteMoves = append(whiteMoves, *moves...)
+					}
 				}
 			}
 		}
