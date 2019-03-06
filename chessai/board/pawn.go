@@ -123,6 +123,10 @@ func (r *Pawn) checkEnPassant(l Location, b *Board) Piece {
 				if r.Color != pawn.GetColor() {
 					// TODO(Vadim) this is flawed - ensure that it is only if the enemy JUST performed dbl move
 					// maybe keep some sort of turn counter - like what turn u made move on?
+					/*
+						Store column index of pawn last double-moved
+						Clear or update on next boardmove - only 3/4 bits? 0-15 pawn ids - store as 4 extra bits
+					*/
 					if (pawn.GetColor() == color.Black && pawn.GetPosition().Row == 3) ||
 						(pawn.GetColor() == color.White && pawn.GetPosition().Row == 4) {
 						return enPassantPawn

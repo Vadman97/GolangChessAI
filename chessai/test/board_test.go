@@ -120,7 +120,7 @@ func TestBoardHashLookupParallel(t *testing.T) {
 			for i := 0; i < NumOps; i++ {
 				bo1.RandomizeIllegal()
 				hash := bo1.Hash()
-				r := bo1.TestRandGen.Uint32()
+				r := bo1.TestRandGen.Int31()
 				_, ok := scoreMap.Read(&hash)
 				if !ok {
 					scoreMap.Store(&hash, r)

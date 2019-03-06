@@ -12,7 +12,7 @@ const (
 )
 
 type ConcurrentScoreMap struct {
-	scoreMap  [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32
+	scoreMap  [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]int32
 	locks     [NumSlices]sync.RWMutex
 	lockUsage [NumSlices]uint64
 }
@@ -21,7 +21,7 @@ func NewConcurrentScoreMap() *ConcurrentScoreMap {
 	var m ConcurrentScoreMap
 	for i := 0; i < NumSlices; i++ {
 		if m.scoreMap[i] == nil {
-			m.scoreMap[i] = make(map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32)
+			m.scoreMap[i] = make(map[uint64]map[uint64]map[uint64]map[uint64]map[byte]int32)
 		}
 	}
 	return &m
@@ -44,7 +44,7 @@ func (m *ConcurrentScoreMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
 	return &m.locks[s], s
 }
 
-func (m *ConcurrentScoreMap) Store(hash *[33]byte, score uint32) {
+func (m *ConcurrentScoreMap) Store(hash *[33]byte, score int32) {
 	idx := getIdx(hash)
 
 	lock, lockIdx := m.getLock(hash)
@@ -53,25 +53,25 @@ func (m *ConcurrentScoreMap) Store(hash *[33]byte, score uint32) {
 
 	_, ok := m.scoreMap[lockIdx][idx[0]]
 	if !ok {
-		m.scoreMap[lockIdx][idx[0]] = make(map[uint64]map[uint64]map[uint64]map[byte]uint32)
+		m.scoreMap[lockIdx][idx[0]] = make(map[uint64]map[uint64]map[uint64]map[byte]int32)
 	}
 	_, ok = m.scoreMap[lockIdx][idx[0]][idx[1]]
 	if !ok {
-		m.scoreMap[lockIdx][idx[0]][idx[1]] = make(map[uint64]map[uint64]map[byte]uint32)
+		m.scoreMap[lockIdx][idx[0]][idx[1]] = make(map[uint64]map[uint64]map[byte]int32)
 	}
 	_, ok = m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]]
 	if !ok {
-		m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]] = make(map[uint64]map[byte]uint32)
+		m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]] = make(map[uint64]map[byte]int32)
 	}
 	_, ok = m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]]
 	if !ok {
-		m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]] = make(map[byte]uint32)
+		m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]] = make(map[byte]int32)
 	}
 
 	m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]] = score
 }
 
-func (m *ConcurrentScoreMap) Read(hash *[33]byte) (uint32, bool) {
+func (m *ConcurrentScoreMap) Read(hash *[33]byte) (int32, bool) {
 	idx := getIdx(hash)
 
 	lock, lockIdx := m.getLock(hash)

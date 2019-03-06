@@ -197,10 +197,14 @@ func TestKingGetMovesBlack(t *testing.T) {
 	}}, 8)
 }
 
-func TestKingGetMovesProtection(t *testing.T) {
-	// TODO(Vadim) this test will fail until King getMoves() is fixed to check for protection
+func TestKingGetMovesDefended(t *testing.T) {
+	// TODO(Vadim) this test will fail until King getMoves() is fixed to check for piece defense
 	benchMoveCount(t, board.Location{Row: 4, Col: 4}, &[]board.Move{{
 		Start: board.Location{Row: 0, Col: 4},
 		End:   board.Location{Row: 4, Col: 4},
 	}}, 5)
+}
+
+func TestKingGetMovesCastle(t *testing.T) {
+	// TODO(Vadim)
 }

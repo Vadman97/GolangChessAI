@@ -38,20 +38,21 @@ func (r *King) GetMoves(board *Board) *[]Move {
 
 	for i := -1; i <= 1; i++ {
 		for j := -1; j <= 1; j++ {
-			if i != j {
+			if i != 0 || j != 0 {
 				l := r.GetPosition()
 				l = l.Add(Location{int8(i), int8(j)})
 				if l.InBounds() {
-					// TODO(Vadim) check l is not under attack
-					if board.IsEmpty(l) {
-						validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
-						if validMove {
-							moves = append(moves, Move{r.GetPosition(), l})
-						}
-					} else if board.GetPiece(l).GetColor() != r.GetColor() {
-						validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
-						if validMove {
-							moves = append(moves, Move{r.GetPosition(), l})
+					if !r.underAttack(l, board) {
+						if board.IsEmpty(l) {
+							validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
+							if validMove {
+								moves = append(moves, Move{r.GetPosition(), l})
+							}
+						} else if board.GetPiece(l).GetColor() != r.GetColor() {
+							validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
+							if validMove {
+								moves = append(moves, Move{r.GetPosition(), l})
+							}
 						}
 					}
 				}
@@ -59,7 +60,7 @@ func (r *King) GetMoves(board *Board) *[]Move {
 		}
 	}
 
-	if !board.GetFlag(FlagCastled, r.GetColor()) {
+	if !board.GetFlag(FlagCastled, r.GetColor()) && !board.GetFlag(FlagKingMoved, r.GetColor()) {
 		right, left := r.GetPosition(), r.GetPosition()
 		for i := 0; i < 2; i++ {
 			right = right.Add(RightMove)
@@ -95,11 +96,26 @@ func (r *King) Move(m *Move, b *Board) {
 }
 
 func (r *King) canCastle(m *Move, b *Board) bool {
-	// TODO(Vadim) check spaces between are not under attack - efficient algo?
 	if m.End.InBounds() {
+		// rook can be under attack - only need to check two spaces where king will move
+		for c := m.Start.Col; c <= m.End.Col; c++ {
+			if r.underAttack(Location{m.End.Row, c}, b) {
+				return false
+			}
+		}
+		for c := m.Start.Col; c >= m.End.Col; c-- {
+			if r.underAttack(Location{m.End.Row, c}, b) {
+				return false
+			}
+		}
 		if b.IsEmpty(m.End) {
 			return true
 		}
 	}
+	return false
+}
+
+func (r *King) underAttack(l Location, b *Board) bool {
+	// TODO(Vadim) check space not under attack - efficient algo?
 	return false
 }
