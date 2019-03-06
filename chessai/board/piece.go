@@ -48,6 +48,9 @@ func CheckLocationForPiece(pieceColor byte, l Location, b *Board) (validMove boo
 
 func GetColorTypeRepr(p Piece) string {
 	var result string
+	if p == nil {
+		return " _ "
+	}
 	if p.GetColor() == color.White {
 		result += "W_"
 	} else if p.GetColor() == color.Black {

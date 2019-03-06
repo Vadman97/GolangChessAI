@@ -9,12 +9,15 @@ import (
 )
 
 func main() {
-	const MovesToPlay = 100
+	const MovesToPlay = 200
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
+	fmt.Println("Before moves")
+	fmt.Println(myBoard.Print())
 
 	turnColor := color.White
 	start := time.Now()
+	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < MovesToPlay; i++ {
 		blackMoves, whiteMoves := myBoard.GetAllMoves(turnColor == color.Black, turnColor == color.White)
 		var moves []board.Move
@@ -31,6 +34,7 @@ func main() {
 		turnColor = (turnColor + 1) % color.NumColors
 	}
 
+	fmt.Println("After moves")
 	fmt.Println(myBoard.Print())
 	fmt.Printf("Played %d moves in %d ms.", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
 }
