@@ -106,7 +106,7 @@ func TestBoardHash(t *testing.T) {
 func TestBoardHashLookupParallel(t *testing.T) {
 	const (
 		NumThreads = 8
-		NumOps     = 10000
+		NumOps     = 1000
 	)
 	scoreMap := util.NewConcurrentScoreMap()
 

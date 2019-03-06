@@ -10,11 +10,11 @@ const (
 )
 
 const (
-	NilType    = 0
-	RookType   = 1
-	KnightType = 2
-	BishopType = 3
-	QueenType  = 4
-	KingType   = 5
-	PawnType   = 6
+	NilType    = byte(0)
+	RookType   = byte(1)
+	KnightType = byte(2)
+	BishopType = byte(3)
+	QueenType  = byte(4)
+	KingType   = byte(5)
+	PawnType   = byte(6)
 )

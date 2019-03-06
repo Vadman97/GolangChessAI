@@ -34,6 +34,7 @@ func (r *King) GetPosition() Location {
 }
 
 func (r *King) GetMoves(board *Board) *[]Move {
+	// TODO(Vadim) implement
 	return nil
 }
 

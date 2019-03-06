@@ -4,6 +4,17 @@ import (
 	"ChessAI3/chessai/board/piece"
 )
 
+var possibleMoves = []Location{
+	{-2, 1},
+	{-1, 2},
+	{1, 2},
+	{2, 1},
+	{2, -1},
+	{1, -2},
+	{-2, -1},
+	{-1, -2},
+}
+
 type Knight struct {
 	Location Location
 	Color    byte
@@ -34,7 +45,16 @@ func (r *Knight) GetPosition() Location {
 }
 
 func (r *Knight) GetMoves(board *Board) *[]Move {
-	return nil
+	var moves []Move
+	for _, possibleMove := range possibleMoves {
+		l := r.GetPosition()
+		l = l.Add(possibleMove)
+		validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
+		if validMove {
+			moves = append(moves, Move{r.GetPosition(), l})
+		}
+	}
+	return &moves
 }
 
 func (r *Knight) Move(m *Move, b *Board) {}

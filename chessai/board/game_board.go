@@ -143,9 +143,13 @@ func (b *Board) SetPiece(l Location, p Piece) {
 }
 
 func (b *Board) GetPiece(l Location) Piece {
-	pos := getBitOffset(l)
-	data := byte((b.board[l.Row] & (PieceMask << pos)) >> pos)
+	data := b.getPieceData(l)
 	return decodeData(l, data)
+}
+
+func (b *Board) getPieceData(l Location) byte {
+	pos := getBitOffset(l)
+	return byte((b.board[l.Row] & (PieceMask << pos)) >> pos)
 }
 
 func (b *Board) SetFlag(flag byte, color byte, value bool) {
@@ -158,6 +162,10 @@ func (b *Board) SetFlag(flag byte, color byte, value bool) {
 
 func (b *Board) GetFlag(flag byte, color byte) bool {
 	return (b.flags & ((1 << flag) << (color * NumFlagBits))) != 0
+}
+
+func (b *Board) IsEmpty(l Location) bool {
+	return b.getPieceData(l) == 0
 }
 
 func (b *Board) Print() (result string) {
@@ -181,6 +189,34 @@ func (b *Board) RandomizeIllegal() {
 		}
 	}
 	b.flags = byte(b.TestRandGen.Uint32())
+}
+
+func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
+	var blackMoves, whiteMoves []Move
+	// TODO(Vadim) think of how to optimize this, profile it and write tests
+	for r := 0; r < Height; r++ {
+		if b.board[r] == 0 {
+			continue
+		}
+		for c := 0; c < Width; c++ {
+			p := b.GetPiece(Location{int8(r), int8(c)})
+			moves := p.GetMoves(b)
+			if moves != nil {
+				if getBlack && p.GetColor() == color.Black {
+					blackMoves = append(blackMoves, *moves...)
+				} else if getWhite && p.GetColor() == color.White {
+					whiteMoves = append(whiteMoves, *moves...)
+				}
+			}
+		}
+	}
+	if getBlack {
+		black = &blackMoves
+	}
+	if getWhite {
+		white = &whiteMoves
+	}
+	return
 }
 
 func (b *Board) move(m *Move) {
