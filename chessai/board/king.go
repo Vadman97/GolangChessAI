@@ -35,7 +35,57 @@ func (r *King) GetPosition() Location {
 
 func (r *King) GetMoves(board *Board) *[]Move {
 	// TODO(Vadim) implement
-	return nil
+	var moves []Move
+
+	/*
+		for i := -1; i <= 1; i++ {
+			for j := -1; j <= 1; j++ {
+				if i != j {
+					l := r.GetPosition()
+					l = l.Add(Location{int8(i), int8(j)})
+					if l.InBounds() {
+						// TODO(Vadim) check l is not protected
+						if board.IsEmpty(l) {
+
+						} else if board.GetPiece(l).GetColor() != r.GetColor() {
+
+						}
+					}
+				}
+			}
+		}
+
+		validMove, checkNext := CheckLocationForPiece(r.GetColor(), l, board)
+		if validMove {
+			moves = append(moves, Move{r.GetPosition(), l})
+		}
+		if !checkNext {
+			break
+		}
+
+		/*
+		for (loc_t i = -1; i <= 1; ++i) {
+		    for (loc_t j = -1; j <= 1; ++j) {
+		      if (i == j) { continue; }
+		      Location l = getPosition() + Location(i, j);
+		      if (!l.inBounds()) { continue; }
+		      if (board->isEmpty(l)) {
+		        moves.emplace_back(Move(getPosition(), l));
+		      } else if (board->getPiece(l)->getColor() != getColor()) {
+		        // TODO(Vadim) check not protected
+		        moves.emplace_back(Move(getPosition(), l));
+		      }
+		    }
+		  }
+		  if (!board->getFlag(c, GameBoard::CASTLED)) {
+		    // TODO(Vadim) check not protected in the middle of castle
+		    addMoveIfValid(board, getPosition() + right(2));
+		    addMoveIfValid(board, getPosition() + left(2));
+		  }
+
+	*/
+
+	return &moves
 }
 
 func (r *King) Move(m *Move, b *Board) {
