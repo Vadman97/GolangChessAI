@@ -50,6 +50,17 @@ var StartingRowHex = [...]uint32{
 	0x2468A642,
 }
 
+var StartRow = map[byte]map[string]int8{
+	color.Black: {
+		"Piece": 0,
+		"Pawn":  1,
+	},
+	color.White: {
+		"Pawn":  6,
+		"Piece": 7,
+	},
+}
+
 type Board struct {
 	// board stores entire layout of pieces on the Width * Height board
 	// more efficient to use ints - faster to copy int than set of bytes

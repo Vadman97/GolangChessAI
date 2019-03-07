@@ -12,7 +12,7 @@ import (
 )
 
 func TestAI(t *testing.T) {
-	const MovesToPlay = 1000
+	const MovesToPlay = 100
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")
