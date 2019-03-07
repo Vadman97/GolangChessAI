@@ -194,7 +194,17 @@ func (b *Board) RandomizeIllegal() {
 	b.flags = byte(b.TestRandGen.Uint32())
 }
 
-func (b *Board) GetAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
+func (b *Board) GetAllMoves(c byte) *[]Move {
+	black, white := b.getAllMoves(c == color.Black, c == color.White)
+	if c == color.Black {
+		return black
+	} else if c == color.White {
+		return white
+	}
+	return nil
+}
+
+func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
 	var blackMoves, whiteMoves []Move
 	// TODO(Vadim) think of how to optimize this, profile it and write tests
 	for r := 0; r < Height; r++ {

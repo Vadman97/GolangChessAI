@@ -3,7 +3,7 @@ package test
 import (
 	"ChessAI3/chessai/board"
 	"ChessAI3/chessai/board/color"
-	"ChessAI3/chessai/board/util"
+	"ChessAI3/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"math/rand"

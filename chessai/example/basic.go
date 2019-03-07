@@ -3,7 +3,7 @@ package main
 import (
 	"ChessAI3/chessai/board"
 	"ChessAI3/chessai/board/color"
-	"ChessAI3/chessai/board/util"
+	"ChessAI3/chessai/util"
 	"fmt"
 	"math/rand"
 	"time"
@@ -21,13 +21,7 @@ func main() {
 	start := time.Now()
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < MovesToPlay; i++ {
-		blackMoves, whiteMoves := myBoard.GetAllMoves(turnColor == color.Black, turnColor == color.White)
-		var moves []board.Move
-		if turnColor == color.Black {
-			moves = *blackMoves
-		} else if turnColor == color.White {
-			moves = *whiteMoves
-		}
+		moves := *myBoard.GetAllMoves(turnColor)
 		if len(moves) == 0 {
 			break
 		}

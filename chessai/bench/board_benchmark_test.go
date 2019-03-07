@@ -1,8 +1,8 @@
-package test
+package bench
 
 import (
 	"ChessAI3/chessai/board"
-	"ChessAI3/chessai/board/util"
+	"ChessAI3/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
