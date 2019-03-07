@@ -17,10 +17,7 @@ func TestAI(t *testing.T) {
 	fmt.Println("Before moves")
 	fmt.Println(myBoard.Print())
 
-	aiPlayer := player.AIPlayer{
-		TurnCount:   0,
-		PlayerColor: color.Black,
-	}
+	aiPlayer := player.NewAIPlayer(color.Black)
 
 	turnColor := color.White
 	start := time.Now()

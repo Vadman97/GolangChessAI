@@ -4,6 +4,7 @@ import (
 	"ChessAI3/chessai/board"
 	"ChessAI3/chessai/board/color"
 	"ChessAI3/chessai/board/piece"
+	"ChessAI3/chessai/util"
 	"fmt"
 	"math"
 )
@@ -23,8 +24,17 @@ type ScoredMove struct {
 }
 
 type AIPlayer struct {
-	TurnCount   int
-	PlayerColor byte
+	TurnCount     int
+	PlayerColor   byte
+	evaluationMap *util.ConcurrentScoreMap
+}
+
+func NewAIPlayer(c byte) *AIPlayer {
+	return &AIPlayer{
+		TurnCount:     0,
+		PlayerColor:   c,
+		evaluationMap: util.NewConcurrentScoreMap(),
+	}
 }
 
 func compare(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) *ScoredMove {
@@ -72,6 +82,7 @@ func (p *AIPlayer) MiniMax(b *board.Board, depth int, currentPlayer byte) *Score
 func (p *AIPlayer) GetBestMove(b *board.Board) *board.Move {
 	m := p.MiniMax(b, 4, p.PlayerColor)
 	fmt.Printf("AI Player best move leads to score %d\n", m.Score)
+	p.evaluationMap.PrintMetrics()
 	return m.Move
 }
 
@@ -81,6 +92,13 @@ func (p *AIPlayer) MakeMove(b *board.Board) {
 }
 
 func (p *AIPlayer) EvaluateBoard(b *board.Board) *board.Evaluation {
+	hash := b.Hash()
+	if score, ok := p.evaluationMap.Read(&hash); ok {
+		return &board.Evaluation{
+			TotalScore: int(score),
+		}
+	}
+
 	// TODO(Vadim) make more intricate
 	eval := board.Evaluation{
 		PieceCounts: map[byte]map[byte]uint8{
@@ -111,6 +129,8 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board) *board.Evaluation {
 			eval.TotalScore += value * int(eval.PieceCounts[c][pieceType]) * cMult
 		}
 	}
+
+	p.evaluationMap.Store(&hash, int32(eval.TotalScore))
 
 	return &eval
 }
