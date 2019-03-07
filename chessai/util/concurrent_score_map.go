@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	NumSlices = 256
+	NumSlices = 8
 )
 
 type ConcurrentScoreMap struct {
@@ -86,7 +86,8 @@ func (m *ConcurrentScoreMap) Read(hash *[33]byte) (int32, bool) {
 			if ok {
 				m4, ok := m3[idx[3]]
 				if ok {
-					return m4[(*hash)[32]], true
+					v, ok := m4[(*hash)[32]]
+					return v, ok
 				}
 			}
 		}

@@ -1,4 +1,4 @@
-package player
+package ai
 
 import (
 	"ChessAI3/chessai/board"
@@ -7,6 +7,16 @@ import (
 	"ChessAI3/chessai/util"
 	"fmt"
 	"math"
+)
+
+const (
+	NegInf = math.MinInt32
+	PosInf = math.MaxInt32
+)
+
+const (
+	AlgorithmMiniMax             = iota
+	AlgorithmAlphaBetaWithMemory = iota
 )
 
 var PieceValue = map[byte]int{
@@ -23,17 +33,21 @@ type ScoredMove struct {
 	Score int
 }
 
-type AIPlayer struct {
-	TurnCount     int
-	PlayerColor   byte
-	evaluationMap *util.ConcurrentScoreMap
+type Player struct {
+	TurnCount      int
+	PlayerColor    byte
+	Algorithm      int
+	evaluationMap  *util.ConcurrentScoreMap
+	alphaBetaTable *util.TranspositionTable
 }
 
-func NewAIPlayer(c byte) *AIPlayer {
-	return &AIPlayer{
-		TurnCount:     0,
-		PlayerColor:   c,
-		evaluationMap: util.NewConcurrentScoreMap(),
+func NewAIPlayer(c byte) *Player {
+	return &Player{
+		Algorithm:      AlgorithmAlphaBetaWithMemory,
+		TurnCount:      0,
+		PlayerColor:    c,
+		evaluationMap:  util.NewConcurrentScoreMap(),
+		alphaBetaTable: util.NewTranspositionTable(),
 	}
 }
 
@@ -53,72 +67,27 @@ func compare(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) *
 	}
 }
 
-func (p *AIPlayer) MiniMaxRecurse(b *board.Board, m *board.Move, depth int, currentPlayer byte) *ScoredMove {
-	newBoard := b.Copy()
-	board.MakeMove(m, newBoard)
-	candidate := p.MiniMax(newBoard, depth-1, (currentPlayer+1)%color.NumColors)
-	candidate.Move = m
-	return candidate
-}
-
-func (p *AIPlayer) MiniMax(b *board.Board, depth int, currentPlayer byte) *ScoredMove {
-	if depth == 0 {
-		return &ScoredMove{
-			Move:  nil,
-			Score: p.EvaluateBoard(b).TotalScore,
-		}
-	}
-
-	var best ScoredMove
-	if currentPlayer == p.PlayerColor {
-		// maximizing player
-		best.Score = math.MinInt32
+func (p *Player) GetBestMove(b *board.Board) *board.Move {
+	var m *ScoredMove
+	if p.Algorithm == AlgorithmMiniMax {
+		m = p.MiniMax(b, 4, p.PlayerColor)
+	} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
+		m = p.AlphaBetaWithMemory(b, 8, NegInf, PosInf, p.PlayerColor)
 	} else {
-		// minimizing player
-		best.Score = math.MaxInt32
+		panic("invalid ai algorithm")
 	}
-	moves := b.GetAllMoves(p.PlayerColor)
-
-	var serialMiniMax = func() {
-		for _, m := range *moves {
-			candidate := p.MiniMaxRecurse(b, &m, depth, currentPlayer)
-			best = *compare(currentPlayer == p.PlayerColor, &best, candidate)
-		}
-	}
-	serialMiniMax()
-
-	/*
-		var parallelMiniMax = func() {
-			queue := make(chan *ScoredMove)
-			for _, m := range *moves {
-				go func(_m *board.Move) {
-					queue <- p.MiniMaxRecurse(b, _m, depth, currentPlayer)
-				}(&m)
-			}
-			for i := 0; i < len(*moves); i++ {
-				candidate := <-queue
-				best = *compare(currentPlayer == p.PlayerColor, &best, candidate)
-			}
-		}
-		parallelMiniMax()
-	*/
-
-	return &best
-}
-
-func (p *AIPlayer) GetBestMove(b *board.Board) *board.Move {
-	m := p.MiniMax(b, 4, p.PlayerColor)
 	fmt.Printf("AI Player best move leads to score %d\n", m.Score)
 	p.evaluationMap.PrintMetrics()
+	p.alphaBetaTable.PrintMetrics()
 	return m.Move
 }
 
-func (p *AIPlayer) MakeMove(b *board.Board) {
+func (p *Player) MakeMove(b *board.Board) {
 	board.MakeMove(p.GetBestMove(b), b)
 	p.TurnCount++
 }
 
-func (p *AIPlayer) EvaluateBoard(b *board.Board) *board.Evaluation {
+func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 	hash := b.Hash()
 	if score, ok := p.evaluationMap.Read(&hash); ok {
 		return &board.Evaluation{

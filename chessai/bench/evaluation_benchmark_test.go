@@ -2,13 +2,13 @@ package bench
 
 import (
 	"ChessAI3/chessai/board"
-	"ChessAI3/chessai/player"
+	"ChessAI3/chessai/player/ai"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func BenchmarkEvaluate(b *testing.B) {
-	p := player.AIPlayer{}
+	p := ai.Player{}
 	bo1 := board.Board{}
 	bo1.ResetDefault()
 	var eval *board.Evaluation
@@ -24,7 +24,7 @@ func BenchmarkEvaluate(b *testing.B) {
 func BenchmarkEvaluateParallel(b *testing.B) {
 	b.SetParallelism(8)
 	b.RunParallel(func(pb *testing.PB) {
-		p := player.AIPlayer{}
+		p := ai.Player{}
 		bo1 := board.Board{}
 		bo1.ResetDefault()
 		for pb.Next() {

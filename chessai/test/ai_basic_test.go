@@ -1,35 +1,40 @@
-package main
+package test
 
 import (
 	"ChessAI3/chessai/board"
 	"ChessAI3/chessai/board/color"
-	"ChessAI3/chessai/player"
+	"ChessAI3/chessai/player/ai"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 	"time"
 )
 
 func TestAI(t *testing.T) {
-	const MovesToPlay = 40
+	const MovesToPlay = 20
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")
 	fmt.Println(myBoard.Print())
 
-	aiPlayer := player.NewAIPlayer(color.Black)
+	aiPlayerSmart := ai.NewAIPlayer(color.Black)
+	aiPlayerSmart.Algorithm = ai.AlgorithmAlphaBetaWithMemory
+	aiPlayerDumb := ai.NewAIPlayer(color.White)
+	aiPlayerDumb.Algorithm = ai.AlgorithmMiniMax
 
 	turnColor := color.White
 	start := time.Now()
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < MovesToPlay; i++ {
 		if turnColor == color.White {
+			aiPlayerDumb.MakeMove(&myBoard)
 			// TODO(Vadim) make dummy random player class - player interface
-			moves := *myBoard.GetAllMoves(turnColor)
-			idx := rand.Intn(len(moves))
-			board.MakeMove(&moves[idx], &myBoard)
+			//moves := *myBoard.GetAllMoves(turnColor)
+			//idx := rand.Intn(len(moves))
+			//board.MakeMove(&moves[idx], &myBoard)
 		} else {
-			aiPlayer.MakeMove(&myBoard)
+			aiPlayerSmart.MakeMove(&myBoard)
 		}
 		turnColor = (turnColor + 1) % color.NumColors
 		fmt.Printf("Move %d\n", i)
@@ -40,4 +45,6 @@ func TestAI(t *testing.T) {
 	fmt.Println(myBoard.Print())
 	// comment out printing inside loop for accurate timing
 	fmt.Printf("Played %d moves in %d ms.", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
+
+	assert.True(t, aiPlayerSmart.EvaluateBoard(&myBoard).TotalScore > aiPlayerDumb.EvaluateBoard(&myBoard).TotalScore)
 }
