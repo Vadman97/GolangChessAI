@@ -53,6 +53,13 @@ func compare(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) *
 	}
 }
 
+func (p *AIPlayer) MiniMaxRecurse(newBoard *board.Board, m *board.Move, depth int, currentPlayer byte, queue chan *ScoredMove) {
+	board.MakeMove(m, newBoard)
+	candidate := p.MiniMax(newBoard, depth-1, (currentPlayer+1)%color.NumColors)
+	candidate.Move = m
+	queue <- candidate
+}
+
 func (p *AIPlayer) MiniMax(b *board.Board, depth int, currentPlayer byte) *ScoredMove {
 	if depth == 0 {
 		return &ScoredMove{
@@ -69,13 +76,18 @@ func (p *AIPlayer) MiniMax(b *board.Board, depth int, currentPlayer byte) *Score
 		// minimizing player
 		best.Score = math.MaxInt32
 	}
-	for _, m := range *b.GetAllMoves(p.PlayerColor) {
+	moves := b.GetAllMoves(p.PlayerColor)
+
+	queue := make(chan *ScoredMove)
+	for _, m := range *moves {
 		newBoard := b.Copy()
-		board.MakeMove(&m, newBoard)
-		candidate := p.MiniMax(newBoard, depth-1, (currentPlayer+1)%color.NumColors)
-		candidate.Move = &m
+		go p.MiniMaxRecurse(newBoard, &m, depth, currentPlayer, queue)
+	}
+	for i := 0; i < len(*moves); i++ {
+		candidate := <-queue
 		best = *compare(currentPlayer == p.PlayerColor, &best, candidate)
 	}
+
 	return &best
 }
 
