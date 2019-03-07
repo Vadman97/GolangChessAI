@@ -11,7 +11,7 @@ import (
 )
 
 func TestAI(t *testing.T) {
-	const MovesToPlay = 20
+	const MovesToPlay = 40
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")

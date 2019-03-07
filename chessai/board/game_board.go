@@ -17,7 +17,6 @@ const (
 const (
 	// 3 bits for piece type
 	// 1 bit for piece Color
-	PiecesPerRow = Width
 	BitsPerPiece = 4
 	BytesPerRow  = Width * BitsPerPiece / 8
 	PieceMask    = 0xF // BitsPerPiece 1's

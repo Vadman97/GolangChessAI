@@ -53,11 +53,12 @@ func compare(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) *
 	}
 }
 
-func (p *AIPlayer) MiniMaxRecurse(newBoard *board.Board, m *board.Move, depth int, currentPlayer byte, queue chan *ScoredMove) {
+func (p *AIPlayer) MiniMaxRecurse(b *board.Board, m *board.Move, depth int, currentPlayer byte) *ScoredMove {
+	newBoard := b.Copy()
 	board.MakeMove(m, newBoard)
 	candidate := p.MiniMax(newBoard, depth-1, (currentPlayer+1)%color.NumColors)
 	candidate.Move = m
-	queue <- candidate
+	return candidate
 }
 
 func (p *AIPlayer) MiniMax(b *board.Board, depth int, currentPlayer byte) *ScoredMove {
@@ -78,15 +79,29 @@ func (p *AIPlayer) MiniMax(b *board.Board, depth int, currentPlayer byte) *Score
 	}
 	moves := b.GetAllMoves(p.PlayerColor)
 
-	queue := make(chan *ScoredMove)
-	for _, m := range *moves {
-		newBoard := b.Copy()
-		go p.MiniMaxRecurse(newBoard, &m, depth, currentPlayer, queue)
+	var serialMiniMax = func() {
+		for _, m := range *moves {
+			candidate := p.MiniMaxRecurse(b, &m, depth, currentPlayer)
+			best = *compare(currentPlayer == p.PlayerColor, &best, candidate)
+		}
 	}
-	for i := 0; i < len(*moves); i++ {
-		candidate := <-queue
-		best = *compare(currentPlayer == p.PlayerColor, &best, candidate)
-	}
+	serialMiniMax()
+
+	/*
+		var parallelMiniMax = func() {
+			queue := make(chan *ScoredMove)
+			for _, m := range *moves {
+				go func(_m *board.Move) {
+					queue <- p.MiniMaxRecurse(b, _m, depth, currentPlayer)
+				}(&m)
+			}
+			for i := 0; i < len(*moves); i++ {
+				candidate := <-queue
+				best = *compare(currentPlayer == p.PlayerColor, &best, candidate)
+			}
+		}
+		parallelMiniMax()
+	*/
 
 	return &best
 }
