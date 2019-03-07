@@ -15,8 +15,8 @@ const (
 )
 
 const (
-	AlgorithmMiniMax             = iota
-	AlgorithmAlphaBetaWithMemory = iota
+	AlgorithmMiniMax             = "MiniMax"
+	AlgorithmAlphaBetaWithMemory = "AlphaBeta"
 )
 
 var PieceValue = map[byte]int{
@@ -36,7 +36,7 @@ type ScoredMove struct {
 type Player struct {
 	TurnCount      int
 	PlayerColor    byte
-	Algorithm      int
+	Algorithm      string
 	evaluationMap  *util.ConcurrentScoreMap
 	alphaBetaTable *util.TranspositionTable
 }
@@ -76,7 +76,11 @@ func (p *Player) GetBestMove(b *board.Board) *board.Move {
 	} else {
 		panic("invalid ai algorithm")
 	}
-	fmt.Printf("AI Player best move leads to score %d\n", m.Score)
+	c := "Black"
+	if p.PlayerColor == color.White {
+		c = "White"
+	}
+	fmt.Printf("AI (%s - %s) best move leads to score %d\n", p.Algorithm, c, m.Score)
 	p.evaluationMap.PrintMetrics()
 	p.alphaBetaTable.PrintMetrics()
 	return m.Move

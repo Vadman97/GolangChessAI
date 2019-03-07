@@ -97,10 +97,10 @@ func (m *ConcurrentScoreMap) Read(hash *[33]byte) (int32, bool) {
 }
 
 func (m *ConcurrentScoreMap) PrintMetrics() {
-	fmt.Printf("Lock Usages: \n")
+	//fmt.Printf("Lock Usages: \n")
 	total := uint64(0)
 	for i := 0; i < NumSlices; i++ {
-		fmt.Printf("Slice #%d, Used #%d times\n", i, m.lockUsage[i])
+		//fmt.Printf("Slice #%d, Used #%d times\n", i, m.lockUsage[i])
 		total += m.lockUsage[i]
 	}
 	fmt.Printf("Total entries in map %d\n", total)
