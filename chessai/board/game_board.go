@@ -169,12 +169,31 @@ func (b *Board) IsEmpty(l Location) bool {
 }
 
 func (b *Board) Print() (result string) {
+	for c := 0; c < Height; c++ {
+		if c != 0 {
+			result += " "
+		} else {
+			result += "   "
+		}
+		result += fmt.Sprintf("%d  ", c)
+	}
+	result += "\n"
 	for r := 0; r < Height; r++ {
+		result += fmt.Sprintf("%d ", r)
 		for c := 0; c < Height; c++ {
 			result += fmt.Sprintf("%+v ", GetColorTypeRepr(b.GetPiece(Location{int8(r), int8(c)})))
 		}
-		result += "\n"
+		result += fmt.Sprintf("%d\n", r)
 	}
+	for c := 0; c < Height; c++ {
+		if c != 0 {
+			result += " "
+		} else {
+			result += "   "
+		}
+		result += fmt.Sprintf("%d  ", c)
+	}
+	result += "\n"
 	return
 }
 

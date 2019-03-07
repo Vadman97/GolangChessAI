@@ -4,6 +4,8 @@ import (
 	"ChessAI3/chessai/board"
 	"ChessAI3/chessai/board/color"
 	"ChessAI3/chessai/board/piece"
+	"fmt"
+	"math"
 )
 
 var PieceValue = map[byte]int{
@@ -25,8 +27,56 @@ type AIPlayer struct {
 	PlayerColor byte
 }
 
-func (p *AIPlayer) MakeMove() {
-	// TODO(Vadim)
+func compare(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) *ScoredMove {
+	if maximizingP {
+		if candidate.Score > currentBest.Score {
+			return candidate
+		} else {
+			return currentBest
+		}
+	} else {
+		if candidate.Score < currentBest.Score {
+			return candidate
+		} else {
+			return currentBest
+		}
+	}
+}
+
+func (p *AIPlayer) MiniMax(b *board.Board, depth int, currentPlayer byte) *ScoredMove {
+	if depth == 0 {
+		return &ScoredMove{
+			Move:  nil,
+			Score: p.EvaluateBoard(b).TotalScore,
+		}
+	}
+
+	var best ScoredMove
+	if currentPlayer == p.PlayerColor {
+		// maximizing player
+		best.Score = math.MinInt32
+	} else {
+		// minimizing player
+		best.Score = math.MaxInt32
+	}
+	for _, m := range *b.GetAllMoves(p.PlayerColor) {
+		newBoard := b.Copy()
+		board.MakeMove(&m, newBoard)
+		candidate := p.MiniMax(newBoard, depth-1, (currentPlayer+1)%color.NumColors)
+		candidate.Move = &m
+		best = *compare(currentPlayer == p.PlayerColor, &best, candidate)
+	}
+	return &best
+}
+
+func (p *AIPlayer) GetBestMove(b *board.Board) *board.Move {
+	m := p.MiniMax(b, 4, p.PlayerColor)
+	fmt.Printf("AI Player best move leads to score %d\n", m.Score)
+	return m.Move
+}
+
+func (p *AIPlayer) MakeMove(b *board.Board) {
+	board.MakeMove(p.GetBestMove(b), b)
 	p.TurnCount++
 }
 
