@@ -18,3 +18,12 @@ const (
 	KingType   = byte(5)
 	PawnType   = byte(6)
 )
+
+var NameToType = map[rune]byte{
+	RookChar:   RookType,
+	KnightChar: KnightType,
+	BishopChar: BishopType,
+	QueenChar:  QueenType,
+	KingChar:   KingType,
+	PawnChar:   PawnType,
+}

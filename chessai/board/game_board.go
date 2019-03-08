@@ -180,6 +180,16 @@ func (b *Board) IsEmpty(l Location) bool {
 }
 
 func (b *Board) Print() (result string) {
+	/*
+		B_R|B_K|B_B|B_Q|B_&|B_B|B_K|B_R
+		B_P|B_P|000|B_P|B_P|B_P|B_P|B_P
+		000|000|B_P|000|000|000|000|000
+		000|000|000|000|000|000|000|000
+		000|000|000|000|000|000|000|000
+		000|000|000|000|000|000|000|000
+		W_P|W_P|W_P|W_P|W_P|W_P|W_P|W_P
+		W_R|W_K|W_B|W_Q|W_&|W_B|W_K|W_R
+	*/
 	for c := 0; c < Height; c++ {
 		if c != 0 {
 			result += " "
@@ -192,9 +202,13 @@ func (b *Board) Print() (result string) {
 	for r := 0; r < Height; r++ {
 		result += fmt.Sprintf("%d ", r)
 		for c := 0; c < Height; c++ {
-			result += fmt.Sprintf("%+v ", GetColorTypeRepr(b.GetPiece(Location{int8(r), int8(c)})))
+			result += fmt.Sprintf("%+v", GetColorTypeRepr(b.GetPiece(Location{int8(r), int8(c)})))
+			if c < Height-1 {
+				result += "|"
+			}
 		}
-		result += fmt.Sprintf("%d\n", r)
+
+		result += fmt.Sprintf(" %d\n", r)
 	}
 	for c := 0; c < Height; c++ {
 		if c != 0 {
@@ -284,6 +298,36 @@ func getBitOffset(l Location) byte {
 	return 28 - byte(l.Col*BitsPerPiece)
 }
 
+func ColorFromChar(cChar rune) byte {
+	if cChar == color.BlackChar {
+		return color.Black
+	} else if cChar == color.WhiteChar {
+		return color.White
+	}
+	return 0xFF
+}
+
+func PieceFromType(pieceTypeData byte) Piece {
+	if pieceTypeData == piece.NilType {
+		return nil
+	} else if pieceTypeData == piece.RookType {
+		return &Rook{}
+	} else if pieceTypeData == piece.KnightType {
+		return &Knight{}
+	} else if pieceTypeData == piece.BishopType {
+		return &Bishop{}
+	} else if pieceTypeData == piece.QueenType {
+		return &Queen{}
+	} else if pieceTypeData == piece.KingType {
+		return &King{}
+	} else if pieceTypeData == piece.PawnType {
+		return &Pawn{}
+	} else {
+		log.Fatal("Unknown piece type - error during decode: ", pieceTypeData)
+	}
+	return nil
+}
+
 func decodeData(l Location, data byte) Piece {
 	// constants: 3 upper bits contain piece type, bottom 1 bit contains Color
 	pieceTypeData := (data & 0xE) >> 1
@@ -291,24 +335,9 @@ func decodeData(l Location, data byte) Piece {
 	if pieceTypeData == piece.NilType {
 		return nil
 	}
-
-	var p Piece
 	colorData := data & 0x1
-	if pieceTypeData == piece.RookType {
-		p = &Rook{}
-	} else if pieceTypeData == piece.KnightType {
-		p = &Knight{}
-	} else if pieceTypeData == piece.BishopType {
-		p = &Bishop{}
-	} else if pieceTypeData == piece.QueenType {
-		p = &Queen{}
-	} else if pieceTypeData == piece.KingType {
-		p = &King{}
-	} else if pieceTypeData == piece.PawnType {
-		p = &Pawn{}
-	} else {
-		log.Fatal("Unknown piece type - error during decode: ", pieceTypeData)
-	}
+
+	p := PieceFromType(pieceTypeData)
 	p.SetPosition(l)
 	p.SetColor(colorData)
 	return p

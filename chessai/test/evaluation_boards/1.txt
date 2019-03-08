@@ -1,0 +1,9 @@
+Black 1
+B_R|B_K|B_B|B_Q|B_&|B_B|B_K|B_R
+B_P|B_P|   |B_P|B_P|B_P|B_P|B_P
+   |   |B_P|   |   |   |   |   
+   |   |   |   |   |   |   |   
+   |   |   |   |   |   |   |   
+   |   |   |   |   |   |   |   
+W_P|W_P|W_P|W_P|W_P|W_P|W_P|W_P
+W_R|W_K|W_B|W_Q|W_&|W_B|W_K|W_R
