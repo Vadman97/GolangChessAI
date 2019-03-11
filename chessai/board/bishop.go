@@ -59,4 +59,9 @@ func (r *Bishop) GetMoves(board *Board) *[]Move {
 	return &moves
 }
 
+func (r *Bishop) GetAttackableMoves(board *Board) *[]Move {
+	//TODO (Devan)
+	return nil
+}
+
 func (r *Bishop) Move(m *Move, b *Board) {}

@@ -94,6 +94,11 @@ func (r *Pawn) GetMoves(board *Board) *[]Move {
 	return &moves
 }
 
+func (r *Pawn) GetAttackableMoves(board *Board) *[]Move {
+	//TODO (Devan)
+	return nil
+}
+
 func (r *Pawn) Move(m *Move, b *Board) {
 	if r.Color == color.Black {
 		if m.End.Row == 7 {
