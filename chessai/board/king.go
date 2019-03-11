@@ -59,22 +59,30 @@ func (r *King) GetMoves(board *Board) *[]Move {
 			}
 		}
 	}
+	castleMoves := r.GetCastleMoves(board)
+	moves = append(moves, *castleMoves...)
+	return &moves
+}
 
+/**
+ * Determines if the king is able to left castle or right castle.
+ */
+func (r *King) GetCastleMoves(board *Board) *[]Move {
+	var moves []Move
 	if !board.GetFlag(FlagCastled, r.GetColor()) && !board.GetFlag(FlagKingMoved, r.GetColor()) {
 		right, left := r.GetPosition(), r.GetPosition()
 		for i := 0; i < 2; i++ {
 			right = right.Add(RightMove)
-			left = left.Add(RightMove)
+			left = left.Add(LeftMove)
 		}
 		rightM, leftM := Move{r.GetPosition(), right}, Move{r.GetPosition(), left}
-		if r.canCastle(&rightM, board) {
+		if r.canCastle(&rightM, board) && !board.GetFlag(FlagRightRookMoved, r.GetColor()) {
 			moves = append(moves, rightM)
 		}
-		if r.canCastle(&leftM, board) {
+		if r.canCastle(&leftM, board) && !board.GetFlag(FlagLeftRookMoved, r.GetColor()) {
 			moves = append(moves, leftM)
 		}
 	}
-
 	return &moves
 }
 
