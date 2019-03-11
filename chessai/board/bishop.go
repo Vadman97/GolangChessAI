@@ -36,7 +36,7 @@ func (r *Bishop) GetPosition() Location {
 /**
  * Explores a board using canMove, a function that determines how much to explore.
  */
-func (r *Bishop) ExploreMoves(board *Board,
+func (r *Bishop) exploreMoves(board *Board,
 	canMove func(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool)) *[]Move {
 	var moves []Move
 	for i := 0; i < 4; i++ {
@@ -64,11 +64,11 @@ func (r *Bishop) ExploreMoves(board *Board,
 }
 
 func (r *Bishop) GetMoves(board *Board) *[]Move {
-	return r.ExploreMoves(board, CheckLocationForPiece)
+	return r.exploreMoves(board, CheckLocationForPiece)
 }
 
 func (r *Bishop) GetAttackableMoves(board *Board) *[]Move {
-	return r.ExploreMoves(board, CheckLocationForAttackability)
+	return r.exploreMoves(board, CheckLocationForAttackability)
 }
 
 func (r *Bishop) Move(m *Move, b *Board) {}

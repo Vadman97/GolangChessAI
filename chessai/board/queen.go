@@ -36,7 +36,7 @@ func (r *Queen) GetPosition() Location {
 /**
  * Explores a board using canMove, a function that determines how much to explore.
  */
-func (r *Queen) ExploreMoves(board *Board,
+func (r *Queen) exploreMoves(board *Board,
 	canMove func(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool)) *[]Move {
 	var moves []Move
 	for i := 0; i < 8; i++ {
@@ -72,11 +72,11 @@ func (r *Queen) ExploreMoves(board *Board,
 }
 
 func (r *Queen) GetMoves(board *Board) *[]Move {
-	return r.ExploreMoves(board, CheckLocationForPiece)
+	return r.exploreMoves(board, CheckLocationForPiece)
 }
 
 func (r *Queen) GetAttackableMoves(board *Board) *[]Move {
-	return r.ExploreMoves(board, CheckLocationForAttackability)
+	return r.exploreMoves(board, CheckLocationForAttackability)
 }
 
 func (r *Queen) Move(m *Move, b *Board) {
