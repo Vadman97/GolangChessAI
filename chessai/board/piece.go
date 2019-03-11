@@ -12,6 +12,7 @@ type Piece interface {
 	GetPosition() Location
 	SetPosition(Location)
 	GetMoves(*Board) *[]Move
+	GetAttackableMoves(*Board) *[]Move
 	GetPieceType() byte
 	Move(m *Move, b *Board)
 }
@@ -44,6 +45,22 @@ func CheckLocationForPiece(pieceColor byte, l Location, b *Board) (validMove boo
 		return false, false
 	}
 	return true, true
+}
+
+/**
+ * Determines if the position is attackable. Attackable means that this position can be seized,
+ * regardless of the color of piece on it. This is necessary since King may take a piece, but
+ * put itself into check.  This is less strict than CheckLocationForPiece.
+ */
+func AttackableLocation(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool) {
+	if !l.InBounds() {
+		return false, false
+	}
+	p := b.GetPiece(l)
+	if p == nil {
+		return true, true
+	}
+	return true, false
 }
 
 func GetColorTypeRepr(p Piece) string {

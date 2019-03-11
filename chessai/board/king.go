@@ -78,6 +78,11 @@ func (r *King) GetMoves(board *Board) *[]Move {
 	return &moves
 }
 
+func (r *King) GetAttackableMoves(board *Board) *[]Move {
+	//TODO (Devan)
+	return nil
+}
+
 func (r *King) Move(m *Move, b *Board) {
 	if m.Start.Col == 4 && m.Start.Col-2 == m.End.Col {
 		// left castle
@@ -116,6 +121,5 @@ func (r *King) canCastle(m *Move, b *Board) bool {
 }
 
 func (r *King) underAttack(l Location, b *Board) bool {
-	// TODO(Vadim) check space not under attack - efficient algo?
 	return false
 }

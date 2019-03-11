@@ -61,6 +61,11 @@ func (r *Rook) GetMoves(board *Board) *[]Move {
 	return &moves
 }
 
+func (r *Rook) GetAttackableMoves(board *Board) *[]Move {
+	//TODO (Devan)
+	return nil
+}
+
 func (r *Rook) Move(m *Move, b *Board) {
 	if r.IsRightRook() {
 		b.SetFlag(FlagRightRookMoved, r.GetColor(), true)

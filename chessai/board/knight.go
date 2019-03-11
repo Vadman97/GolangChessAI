@@ -57,4 +57,9 @@ func (r *Knight) GetMoves(board *Board) *[]Move {
 	return &moves
 }
 
+func (r *Knight) GetAttackableMoves(board *Board) *[]Move {
+	//TODO (Devan)
+	return nil
+}
+
 func (r *Knight) Move(m *Move, b *Board) {}
