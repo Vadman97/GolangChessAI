@@ -44,12 +44,13 @@ func (r *Knight) GetPosition() Location {
 	return r.Location
 }
 
-func (r *Knight) GetMoves(board *Board) *[]Move {
+func (r *Knight) exploreMoves(board *Board,
+	canMove func(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool)) *[]Move {
 	var moves []Move
 	for _, possibleMove := range possibleMoves {
 		l := r.GetPosition()
 		l = l.Add(possibleMove)
-		validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
+		validMove, _ := canMove(r.GetColor(), l, board)
 		if validMove {
 			moves = append(moves, Move{r.GetPosition(), l})
 		}
@@ -57,9 +58,12 @@ func (r *Knight) GetMoves(board *Board) *[]Move {
 	return &moves
 }
 
+func (r *Knight) GetMoves(board *Board) *[]Move {
+	return r.exploreMoves(board, CheckLocationForPiece)
+}
+
 func (r *Knight) GetAttackableMoves(board *Board) *[]Move {
-	//TODO (Devan)
-	return nil
+	return r.exploreMoves(board, CheckLocationForAttackability)
 }
 
 func (r *Knight) Move(m *Move, b *Board) {}
