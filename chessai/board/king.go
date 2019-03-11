@@ -38,9 +38,8 @@ func (r *King) GetPosition() Location {
  */
 func (r *King) GetMoves(board *Board) *[]Move {
 	var moves []Move
-
-	castleMoves := r.GetCastleMoves(board)
-	moves = append(moves, *castleMoves...)
+	moves = append(moves, *r.GetNormalMoves(board)...)
+	moves = append(moves, *r.GetCastleMoves(board)...)
 	return &moves
 }
 
