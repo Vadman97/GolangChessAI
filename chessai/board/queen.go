@@ -76,8 +76,9 @@ func (r *Queen) GetMoves(board *Board) *[]Move {
 }
 
 func (r *Queen) GetAttackableMoves(board *Board) *[]Move {
-	return r.ExploreMoves(board, AttackableLocation)
+	return r.ExploreMoves(board, CheckLocationForAttackability)
 }
 
-
-func (r *Queen) Move(m *Move, b *Board) {}
+func (r *Queen) Move(m *Move, b *Board) {
+	//TODO
+}
