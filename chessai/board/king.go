@@ -33,34 +33,36 @@ func (r *King) GetPosition() Location {
 	return r.Location
 }
 
+/**
+ * Gets all possible moves for the King.
+ */
 func (r *King) GetMoves(board *Board) *[]Move {
 	var moves []Move
 
+	castleMoves := r.GetCastleMoves(board)
+	moves = append(moves, *castleMoves...)
+	return &moves
+}
+
+/*
+ * Determines possible "normal" moves for a king (move in any direction a distance of one).
+ */
+func (r *King) GetNormalMoves(board *Board) *[]Move {
+	var moves []Move
 	for i := -1; i <= 1; i++ {
 		for j := -1; j <= 1; j++ {
 			if i != 0 || j != 0 {
 				l := r.GetPosition()
 				l = l.Add(Location{int8(i), int8(j)})
-				if l.InBounds() {
-					if !r.underAttack(l, board) {
-						if board.IsEmpty(l) {
-							validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
-							if validMove {
-								moves = append(moves, Move{r.GetPosition(), l})
-							}
-						} else if board.GetPiece(l).GetColor() != r.GetColor() {
-							validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
-							if validMove {
-								moves = append(moves, Move{r.GetPosition(), l})
-							}
-						}
+				if !r.underAttack(l, board) {
+					validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
+					if validMove {
+						moves = append(moves, Move{r.GetPosition(), l})
 					}
 				}
 			}
 		}
 	}
-	castleMoves := r.GetCastleMoves(board)
-	moves = append(moves, *castleMoves...)
 	return &moves
 }
 
