@@ -104,22 +104,31 @@ func (r *King) Move(m *Move, b *Board) {
 	b.SetFlag(FlagKingMoved, r.GetColor(), true)
 }
 
+/**
+ * Verifies that a king does not castle out of, through, or into check.  Also verifies that
+ * all squares between a king and rook are empty.
+ */
 func (r *King) canCastle(m *Move, b *Board) bool {
 	if m.End.InBounds() {
 		// rook can be under attack - only need to check two spaces where king will move
-		for c := m.Start.Col; c <= m.End.Col; c++ {
-			if r.underAttack(Location{m.End.Row, c}, b) {
+		var leftLocation, rightLocation Location
+		if m.End.Col < m.Start.Col {
+			leftLocation = m.End
+			rightLocation = m.Start
+		} else {
+			leftLocation = m.Start
+			rightLocation = m.End
+		}
+		for c := leftLocation.Col; c <= rightLocation.Col; c++ {
+			location := Location{leftLocation.Row, c}
+			if r.underAttack(location, b) {
+				return false
+			}
+			if !b.IsEmpty(location) {
 				return false
 			}
 		}
-		for c := m.Start.Col; c >= m.End.Col; c-- {
-			if r.underAttack(Location{m.End.Row, c}, b) {
-				return false
-			}
-		}
-		if b.IsEmpty(m.End) {
-			return true
-		}
+		return true
 	}
 	return false
 }
