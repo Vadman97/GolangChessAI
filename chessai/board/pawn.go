@@ -36,13 +36,6 @@ func (r *Pawn) GetPosition() Location {
 
 func (r *Pawn) GetMoves(board *Board) *[]Move {
 	var moves []Move
-	var pawnHasMoved bool
-
-	if r.GetColor() == color.Black {
-		pawnHasMoved = r.Location.Row != 1
-	} else if r.GetColor() == color.White {
-		pawnHasMoved = r.Location.Row != 6
-	}
 
 	// check en passant
 	for _, m := range []Location{LeftMove, RightMove} {
@@ -61,31 +54,44 @@ func (r *Pawn) GetMoves(board *Board) *[]Move {
 		}
 	}
 
-	// first look at attack moves (diagonal ahead)
+	moves = append(moves, *r.getAttackMoves(board, CheckLocationForPiece)...)
+	moves = append(moves, *r.getForwardMoves(board)...)
+	return &moves
+}
+
+/**
+ * Returns all diagonal attack moves - any position protected by this pawn. We do not need to check for
+ * En Passant.
+ */
+func (r *Pawn) GetAttackableMoves(board *Board) *[]Move {
+	return r.getAttackMoves(board, CheckLocationForAttackability)
+}
+
+/**
+ * Determines if a pawn has moved based on its color (black in row one, white in row six).
+ */
+func (r *Pawn) hasMoved() bool {
+	if r.GetColor() == color.Black {
+		return r.Location.Row != 1
+	} else if r.GetColor() == color.White {
+		return r.Location.Row != 6
+	}
+	return true
+}
+
+/**
+ * Determines possible attack moves (diagonal ahead).
+ */
+func (r *Pawn) getAttackMoves(board *Board,
+	canMove func(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool)) *[]Move {
+	var moves []Move
 	for i := -1; i <= 1; i += 2 {
 		l := r.GetPosition()
 		l = l.Add(Location{0, int8(i)})
 		l = l.Add(r.forward(1))
 		// can only add if there is an enemy piece there - attacking
 		if !board.IsEmpty(l) {
-			validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
-			if validMove {
-				moves = append(moves, Move{r.GetPosition(), l})
-			}
-		}
-	}
-
-	// now look at forward 2 moves
-	forwardThresh := 1
-	if !pawnHasMoved {
-		forwardThresh = 2
-	}
-	for i := 1; i <= forwardThresh; i++ {
-		l := r.GetPosition()
-		l = l.Add(r.forward(i))
-		// can only add if empty - no attacking forward with pawns
-		if board.IsEmpty(l) {
-			validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
+			validMove, _ := canMove(r.GetColor(), l, board)
 			if validMove {
 				moves = append(moves, Move{r.GetPosition(), l})
 			}
@@ -94,9 +100,24 @@ func (r *Pawn) GetMoves(board *Board) *[]Move {
 	return &moves
 }
 
-func (r *Pawn) GetAttackableMoves(board *Board) *[]Move {
-	//TODO (Devan)
-	return nil
+/**
+ * Determine forward moves.
+ */
+func (r *Pawn) getForwardMoves(board *Board) *[]Move {
+	var moves []Move
+	forwardThresh := 1
+	if r.hasMoved() {
+		forwardThresh = 2
+	}
+	for i := 1; i <= forwardThresh; i++ {
+		l := r.GetPosition()
+		l = l.Add(r.forward(i))
+		// can only add if empty - no attacking forward with pawns
+		if board.IsEmpty(l) {
+			moves = append(moves, Move{r.GetPosition(), l})
+		}
+	}
+	return &moves
 }
 
 func (r *Pawn) Move(m *Move, b *Board) {
