@@ -106,7 +106,7 @@ func (r *Pawn) getAttackMoves(board *Board,
 func (r *Pawn) getForwardMoves(board *Board) *[]Move {
 	var moves []Move
 	forwardThresh := 1
-	if r.hasMoved() {
+	if !r.hasMoved() {
 		forwardThresh = 2
 	}
 	for i := 1; i <= forwardThresh; i++ {
