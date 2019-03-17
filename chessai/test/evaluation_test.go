@@ -5,6 +5,7 @@ import (
 	"ChessAI3/chessai/board/color"
 	"ChessAI3/chessai/board/piece"
 	"ChessAI3/chessai/player/ai"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
@@ -52,10 +53,13 @@ func parseBoard(b *board.Board, boardRows []string) {
 		for c, pStr := range pieces {
 			l := board.Location{Row: r, Col: int8(c)}
 			var p board.Piece
-			if pStr != "   " {
+			if pStr != "   " && len(pStr) == 3 {
 				d := strings.Split(pStr, "_")
 				cChar, pChar := rune(d[0][0]), rune(d[1][0])
 				p = board.PieceFromType(piece.NameToType[pChar])
+				if p == nil {
+					panic("piece should not be nil - invalid template")
+				}
 				p.SetColor(board.ColorFromChar(cChar))
 				p.SetPosition(l)
 			}
@@ -67,5 +71,6 @@ func parseBoard(b *board.Board, boardRows []string) {
 func evaluateAndCompare(t *testing.T, color byte, score int, b *board.Board) {
 	p := ai.NewAIPlayer(color)
 	eval := p.EvaluateBoard(b)
+	fmt.Printf("Expected %d Evaluated %d\n", score, eval.TotalScore)
 	assert.Equal(t, score, eval.TotalScore)
 }

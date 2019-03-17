@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-func TestAI(t *testing.T) {
-	const MovesToPlay = 100
+func TestBoardAI(t *testing.T) {
+	const MovesToPlay = 10
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")
