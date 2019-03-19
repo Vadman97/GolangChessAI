@@ -1,6 +1,7 @@
 package board
 
 import (
+	"ChessAI3/chessai/board/color"
 	"ChessAI3/chessai/board/piece"
 )
 
@@ -87,6 +88,22 @@ func (r *King) GetCastleMoves(board *Board) *[]Move {
 	return &moves
 }
 
+func (r *King) GetAttackableMoves(board *Board) *[]Move {
+	var moves []Move
+	for i := -1; i <= 1; i++ {
+		for j := -1; j <= 1; j++ {
+			if i != 0 || j != 0 {
+				l := r.GetPosition()
+				l = l.Add(Location{int8(i), int8(j)})
+				if l.InBounds() {
+					moves = append(moves, Move{r.GetPosition(), l})
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (r *King) Move(m *Move, b *Board) {
 	if m.Start.Col == 4 && m.Start.Col-2 == m.End.Col {
 		// left castle
@@ -133,7 +150,26 @@ func (r *King) canCastle(m *Move, b *Board) bool {
 	return false
 }
 
+/**
+ * Determines if a specific location is under attack on the board (can be moved into by any piece
+ * of the opposing color).
+ */
 func (r *King) underAttack(l Location, b *Board) bool {
-	// TODO(Vadim) check space not under attack - efficient algo?
+	var potentialAttackMoves *[]Move
+
+	if r.Color == color.Black {
+		potentialAttackMoves = b.GetAllAttackableMoves(color.White)
+	} else if r.Color == color.White {
+		potentialAttackMoves = b.GetAllAttackableMoves(color.Black)
+	} else {
+		return false
+	}
+
+	for i := range *potentialAttackMoves {
+		location := (*potentialAttackMoves)[i].End
+		if location == l {
+			return true
+		}
+	}
 	return false
 }

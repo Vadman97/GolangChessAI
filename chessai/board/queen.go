@@ -33,7 +33,11 @@ func (r *Queen) GetPosition() Location {
 	return r.Location
 }
 
-func (r *Queen) GetMoves(board *Board) *[]Move {
+/**
+ * Explores a board using canMove, a function that determines how much to explore.
+ */
+func (r *Queen) exploreMoves(board *Board,
+	canMove func(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool)) *[]Move {
 	var moves []Move
 	for i := 0; i < 8; i++ {
 		l := r.GetPosition()
@@ -55,7 +59,7 @@ func (r *Queen) GetMoves(board *Board) *[]Move {
 			} else if i == 7 {
 				l = l.Add(LeftUpMove)
 			}
-			validMove, checkNext := CheckLocationForPiece(r.GetColor(), l, board)
+			validMove, checkNext := canMove(r.GetColor(), l, board)
 			if validMove {
 				moves = append(moves, Move{r.GetPosition(), l})
 			}
@@ -67,4 +71,14 @@ func (r *Queen) GetMoves(board *Board) *[]Move {
 	return &moves
 }
 
-func (r *Queen) Move(m *Move, b *Board) {}
+func (r *Queen) GetMoves(board *Board) *[]Move {
+	return r.exploreMoves(board, CheckLocationForPiece)
+}
+
+func (r *Queen) GetAttackableMoves(board *Board) *[]Move {
+	return r.exploreMoves(board, CheckLocationForAttackability)
+}
+
+func (r *Queen) Move(m *Move, b *Board) {
+	//TODO
+}

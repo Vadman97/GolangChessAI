@@ -280,6 +280,46 @@ func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
 	return
 }
 
+func (b *Board) GetAllAttackableMoves(c byte) *[]Move {
+	black, white := b.getAllAttackableMoves(c == color.Black, c == color.White)
+	if c == color.Black {
+		return black
+	} else if c == color.White {
+		return white
+	}
+	return nil
+}
+
+func (b *Board) getAllAttackableMoves(getBlack, getWhite bool) (black, white *[]Move) {
+	var blackMoves, whiteMoves []Move
+	for r := 0; r < Height; r++ {
+		if b.board[r] == 0 {
+			continue
+		}
+		for c := 0; c < Width; c++ {
+			l := Location{int8(r), int8(c)}
+			if !b.IsEmpty(l) {
+				piece := b.GetPiece(l)
+				attackableMoves := piece.GetAttackableMoves(b)
+				if attackableMoves != nil {
+					if getBlack && piece.GetColor() == color.Black {
+						blackMoves = append(blackMoves, *attackableMoves...)
+					} else if getWhite && piece.GetColor() == color.White {
+						whiteMoves = append(whiteMoves, *attackableMoves...)
+					}
+				}
+			}
+		}
+	}
+	if getBlack {
+		black = &blackMoves
+	}
+	if getWhite {
+		white = &whiteMoves
+	}
+	return
+}
+
 func (b *Board) move(m *Move) {
 	// more efficient function than using SetPiece(end, GetPiece(start)) - tested with benchmark
 
