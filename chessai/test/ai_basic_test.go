@@ -12,7 +12,8 @@ import (
 )
 
 func TestBoardAI(t *testing.T) {
-	const MovesToPlay = 40
+	const MovesToPlay = 100
+	const TimeToPlay = 5 * time.Second
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")
@@ -27,6 +28,10 @@ func TestBoardAI(t *testing.T) {
 	start := time.Now()
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < MovesToPlay; i++ {
+		if time.Now().Sub(start) > TimeToPlay {
+			fmt.Printf("Aborting - out of time\n")
+			break
+		}
 		if turnColor == color.White {
 			aiPlayerDumb.MakeMove(&myBoard)
 			// TODO(Vadim) make dummy random player class - player interface
