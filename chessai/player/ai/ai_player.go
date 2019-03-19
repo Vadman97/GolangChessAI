@@ -30,9 +30,11 @@ var PieceValue = map[byte]int{
 
 const (
 	PieceValueWeight    = 1000
-	PawnStructureWeight = 200
+	PawnStructureWeight = 500
 	PieceAdvanceWeight  = 100
-	PieceNumMovesWeight = 1
+	PieceNumMovesWeight = 10
+	KingDisplacedWeight = -1000
+	KingCastledWeight   = 500
 )
 
 const (
@@ -182,6 +184,12 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 			score += PieceValueWeight * value * int(eval.PieceCounts[c][pieceType])
 			// TODO(Vadim) piece advance does not work right
 			score += PieceAdvanceWeight * int(eval.PieceAdvanced[c][pieceType])
+		}
+		if b.GetFlag(board.FlagKingMoved, c) && !b.GetFlag(board.FlagCastled, c) {
+			score += KingDisplacedWeight
+		}
+		if b.GetFlag(board.FlagCastled, c) {
+			score += KingCastledWeight
 		}
 		for column := int8(0); column < board.Width; column++ {
 			// duplicate score grows exponentially for each additional pawn

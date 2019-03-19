@@ -12,9 +12,10 @@ const (
 )
 
 type ConcurrentScoreMap struct {
-	scoreMap  [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]int32
-	locks     [NumSlices]sync.RWMutex
-	lockUsage [NumSlices]uint64
+	scoreMap            [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]int32
+	locks               [NumSlices]sync.RWMutex
+	lockUsage           [NumSlices]uint64
+	numHits, numQueries [NumSlices]uint64
 }
 
 func NewConcurrentScoreMap() *ConcurrentScoreMap {
@@ -77,6 +78,7 @@ func (m *ConcurrentScoreMap) Read(hash *[33]byte) (int32, bool) {
 	lock, lockIdx := m.getLock(hash)
 	lock.Lock()
 	defer lock.Unlock()
+	m.numQueries[lockIdx]++
 
 	m1, ok := m.scoreMap[lockIdx][idx[0]]
 	if ok {
@@ -87,6 +89,9 @@ func (m *ConcurrentScoreMap) Read(hash *[33]byte) (int32, bool) {
 				m4, ok := m3[idx[3]]
 				if ok {
 					v, ok := m4[(*hash)[32]]
+					if ok {
+						m.numHits[lockIdx]++
+					}
 					return v, ok
 				}
 			}
@@ -98,10 +103,16 @@ func (m *ConcurrentScoreMap) Read(hash *[33]byte) (int32, bool) {
 
 func (m *ConcurrentScoreMap) PrintMetrics() {
 	//fmt.Printf("Lock Usages: \n")
-	total := uint64(0)
+	totalItems := uint64(0)
+	totalHits := uint64(0)
+	totalQueries := uint64(0)
 	for i := 0; i < NumSlices; i++ {
 		//fmt.Printf("Slice #%d, Used #%d times\n", i, m.lockUsage[i])
-		total += m.lockUsage[i]
+		totalItems += m.lockUsage[i]
+		totalHits += m.numHits[i]
+		totalQueries += m.numQueries[i]
 	}
-	fmt.Printf("Total entries in map %d\n", total)
+	fmt.Printf("Total entries in map %d\n", totalItems)
+	fmt.Printf("Hit ratio %f%% (%d/%d)\n", 100.0*float64(totalHits)/float64(totalQueries),
+		totalHits, totalQueries)
 }
