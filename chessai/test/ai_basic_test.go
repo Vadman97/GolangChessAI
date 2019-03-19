@@ -12,6 +12,7 @@ import (
 )
 
 func TestAI(t *testing.T) {
+	t.Skip()
 	const MovesToPlay = 100
 	myBoard := board.Board{}
 	myBoard.ResetDefault()

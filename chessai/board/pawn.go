@@ -54,7 +54,7 @@ func (r *Pawn) GetMoves(board *Board) *[]Move {
 		}
 	}
 
-	moves = append(moves, *r.getAttackMoves(board, CheckLocationForPiece)...)
+	moves = append(moves, *r.getCaptureMoves(board)...)
 	moves = append(moves, *r.getForwardMoves(board)...)
 	return &moves
 }
@@ -64,7 +64,7 @@ func (r *Pawn) GetMoves(board *Board) *[]Move {
  * En Passant.
  */
 func (r *Pawn) GetAttackableMoves(board *Board) *[]Move {
-	return r.getAttackMoves(board, CheckLocationForAttackability)
+	return r.getAttackMoves(board)
 }
 
 /**
@@ -82,18 +82,32 @@ func (r *Pawn) hasMoved() bool {
 /**
  * Determines possible attack moves (diagonal ahead).
  */
-func (r *Pawn) getAttackMoves(board *Board,
-	canMove func(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool)) *[]Move {
+func (r *Pawn) getAttackMoves(board *Board) *[]Move {
 	var moves []Move
 	for i := -1; i <= 1; i += 2 {
 		l := r.GetPosition()
 		l = l.Add(Location{0, int8(i)})
 		l = l.Add(r.forward(1))
 		// can only add if there is an enemy piece there - attacking
-		if !board.IsEmpty(l) {
-			validMove, _ := canMove(r.GetColor(), l, board)
-			if validMove {
-				moves = append(moves, Move{r.GetPosition(), l})
+		if l.InBounds() {
+			moves = append(moves, Move{r.GetPosition(), l})
+		}
+	}
+	return &moves
+}
+
+/**
+ * Determines possible capture moves (diagonal ahead with a piece there).
+ */
+func (r *Pawn) getCaptureMoves(board *Board) *[]Move {
+	var moves []Move
+	attackMoves := r.getAttackMoves(board)
+	for i := range *attackMoves {
+		location := (*attackMoves)[i].End
+		if !board.IsEmpty(location) {
+			opponentPiece := board.GetPiece(location)
+			if opponentPiece != nil && opponentPiece.GetColor() != r.GetColor() {
+				moves = append(moves, (*attackMoves)[i])
 			}
 		}
 	}
