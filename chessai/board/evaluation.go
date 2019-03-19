@@ -10,7 +10,7 @@ type Evaluation struct {
 	// [color][column] -> num pawns
 	PawnColumns map[byte]map[int8]uint8
 	// [color] -> num moves
-	NumMoves   map[byte]uint8
+	NumMoves   map[byte]uint16
 	TotalScore int
 }
 
@@ -28,6 +28,7 @@ func NewEvaluation() *Evaluation {
 			color.Black: {},
 			color.White: {},
 		},
+		NumMoves: map[byte]uint16{},
 	}
 	return &e
 }

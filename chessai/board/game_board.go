@@ -239,6 +239,7 @@ func (b *Board) RandomizeIllegal() {
 }
 
 func (b *Board) GetAllMoves(c byte) *[]Move {
+	// TODO(Vadim) when king under attack, moves that block check are the only possible ones
 	black, white := b.getAllMoves(c == color.Black, c == color.White)
 	if c == color.Black {
 		return black

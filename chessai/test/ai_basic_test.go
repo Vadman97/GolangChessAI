@@ -11,9 +11,9 @@ import (
 	"time"
 )
 
-func TestAI(t *testing.T) {
-	t.Skip()
+func TestBoardAI(t *testing.T) {
 	const MovesToPlay = 100
+	const TimeToPlay = 5 * time.Second
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")
@@ -28,6 +28,10 @@ func TestAI(t *testing.T) {
 	start := time.Now()
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < MovesToPlay; i++ {
+		if time.Now().Sub(start) > TimeToPlay {
+			fmt.Printf("Aborting - out of time\n")
+			break
+		}
 		if turnColor == color.White {
 			aiPlayerDumb.MakeMove(&myBoard)
 			// TODO(Vadim) make dummy random player class - player interface
@@ -45,7 +49,11 @@ func TestAI(t *testing.T) {
 	fmt.Println("After moves")
 	fmt.Println(myBoard.Print())
 	// comment out printing inside loop for accurate timing
-	fmt.Printf("Played %d moves in %d ms.", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
+	fmt.Printf("Played %d moves in %d ms.\n", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
 
-	assert.True(t, aiPlayerSmart.EvaluateBoard(&myBoard).TotalScore > aiPlayerDumb.EvaluateBoard(&myBoard).TotalScore)
+	smartScore := aiPlayerSmart.EvaluateBoard(&myBoard).TotalScore
+	dumbScore := aiPlayerDumb.EvaluateBoard(&myBoard).TotalScore
+	fmt.Printf("Good AI Evaluation %d.\n", smartScore)
+	fmt.Printf("Bad AI Evaluation %d.\n", dumbScore)
+	assert.True(t, smartScore > dumbScore)
 }
