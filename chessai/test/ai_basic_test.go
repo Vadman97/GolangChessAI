@@ -12,7 +12,7 @@ import (
 )
 
 func TestBoardAI(t *testing.T) {
-	const MovesToPlay = 10
+	const MovesToPlay = 40
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")
@@ -44,7 +44,11 @@ func TestBoardAI(t *testing.T) {
 	fmt.Println("After moves")
 	fmt.Println(myBoard.Print())
 	// comment out printing inside loop for accurate timing
-	fmt.Printf("Played %d moves in %d ms.", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
+	fmt.Printf("Played %d moves in %d ms.\n", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
 
-	assert.True(t, aiPlayerSmart.EvaluateBoard(&myBoard).TotalScore > aiPlayerDumb.EvaluateBoard(&myBoard).TotalScore)
+	smartScore := aiPlayerSmart.EvaluateBoard(&myBoard).TotalScore
+	dumbScore := aiPlayerDumb.EvaluateBoard(&myBoard).TotalScore
+	fmt.Printf("Good AI Evaluation %d.\n", smartScore)
+	fmt.Printf("Bad AI Evaluation %d.\n", dumbScore)
+	assert.True(t, smartScore > dumbScore)
 }

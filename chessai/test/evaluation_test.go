@@ -35,7 +35,7 @@ func testBoard(t *testing.T, fileName string) {
 	lines := strings.Split(string(fileData), "\n")
 	player, expectedScore := strings.Split(lines[0], " ")[0], strings.Split(lines[0], " ")[1]
 	playerColor := color.Black
-	if player == "W" {
+	if player == "White" {
 		playerColor = color.White
 	}
 	score, err := strconv.ParseInt(expectedScore, 10, 32)

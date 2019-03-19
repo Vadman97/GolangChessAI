@@ -7,7 +7,7 @@ import (
 
 type TranspositionTableEntry struct {
 	Lower, Upper int
-	BestMove     *board.Move
+	BestMove     board.Move
 }
 
 type TranspositionTable struct {
