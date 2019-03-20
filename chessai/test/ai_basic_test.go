@@ -21,8 +21,10 @@ func TestBoardAI(t *testing.T) {
 
 	aiPlayerSmart := ai.NewAIPlayer(color.Black)
 	aiPlayerSmart.Algorithm = ai.AlgorithmAlphaBetaWithMemory
+	aiPlayerSmart.Depth = 8
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
 	aiPlayerDumb.Algorithm = ai.AlgorithmMiniMax
+	aiPlayerSmart.Depth = 4
 
 	turnColor := color.White
 	start := time.Now()

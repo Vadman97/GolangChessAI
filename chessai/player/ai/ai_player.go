@@ -29,12 +29,13 @@ var PieceValue = map[byte]int{
 }
 
 const (
-	PieceValueWeight    = 1000
-	PawnStructureWeight = 500
-	PieceAdvanceWeight  = 100
-	PieceNumMovesWeight = 10
-	KingDisplacedWeight = -1000
-	KingCastledWeight   = 500
+	PieceValueWeight      = 1000
+	PawnStructureWeight   = 500
+	PieceAdvanceWeight    = 100
+	PieceNumMovesWeight   = 10
+	PieceNumAttacksWeight = 10
+	KingDisplacedWeight   = -1000
+	KingCastledWeight     = 500
 )
 
 const (
@@ -75,6 +76,7 @@ type Player struct {
 	TurnCount      int
 	PlayerColor    byte
 	Algorithm      string
+	Depth          int
 	evaluationMap  *util.ConcurrentScoreMap
 	alphaBetaTable *util.TranspositionTable
 }
@@ -82,6 +84,7 @@ type Player struct {
 func NewAIPlayer(c byte) *Player {
 	return &Player{
 		Algorithm:      AlgorithmAlphaBetaWithMemory,
+		Depth:          4,
 		TurnCount:      0,
 		PlayerColor:    c,
 		evaluationMap:  util.NewConcurrentScoreMap(),
@@ -111,9 +114,9 @@ func (p *Player) GetBestMove(b *board.Board) *board.Move {
 	} else {
 		var m *ScoredMove
 		if p.Algorithm == AlgorithmMiniMax {
-			m = p.MiniMax(b, 4, p.PlayerColor)
+			m = p.MiniMax(b, p.Depth, p.PlayerColor)
 		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
-			m = p.AlphaBetaWithMemory(b, 8, NegInf, PosInf, p.PlayerColor)
+			m = p.AlphaBetaWithMemory(b, p.Depth, NegInf, PosInf, p.PlayerColor)
 		} else {
 			panic("invalid ai algorithm")
 		}
@@ -121,7 +124,7 @@ func (p *Player) GetBestMove(b *board.Board) *board.Move {
 		if p.PlayerColor == color.White {
 			c = "White"
 		}
-		fmt.Printf("AI (%s - %s) best move leads to score %d\n", p.Algorithm, c, m.Score)
+		fmt.Printf("AI (%s:%d - %s) best move leads to score %d\n", p.Algorithm, p.Depth, c, m.Score)
 		debugBoard := b.Copy()
 		//for i := 0; i < len(m.MoveSequence); i++ {
 		for i := len(m.MoveSequence) - 1; i >= 0; i-- {
@@ -163,6 +166,10 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 			if p := b.GetPiece(board.Location{Row: r, Col: c}); p != nil {
 				eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
 				eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b)))
+				aMoves := p.GetAttackableMoves(b)
+				if aMoves != nil {
+					eval.NumAttacks[p.GetColor()] += uint16(len(*aMoves))
+				}
 
 				if p.GetPieceType() == piece.PawnType {
 					eval.PawnColumns[p.GetColor()][c]++
@@ -195,8 +202,14 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 			// duplicate score grows exponentially for each additional pawn
 			score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[c][column] - 1)) - 1)
 		}
-		// count possible moves
+		// possible moves
 		score += PieceNumMovesWeight * int(eval.NumMoves[c])
+		// possible attacks
+		score += PieceNumAttacksWeight * int(eval.NumAttacks[c])
+
+		//if p.IsWin() {
+		//	// TODO(Vadim)
+		//}
 
 		if c == p.PlayerColor {
 			eval.TotalScore += score
