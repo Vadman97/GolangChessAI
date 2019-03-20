@@ -2,11 +2,9 @@ package test
 
 import (
 	"ChessAI3/chessai/board"
-	"ChessAI3/chessai/board/color"
 	"ChessAI3/chessai/util"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"math/rand"
 	"testing"
 )
 
@@ -18,11 +16,7 @@ func TestBoardHashLookup(t *testing.T) {
 	hash := bo1.Hash()
 	hits := 0
 	for i := 0; i < N; i++ {
-		//bo1.RandomizeIllegal()
-		moves := *bo1.GetAllMoves(byte(rand.Int() % color.NumColors))
-		if len(moves) > 0 {
-			board.MakeMove(&moves[rand.Int()%len(moves)], &bo1)
-		}
+		bo1.MakeRandomMove()
 		hash = bo1.Hash()
 		v, ok := scoreMap.Read(&hash)
 		if ok {
