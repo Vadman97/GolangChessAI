@@ -87,6 +87,7 @@ func (r *Pawn) hasMoved() bool {
 
 /**
  * Determines possible attack locations (diagonal ahead to left or right).
+ * TODO cache lookups
  */
 func (r *Pawn) getAttackLocations(board *Board) *[]Location {
 	var locations []Location
@@ -108,7 +109,7 @@ func (r *Pawn) getCaptureMoves(board *Board) *[]Move {
 	for _, location := range *locations {
 		if location.InBounds() && !board.IsEmpty(location) {
 			pieceOnLocation := board.GetPiece(location)
-			if pieceOnLocation != nil && pieceOnLocation.GetColor() != r.Color {
+			if pieceOnLocation.GetColor() != r.Color {
 				moves = append(moves, Move{r.GetPosition(), location})
 			}
 		}

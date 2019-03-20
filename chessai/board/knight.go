@@ -46,6 +46,7 @@ func (r *Knight) GetPosition() Location {
 
 /**
  * Determines the next locations which a knight can move to.
+ * TODO (Devan) cache lookups
  */
 func (r *Knight) getNextLocations(board *Board) *[]Location {
 	var locations []Location
@@ -66,7 +67,8 @@ func (r *Knight) GetMoves(board *Board) *[]Move {
 	var moves []Move
 	locations := r.getNextLocations(board)
 	for _, location := range *locations {
-		if pieceOnLocation := board.GetPiece(location); pieceOnLocation.GetColor() != r.Color {
+		pieceOnLocation := board.GetPiece(location)
+		if pieceOnLocation == nil || pieceOnLocation.GetColor() != r.Color {
 			moves = append(moves, Move{r.GetPosition(), location})
 		}
 	}

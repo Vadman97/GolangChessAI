@@ -52,7 +52,7 @@ func CheckLocationForPiece(pieceColor byte, l Location, b *Board) (validMove boo
  * regardless of the color of piece on it. This is necessary since King may take a piece, but
  * put itself into check.  This is less strict than CheckLocationForPiece.
  */
-func CheckLocationForAttackability(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool) {
+func CheckLocationForAttackability(l Location, b *Board) (validAttack bool, checkNext bool) {
 	if !l.InBounds() {
 		return false, false
 	}

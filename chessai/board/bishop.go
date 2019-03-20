@@ -33,27 +33,23 @@ func (r *Bishop) GetPosition() Location {
 	return r.Location
 }
 
-/**
- * Explores a board using canMove, a function that determines how much to explore.
- */
-func (r *Bishop) exploreMoves(board *Board,
-	canMove func(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool)) *[]Move {
+func (r *Bishop) GetMoves(board *Board) *[]Move {
 	var moves []Move
 	for i := 0; i < 4; i++ {
-		l := r.GetPosition()
-		for l.InBounds() {
+		location := r.GetPosition()
+		for true {
 			if i == 0 {
-				l = l.Add(RightUpMove)
+				location = location.Add(RightUpMove)
 			} else if i == 1 {
-				l = l.Add(RightDownMove)
+				location = location.Add(RightDownMove)
 			} else if i == 2 {
-				l = l.Add(LeftUpMove)
+				location = location.Add(LeftUpMove)
 			} else if i == 3 {
-				l = l.Add(LeftDownMove)
+				location = location.Add(LeftDownMove)
 			}
-			validMove, checkNext := canMove(r.GetColor(), l, board)
+			validMove, checkNext := CheckLocationForPiece(r.GetColor(), location, board)
 			if validMove {
-				moves = append(moves, Move{r.GetPosition(), l})
+				moves = append(moves, Move{r.GetPosition(), location})
 			}
 			if !checkNext {
 				break
@@ -63,16 +59,33 @@ func (r *Bishop) exploreMoves(board *Board,
 	return &moves
 }
 
-func (r *Bishop) GetMoves(board *Board) *[]Move {
-	return r.exploreMoves(board, CheckLocationForPiece)
-}
-
 /**
  * Retrieves all squares that this bishop can attack.
  */
 func (r *Bishop) GetAttackableMoves(board *Board) AttackableBoard {
-	moves := r.exploreMoves(board, CheckLocationForAttackability)
-	return CreateAttackableBoardFromMoves(moves)
+	attackableBoard := CreateEmptyAttackableBoard()
+	for i := 0; i < 4; i++ {
+		location := r.GetPosition()
+		for true {
+			if i == 0 {
+				location = location.Add(RightUpMove)
+			} else if i == 1 {
+				location = location.Add(RightDownMove)
+			} else if i == 2 {
+				location = location.Add(LeftUpMove)
+			} else if i == 3 {
+				location = location.Add(LeftDownMove)
+			}
+			attackable, checkNext := CheckLocationForAttackability(location, board)
+			if attackable {
+				SetLocationAttackable(attackableBoard, location)
+			}
+			if !checkNext {
+				break
+			}
+		}
+	}
+	return attackableBoard
 }
 
 func (r *Bishop) Move(m *Move, b *Board) {}
