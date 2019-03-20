@@ -54,9 +54,9 @@ func (r *King) GetNormalMoves(board *Board) *[]Move {
 			if i != 0 || j != 0 {
 				l := r.GetPosition()
 				l = l.Add(Location{int8(i), int8(j)})
-				if !r.underAttack(l, board) {
-					validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
-					if validMove {
+				if l.InBounds() && !r.underAttack(l, board) {
+					pieceOnLocation := board.GetPiece(l)
+					if (pieceOnLocation == nil) || (pieceOnLocation.GetColor() != r.Color) {
 						moves = append(moves, Move{r.GetPosition(), l})
 					}
 				}
