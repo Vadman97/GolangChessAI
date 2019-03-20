@@ -44,30 +44,45 @@ func (r *Knight) GetPosition() Location {
 	return r.Location
 }
 
-func (r *Knight) exploreMoves(board *Board,
-	canMove func(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool)) *[]Move {
-	var moves []Move
+/**
+ * Determines the next locations which a knight can move to.
+ */
+func (r *Knight) getNextLocations(board *Board) *[]Location {
+	var locations []Location
 	for _, possibleMove := range possibleMoves {
-		l := r.GetPosition()
-		l = l.Add(possibleMove)
-		validMove, _ := canMove(r.GetColor(), l, board)
-		if validMove {
-			moves = append(moves, Move{r.GetPosition(), l})
+		location := r.GetPosition()
+		location = location.Add(possibleMove)
+		if location.InBounds() {
+			locations = append(locations, location)
+		}
+	}
+	return &locations
+}
+
+/**
+ * Calculates all valid moves that a knight can make.
+ */
+func (r *Knight) GetMoves(board *Board) *[]Move {
+	var moves []Move
+	locations := r.getNextLocations(board)
+	for _, location := range *locations {
+		if pieceOnLocation := board.GetPiece(location); pieceOnLocation.GetColor() != r.Color {
+			moves = append(moves, Move{r.GetPosition(), location})
 		}
 	}
 	return &moves
-}
-
-func (r *Knight) GetMoves(board *Board) *[]Move {
-	return r.exploreMoves(board, CheckLocationForPiece)
 }
 
 /**
  * Retrieves all squares that this knight can attack.
  */
 func (r *Knight) GetAttackableMoves(board *Board) AttackableBoard {
-	moves := r.exploreMoves(board, CheckLocationForAttackability)
-	return CreateAttackableBoardFromMoves(moves)
+	attackableBoard := CreateEmptyAttackableBoard()
+	locations := r.getNextLocations(board)
+	for _, location := range *locations {
+		SetLocationAttackable(attackableBoard, location)
+	}
+	return attackableBoard
 }
 
 func (r *Knight) Move(m *Move, b *Board) {}

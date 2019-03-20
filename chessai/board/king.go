@@ -92,6 +92,7 @@ func (r *King) GetCastleMoves(board *Board) *[]Move {
  * Retrieves all squares that this king can attack.
  */
 func (r *King) GetAttackableMoves(board *Board) AttackableBoard {
+	//TODO (Devan) add check to underAttack()
 	attackableBoard := CreateEmptyAttackableBoard()
 	for i := -1; i <= 1; i++ {
 		for j := -1; j <= 1; j++ {
@@ -99,7 +100,7 @@ func (r *King) GetAttackableMoves(board *Board) AttackableBoard {
 				location := r.GetPosition()
 				location = location.Add(Location{int8(i), int8(j)})
 				if location.InBounds() {
-					SetSquareAttackable(attackableBoard, location)
+					SetLocationAttackable(attackableBoard, location)
 				}
 			}
 		}

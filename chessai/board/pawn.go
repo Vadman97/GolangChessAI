@@ -60,12 +60,17 @@ func (r *Pawn) GetMoves(board *Board) *[]Move {
 }
 
 /**
- * Returns all diagonal attack moves - any position protected by this pawn. We do not need to check for
- * En Passant.
+ * Returns all diagonal attack moves - any position protected by this pawn.
  */
 func (r *Pawn) GetAttackableMoves(board *Board) AttackableBoard {
-	moves := r.getAttackMoves(board)
-	return CreateAttackableBoardFromMoves(moves)
+	attackableBoard := CreateEmptyAttackableBoard()
+	locations := r.getAttackLocations(board)
+	for _, location := range *locations {
+		if location.InBounds() {
+			SetLocationAttackable(attackableBoard, location)
+		}
+	}
+	return attackableBoard
 }
 
 /**
@@ -81,20 +86,17 @@ func (r *Pawn) hasMoved() bool {
 }
 
 /**
- * Determines possible attack moves (diagonal ahead).
+ * Determines possible attack locations (diagonal ahead to left or right).
  */
-func (r *Pawn) getAttackMoves(board *Board) *[]Move {
-	var moves []Move
+func (r *Pawn) getAttackLocations(board *Board) *[]Location {
+	var locations []Location
 	for i := -1; i <= 1; i += 2 {
-		l := r.GetPosition()
-		l = l.Add(Location{0, int8(i)})
-		l = l.Add(r.forward(1))
-		// can only add if there is an enemy piece there - attacking
-		if l.InBounds() {
-			moves = append(moves, Move{r.GetPosition(), l})
-		}
+		location := r.GetPosition()
+		location = location.Add(Location{0, int8(i)})
+		location = location.Add(r.forward(1))
+		locations = append(locations, location)
 	}
-	return &moves
+	return &locations
 }
 
 /**
@@ -102,13 +104,12 @@ func (r *Pawn) getAttackMoves(board *Board) *[]Move {
  */
 func (r *Pawn) getCaptureMoves(board *Board) *[]Move {
 	var moves []Move
-	attackMoves := r.getAttackMoves(board)
-	for i := range *attackMoves {
-		location := (*attackMoves)[i].End
-		if !board.IsEmpty(location) {
-			opponentPiece := board.GetPiece(location)
-			if opponentPiece != nil && opponentPiece.GetColor() != r.GetColor() {
-				moves = append(moves, (*attackMoves)[i])
+	locations := r.getAttackLocations(board)
+	for _, location := range *locations {
+		if location.InBounds() && !board.IsEmpty(location) {
+			pieceOnLocation := board.GetPiece(location)
+			if pieceOnLocation != nil && pieceOnLocation.GetColor() != r.Color {
+				moves = append(moves, Move{r.GetPosition(), location})
 			}
 		}
 	}

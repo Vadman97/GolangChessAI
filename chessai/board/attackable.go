@@ -17,7 +17,7 @@ func CreateAttackableBoardFromMoves(moves *[]Move) AttackableBoard {
 	attackableBoard := CreateEmptyAttackableBoard()
 	for i := range *moves {
 		location := (*moves)[i].End
-		SetSquareAttackable(attackableBoard, location)
+		SetLocationAttackable(attackableBoard, location)
 	}
 	return attackableBoard
 }
@@ -35,7 +35,7 @@ func CombineAttackableBoards(boardOne AttackableBoard, boardTwo AttackableBoard)
 /**
  * Makes a specific square attackable on an AttackableBoard.
  */
-func SetSquareAttackable(attackableBoard AttackableBoard, location Location) {
+func SetLocationAttackable(attackableBoard AttackableBoard, location Location) {
 	attackableBoard[location.Row] |= 1 << uint(location.Col)
 }
 
