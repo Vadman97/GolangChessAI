@@ -149,7 +149,7 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 	hash := b.Hash()
 	if score, ok := p.evaluationMap.Read(&hash); ok {
 		return &board.Evaluation{
-			TotalScore: score.(int),
+			TotalScore: int(score.(int32)),
 		}
 	}
 
