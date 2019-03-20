@@ -16,7 +16,8 @@ const (
 
 const (
 	AlgorithmMiniMax             = "MiniMax"
-	AlgorithmAlphaBetaWithMemory = "AlphaBeta"
+	AlgorithmAlphaBetaWithMemory = "AlphaBetaMemory"
+	AlgorithmRandom              = "Random"
 )
 
 var PieceValue = map[byte]int{
@@ -117,6 +118,8 @@ func (p *Player) GetBestMove(b *board.Board) *board.Move {
 			m = p.MiniMax(b, p.Depth, p.PlayerColor)
 		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
 			m = p.AlphaBetaWithMemory(b, p.Depth, NegInf, PosInf, p.PlayerColor)
+		} else if p.Algorithm == AlgorithmRandom {
+			m = p.Random(b)
 		} else {
 			panic("invalid ai algorithm")
 		}

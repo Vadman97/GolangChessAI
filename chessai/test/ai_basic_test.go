@@ -13,7 +13,7 @@ import (
 
 func TestBoardAI(t *testing.T) {
 	const MovesToPlay = 100
-	const TimeToPlay = 5 * time.Hour
+	const TimeToPlay = 1 * time.Minute
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")
@@ -24,7 +24,7 @@ func TestBoardAI(t *testing.T) {
 	aiPlayerSmart.Depth = 8
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
 	aiPlayerDumb.Algorithm = ai.AlgorithmMiniMax
-	aiPlayerSmart.Depth = 4
+	aiPlayerDumb.Depth = 4
 
 	turnColor := color.White
 	start := time.Now()
@@ -36,10 +36,6 @@ func TestBoardAI(t *testing.T) {
 		}
 		if turnColor == color.White {
 			aiPlayerDumb.MakeMove(&myBoard)
-			// TODO(Vadim) make dummy random player class - player interface
-			//moves := *myBoard.GetAllMoves(turnColor)
-			//idx := rand.Intn(len(moves))
-			//board.MakeMove(&moves[idx], &myBoard)
 		} else {
 			aiPlayerSmart.MakeMove(&myBoard)
 		}
