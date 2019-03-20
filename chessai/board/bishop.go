@@ -67,8 +67,12 @@ func (r *Bishop) GetMoves(board *Board) *[]Move {
 	return r.exploreMoves(board, CheckLocationForPiece)
 }
 
-func (r *Bishop) GetAttackableMoves(board *Board) *[]Move {
-	return r.exploreMoves(board, CheckLocationForAttackability)
+/**
+ * Retrieves all squares that this bishop can attack.
+ */
+func (r *Bishop) GetAttackableMoves(board *Board) AttackableBoard {
+	moves := r.exploreMoves(board, CheckLocationForAttackability)
+	return CreateAttackableBoardFromMoves(moves)
 }
 
 func (r *Bishop) Move(m *Move, b *Board) {}

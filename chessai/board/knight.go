@@ -62,8 +62,12 @@ func (r *Knight) GetMoves(board *Board) *[]Move {
 	return r.exploreMoves(board, CheckLocationForPiece)
 }
 
-func (r *Knight) GetAttackableMoves(board *Board) *[]Move {
-	return r.exploreMoves(board, CheckLocationForAttackability)
+/**
+ * Retrieves all squares that this knight can attack.
+ */
+func (r *Knight) GetAttackableMoves(board *Board) AttackableBoard {
+	moves := r.exploreMoves(board, CheckLocationForAttackability)
+	return CreateAttackableBoardFromMoves(moves)
 }
 
 func (r *Knight) Move(m *Move, b *Board) {}

@@ -283,27 +283,25 @@ func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
 /**
  * Returns all attack moves for a specific color.
  */
-func (b *Board) GetAllAttackableMoves(color byte) *[]Move {
-	return nil
-	/*
-		var attackable *[8]byte = &([8]byte{0, 0, 0, 0, 0, 0, 0, 0})
-		for r := 0; r < Height; r++ {
-			//TODO (Devan) figure out what this check is for
-			if b.board[r] == 0 {
-				continue
-			}
-			for c := 0; c < Width; c++ {
-				location := Location{int8(r), int8(c)}
-				if !b.IsEmpty(location) {
-					pieceOnLocation := b.GetPiece(location)
-					if pieceOnLocation.GetColor() == color {
-						//attackableMoves := pieceOnLocation.GetAttackableMoves(b)
-						//attackable = calculateAttackedSquares(attackable, attackableMoves)
-					}
+func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
+	var attackable *[8]byte = &([8]byte{0, 0, 0, 0, 0, 0, 0, 0})
+	for r := 0; r < Height; r++ {
+		//TODO (Devan) figure out what this check is for
+		if b.board[r] == 0 {
+			continue
+		}
+		for c := 0; c < Width; c++ {
+			location := Location{int8(r), int8(c)}
+			if !b.IsEmpty(location) {
+				pieceOnLocation := b.GetPiece(location)
+				if pieceOnLocation.GetColor() == color {
+					attackableMoves := pieceOnLocation.GetAttackableMoves(b)
+					attackable = CombineAttackableBoards(attackable, attackableMoves)
 				}
 			}
 		}
-		return attackable*/
+	}
+	return attackable
 }
 
 func (b *Board) move(m *Move) {

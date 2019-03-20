@@ -12,7 +12,7 @@ type Piece interface {
 	GetPosition() Location
 	SetPosition(Location)
 	GetMoves(*Board) *[]Move
-	GetAttackableMoves(*Board) *[]Move
+	GetAttackableMoves(*Board) AttackableBoard
 	GetPieceType() byte
 	Move(m *Move, b *Board)
 }

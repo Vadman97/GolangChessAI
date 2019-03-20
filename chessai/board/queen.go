@@ -75,8 +75,12 @@ func (r *Queen) GetMoves(board *Board) *[]Move {
 	return r.exploreMoves(board, CheckLocationForPiece)
 }
 
-func (r *Queen) GetAttackableMoves(board *Board) *[]Move {
-	return r.exploreMoves(board, CheckLocationForAttackability)
+/**
+ * Retrieves all squares that this queen can attack.
+ */
+func (r *Queen) GetAttackableMoves(board *Board) AttackableBoard {
+	moves := r.exploreMoves(board, CheckLocationForAttackability)
+	return CreateAttackableBoardFromMoves(moves)
 }
 
 func (r *Queen) Move(m *Move, b *Board) {

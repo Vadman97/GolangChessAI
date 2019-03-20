@@ -63,8 +63,9 @@ func (r *Pawn) GetMoves(board *Board) *[]Move {
  * Returns all diagonal attack moves - any position protected by this pawn. We do not need to check for
  * En Passant.
  */
-func (r *Pawn) GetAttackableMoves(board *Board) *[]Move {
-	return r.getAttackMoves(board)
+func (r *Pawn) GetAttackableMoves(board *Board) AttackableBoard {
+	moves := r.getAttackMoves(board)
+	return CreateAttackableBoardFromMoves(moves)
 }
 
 /**

@@ -69,8 +69,12 @@ func (r *Rook) GetMoves(board *Board) *[]Move {
 	return r.exploreMoves(board, CheckLocationForPiece)
 }
 
-func (r *Rook) GetAttackableMoves(board *Board) *[]Move {
-	return r.exploreMoves(board, CheckLocationForAttackability)
+/**
+ * Retrieves all squares that this rook can attack.
+ */
+func (r *Rook) GetAttackableMoves(board *Board) AttackableBoard {
+	moves := r.exploreMoves(board, CheckLocationForAttackability)
+	return CreateAttackableBoardFromMoves(moves)
 }
 
 func (r *Rook) Move(m *Move, b *Board) {
