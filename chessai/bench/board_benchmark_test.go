@@ -83,7 +83,7 @@ func BenchmarkBoardEquals(b *testing.B) {
 }
 
 func BenchmarkBoardHashLookup(b *testing.B) {
-	scoreMap := util.NewConcurrentScoreMap()
+	scoreMap := util.NewConcurrentBoardMap()
 	bo1 := board.Board{}
 	bo1.ResetDefault()
 	b.ResetTimer()
@@ -99,7 +99,7 @@ func BenchmarkBoardHashLookup(b *testing.B) {
 }
 
 func BenchmarkBoardParallelHashLookup(b *testing.B) {
-	scoreMap := util.NewConcurrentScoreMap()
+	scoreMap := util.NewConcurrentBoardMap()
 	b.SetParallelism(8)
 	b.RunParallel(func(pb *testing.PB) {
 		bo1 := board.Board{}

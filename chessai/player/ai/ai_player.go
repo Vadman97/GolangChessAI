@@ -73,7 +73,7 @@ type Player struct {
 	TurnCount      int
 	PlayerColor    byte
 	Algorithm      string
-	evaluationMap  *util.ConcurrentScoreMap
+	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
 }
 
@@ -82,7 +82,7 @@ func NewAIPlayer(c byte) *Player {
 		Algorithm:      AlgorithmAlphaBetaWithMemory,
 		TurnCount:      0,
 		PlayerColor:    c,
-		evaluationMap:  util.NewConcurrentScoreMap(),
+		evaluationMap:  util.NewConcurrentBoardMap(),
 		alphaBetaTable: util.NewTranspositionTable(),
 	}
 }
@@ -149,7 +149,7 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 	hash := b.Hash()
 	if score, ok := p.evaluationMap.Read(&hash); ok {
 		return &board.Evaluation{
-			TotalScore: int(score),
+			TotalScore: score.(int),
 		}
 	}
 

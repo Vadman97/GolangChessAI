@@ -11,7 +11,7 @@ import (
 
 func main() {
 	const MovesToPlay = 200
-	scoreMap := util.NewConcurrentScoreMap()
+	scoreMap := util.NewConcurrentBoardMap()
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")
