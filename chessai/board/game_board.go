@@ -285,7 +285,7 @@ func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
  * TODO We need to cache this!
  */
 func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
-	var attackable *[8]byte = &([8]byte{0, 0, 0, 0, 0, 0, 0, 0})
+	attackable := CreateEmptyAttackableBoard()
 	for r := 0; r < Height; r++ {
 		//TODO (Devan) figure out what this check is for
 		if b.board[r] == 0 {
