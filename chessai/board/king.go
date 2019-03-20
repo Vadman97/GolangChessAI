@@ -54,9 +54,9 @@ func (r *King) GetNormalMoves(board *Board) *[]Move {
 			if i != 0 || j != 0 {
 				l := r.GetPosition()
 				l = l.Add(Location{int8(i), int8(j)})
-				if !r.underAttack(l, board) {
-					validMove, _ := CheckLocationForPiece(r.GetColor(), l, board)
-					if validMove {
+				if l.InBounds() && !r.underAttack(l, board) {
+					pieceOnLocation := board.GetPiece(l)
+					if (pieceOnLocation == nil) || (pieceOnLocation.GetColor() != r.Color) {
 						moves = append(moves, Move{r.GetPosition(), l})
 					}
 				}
@@ -88,20 +88,23 @@ func (r *King) GetCastleMoves(board *Board) *[]Move {
 	return &moves
 }
 
-func (r *King) GetAttackableMoves(board *Board) *[]Move {
-	var moves []Move
+/**
+ * Retrieves all squares that this king can attack.
+ */
+func (r *King) GetAttackableMoves(board *Board) AttackableBoard {
+	attackableBoard := CreateEmptyAttackableBoard()
 	for i := -1; i <= 1; i++ {
 		for j := -1; j <= 1; j++ {
 			if i != 0 || j != 0 {
-				l := r.GetPosition()
-				l = l.Add(Location{int8(i), int8(j)})
-				if l.InBounds() {
-					moves = append(moves, Move{r.GetPosition(), l})
+				location := r.GetPosition()
+				location = location.Add(Location{int8(i), int8(j)})
+				if location.InBounds() {
+					SetLocationAttackable(attackableBoard, location)
 				}
 			}
 		}
 	}
-	return nil
+	return attackableBoard
 }
 
 func (r *King) Move(m *Move, b *Board) {
@@ -154,8 +157,8 @@ func (r *King) canCastle(m *Move, b *Board) bool {
  * Determines if a specific location is under attack on the board (can be moved into by any piece
  * of the opposing color).
  */
-func (r *King) underAttack(l Location, b *Board) bool {
-	var potentialAttackMoves *[]Move
+func (r *King) underAttack(location Location, b *Board) bool {
+	var potentialAttackMoves AttackableBoard
 
 	if r.Color == color.Black {
 		potentialAttackMoves = b.GetAllAttackableMoves(color.White)
@@ -165,11 +168,5 @@ func (r *King) underAttack(l Location, b *Board) bool {
 		return false
 	}
 
-	for i := range *potentialAttackMoves {
-		location := (*potentialAttackMoves)[i].End
-		if location == l {
-			return true
-		}
-	}
-	return false
+	return IsLocationUnderAttack(potentialAttackMoves, location)
 }

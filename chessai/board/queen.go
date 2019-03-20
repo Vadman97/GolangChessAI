@@ -34,34 +34,33 @@ func (r *Queen) GetPosition() Location {
 }
 
 /**
- * Explores a board using canMove, a function that determines how much to explore.
+ * Calculates all valid moves for this queen.
  */
-func (r *Queen) exploreMoves(board *Board,
-	canMove func(pieceColor byte, l Location, b *Board) (validMove bool, checkNext bool)) *[]Move {
+func (r *Queen) GetMoves(board *Board) *[]Move {
 	var moves []Move
 	for i := 0; i < 8; i++ {
-		l := r.GetPosition()
-		for l.InBounds() {
+		location := r.GetPosition()
+		for true {
 			if i == 0 {
-				l = l.Add(UpMove)
+				location = location.Add(UpMove)
 			} else if i == 1 {
-				l = l.Add(RightUpMove)
+				location = location.Add(RightUpMove)
 			} else if i == 2 {
-				l = l.Add(RightMove)
+				location = location.Add(RightMove)
 			} else if i == 3 {
-				l = l.Add(RightDownMove)
+				location = location.Add(RightDownMove)
 			} else if i == 4 {
-				l = l.Add(DownMove)
+				location = location.Add(DownMove)
 			} else if i == 5 {
-				l = l.Add(LeftDownMove)
+				location = location.Add(LeftDownMove)
 			} else if i == 6 {
-				l = l.Add(LeftMove)
+				location = location.Add(LeftMove)
 			} else if i == 7 {
-				l = l.Add(LeftUpMove)
+				location = location.Add(LeftUpMove)
 			}
-			validMove, checkNext := canMove(r.GetColor(), l, board)
+			validMove, checkNext := CheckLocationForPiece(r.GetColor(), location, board)
 			if validMove {
-				moves = append(moves, Move{r.GetPosition(), l})
+				moves = append(moves, Move{r.GetPosition(), location})
 			}
 			if !checkNext {
 				break
@@ -71,12 +70,41 @@ func (r *Queen) exploreMoves(board *Board,
 	return &moves
 }
 
-func (r *Queen) GetMoves(board *Board) *[]Move {
-	return r.exploreMoves(board, CheckLocationForPiece)
-}
-
-func (r *Queen) GetAttackableMoves(board *Board) *[]Move {
-	return r.exploreMoves(board, CheckLocationForAttackability)
+/**
+ * Retrieves all squares that this queen can attack.
+ */
+func (r *Queen) GetAttackableMoves(board *Board) AttackableBoard {
+	attackableBoard := CreateEmptyAttackableBoard()
+	for i := 0; i < 8; i++ {
+		location := r.GetPosition()
+		for true {
+			if i == 0 {
+				location = location.Add(UpMove)
+			} else if i == 1 {
+				location = location.Add(RightUpMove)
+			} else if i == 2 {
+				location = location.Add(RightMove)
+			} else if i == 3 {
+				location = location.Add(RightDownMove)
+			} else if i == 4 {
+				location = location.Add(DownMove)
+			} else if i == 5 {
+				location = location.Add(LeftDownMove)
+			} else if i == 6 {
+				location = location.Add(LeftMove)
+			} else if i == 7 {
+				location = location.Add(LeftUpMove)
+			}
+			attackable, checkNext := CheckLocationForAttackability(location, board)
+			if attackable {
+				SetLocationAttackable(attackableBoard, location)
+			}
+			if !checkNext {
+				break
+			}
+		}
+	}
+	return attackableBoard
 }
 
 func (r *Queen) Move(m *Move, b *Board) {

@@ -280,44 +280,29 @@ func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
 	return
 }
 
-func (b *Board) GetAllAttackableMoves(c byte) *[]Move {
-	black, white := b.getAllAttackableMoves(c == color.Black, c == color.White)
-	if c == color.Black {
-		return black
-	} else if c == color.White {
-		return white
-	}
-	return nil
-}
-
-func (b *Board) getAllAttackableMoves(getBlack, getWhite bool) (black, white *[]Move) {
-	var blackMoves, whiteMoves []Move
+/**
+ * Returns all attack moves for a specific color.
+ * TODO We need to cache this!
+ */
+func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
+	attackable := CreateEmptyAttackableBoard()
 	for r := 0; r < Height; r++ {
+		//TODO (Devan) figure out what this check is for
 		if b.board[r] == 0 {
 			continue
 		}
 		for c := 0; c < Width; c++ {
-			l := Location{int8(r), int8(c)}
-			if !b.IsEmpty(l) {
-				piece := b.GetPiece(l)
-				attackableMoves := piece.GetAttackableMoves(b)
-				if attackableMoves != nil {
-					if getBlack && piece.GetColor() == color.Black {
-						blackMoves = append(blackMoves, *attackableMoves...)
-					} else if getWhite && piece.GetColor() == color.White {
-						whiteMoves = append(whiteMoves, *attackableMoves...)
-					}
+			location := Location{int8(r), int8(c)}
+			if !b.IsEmpty(location) {
+				pieceOnLocation := b.GetPiece(location)
+				if pieceOnLocation.GetColor() == color {
+					attackableMoves := pieceOnLocation.GetAttackableMoves(b)
+					attackable = CombineAttackableBoards(attackable, attackableMoves)
 				}
 			}
 		}
 	}
-	if getBlack {
-		black = &blackMoves
-	}
-	if getWhite {
-		white = &whiteMoves
-	}
-	return
+	return attackable
 }
 
 func (b *Board) move(m *Move) {
