@@ -282,6 +282,7 @@ func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]Move) {
 
 /**
  * Returns all attack moves for a specific color.
+ * TODO We need to cache this!
  */
 func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
 	var attackable *[8]byte = &([8]byte{0, 0, 0, 0, 0, 0, 0, 0})
