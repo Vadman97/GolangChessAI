@@ -12,8 +12,6 @@ import (
 )
 
 func TestBoardAI(t *testing.T) {
-	// TODO(Vadim) skip until it works better
-	t.Skip()
 	const MovesToPlay = 100
 	const TimeToPlay = 10 * time.Second
 
