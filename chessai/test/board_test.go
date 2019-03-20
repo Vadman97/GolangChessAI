@@ -108,7 +108,7 @@ func TestBoardHashLookupParallel(t *testing.T) {
 		NumThreads = 8
 		NumOps     = 1000
 	)
-	scoreMap := util.NewConcurrentScoreMap()
+	scoreMap := util.NewConcurrentBoardMap()
 
 	done := make([]chan int, NumThreads)
 	for tIdx := 0; tIdx < NumThreads; tIdx++ {

@@ -222,6 +222,13 @@ func (b *Board) Print() (result string) {
 	return
 }
 
+func (b *Board) MakeRandomMove() {
+	moves := *b.GetAllMoves(byte(rand.Int() % color.NumColors))
+	if len(moves) > 0 {
+		MakeMove(&moves[rand.Int()%len(moves)], b)
+	}
+}
+
 func (b *Board) RandomizeIllegal() {
 	// random board with random pieces (not fully random cuz i'm lazy)
 	if b.TestRandGen == nil {
