@@ -141,6 +141,9 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 		p.alphaBetaTable.PrintMetrics()
 		fmt.Printf("Move cache metrics\n")
 		b.MoveCache.PrintMetrics()
+		fmt.Printf("Attack Move cache metrics\n")
+		b.AttackableCache.PrintMetrics()
+		fmt.Printf("\n\n")
 		return &m.Move
 	}
 }

@@ -76,13 +76,12 @@ type Board struct {
 	// max 4 flags if we use byte
 	flags byte
 
-	TestRandGen *rand.Rand
-	MoveCache   *util.ConcurrentBoardMap
+	TestRandGen                *rand.Rand
+	MoveCache, AttackableCache *util.ConcurrentBoardMap
 }
 
 func (b *Board) Hash() (result [33]byte) {
 	// TODO(Vadim) evenly distribute output over {1,0}^264 via SHA256?
-	// TODO(Vadim) really thoroughly test this for correctness
 	// store into map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32
 	// Want to lookup score for a board using hash value
 	// Board stored in (8 * 4 + 1) bytes = 33bytes
@@ -131,6 +130,7 @@ func (b *Board) Copy() *Board {
 	}
 	newBoard.flags = b.flags
 	newBoard.MoveCache = b.MoveCache
+	newBoard.AttackableCache = b.AttackableCache
 	return &newBoard
 }
 
@@ -140,6 +140,7 @@ func (b *Board) ResetDefault() {
 	b.board[6] = StartingRowHex[6]
 	b.board[7] = StartingRowHex[7]
 	b.MoveCache = util.NewConcurrentBoardMap()
+	b.AttackableCache = util.NewConcurrentBoardMap()
 }
 
 func (b *Board) ResetDefaultSlow() {
@@ -309,10 +310,24 @@ func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]location.M
 	return
 }
 
+/*
+ * Caches getAllAttackableMoves
+ */
+func (b *Board) GetAllAttackableMoves(color byte) (entry AttackableBoard) {
+	h := b.Hash()
+	if v, ok := b.AttackableCache.Read(&h); !ok {
+		entry = b.getAllAttackableMoves(color)
+		b.AttackableCache.Store(&h, &entry)
+	} else {
+		entry = *v.(*AttackableBoard)
+	}
+	return
+}
+
 /**
  * Returns all attack moves for a specific color.
  */
-func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
+func (b *Board) getAllAttackableMoves(color byte) AttackableBoard {
 	attackable := CreateEmptyAttackableBoard()
 	for r := 0; r < Height; r++ {
 		// this is just a speedup - if the whole row is empty don't look at pieces
