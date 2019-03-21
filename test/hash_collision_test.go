@@ -1,9 +1,9 @@
 package test
 
 import (
-	"ChessAI3/chessai/board"
-	"ChessAI3/chessai/util"
 	"fmt"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

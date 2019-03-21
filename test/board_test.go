@@ -1,9 +1,10 @@
 package test
 
 import (
-	"ChessAI3/chessai/board"
-	"ChessAI3/chessai/board/color"
-	"ChessAI3/chessai/util"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"math/rand"
@@ -18,7 +19,7 @@ func TestBoardMove(t *testing.T) {
 	board2.SetPiece(util.Start, &board.Rook{})
 	startPiece := board2.GetPiece(util.Start)
 	startPiece.SetPosition(util.End)
-	board.MakeMove(&board.Move{
+	board.MakeMove(&location.Move{
 		Start: util.Start,
 		End:   util.End,
 	}, &board2)
@@ -31,7 +32,7 @@ func TestBoardMoveClear(t *testing.T) {
 	board2 := board.Board{}
 	assert.Panics(t, func() {
 		for i := 0; i < 3; i++ {
-			board.MakeMove(&board.Move{
+			board.MakeMove(&location.Move{
 				Start: util.Start,
 				End:   util.End,
 			}, &board2)

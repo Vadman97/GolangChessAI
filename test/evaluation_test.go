@@ -1,11 +1,12 @@
 package test
 
 import (
-	"ChessAI3/chessai/board"
-	"ChessAI3/chessai/board/color"
-	"ChessAI3/chessai/board/piece"
-	"ChessAI3/chessai/player/ai"
 	"fmt"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
@@ -51,7 +52,7 @@ func parseBoard(b *board.Board, boardRows []string) {
 	for r := int8(0); r < board.Height; r++ {
 		pieces := strings.Split(boardRows[r], "|")
 		for c, pStr := range pieces {
-			l := board.Location{Row: r, Col: int8(c)}
+			l := location.Location{Row: r, Col: int8(c)}
 			var p board.Piece
 			if pStr != "   " && len(pStr) == 3 {
 				d := strings.Split(pStr, "_")

@@ -1,8 +1,9 @@
 package bench
 
 import (
-	"ChessAI3/chessai/board"
-	"ChessAI3/chessai/util"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
@@ -43,7 +44,7 @@ func BenchmarkBoardMove(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		board2.SetPiece(util.End, &board.Rook{})
 		board2.SetPiece(util.Start, &board.Rook{})
-		board.MakeMove(&board.Move{
+		board.MakeMove(&location.Move{
 			Start: util.Start,
 			End:   util.End,
 		}, &board2)

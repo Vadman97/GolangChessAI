@@ -1,8 +1,8 @@
 package bench
 
 import (
-	"ChessAI3/chessai/board"
-	"ChessAI3/chessai/player/ai"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

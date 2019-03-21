@@ -1,10 +1,10 @@
 package test
 
 import (
-	"ChessAI3/chessai/board"
-	"ChessAI3/chessai/board/color"
-	"ChessAI3/chessai/player/ai"
 	"fmt"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
