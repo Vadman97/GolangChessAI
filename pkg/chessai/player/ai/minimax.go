@@ -24,6 +24,7 @@ func (p *Player) MiniMax(b *board.Board, depth int, currentPlayer byte) *ScoredM
 	}
 
 	var best ScoredMove
+	// TODO(Vadim) if depth is odd, flip these?
 	if currentPlayer == p.PlayerColor {
 		// maximizing player
 		best.Score = NegInf

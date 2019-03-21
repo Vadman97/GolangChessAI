@@ -13,7 +13,7 @@ import (
 
 func TestBoardAI(t *testing.T) {
 	const MovesToPlay = 100
-	const TimeToPlay = 60 * time.Second
+	const TimeToPlay = 300 * time.Second
 
 	aiPlayerSmart := ai.NewAIPlayer(color.Black)
 	aiPlayerSmart.Algorithm = ai.AlgorithmMiniMax
@@ -32,13 +32,15 @@ func TestBoardAI(t *testing.T) {
 		g.PlayTurn()
 		fmt.Printf("Move %d\n", g.MovesPlayed)
 		fmt.Println(g.CurrentBoard.Print())
+		fmt.Printf("White %s has thought for %s\n", g.Players[color.White].Repr(), g.PlayTime[color.White])
+		fmt.Printf("Black %s has thought for %s\n", g.Players[color.Black].Repr(), g.PlayTime[color.Black])
 		util.PrintMemStats()
 	}
 
 	fmt.Println("After moves:")
 	fmt.Println(g.CurrentBoard.Print())
 	// comment out printing inside loop for accurate timing
-	fmt.Printf("Played %d moves in %d ms.\n", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
+	fmt.Printf("Played %d moves in %d ms.\n", g.MovesPlayed, time.Now().Sub(start)/time.Millisecond)
 
 	smartScore := aiPlayerSmart.EvaluateBoard(g.CurrentBoard).TotalScore
 	dumbScore := aiPlayerDumb.EvaluateBoard(g.CurrentBoard).TotalScore
