@@ -5,6 +5,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
@@ -44,6 +45,7 @@ func TestBoardAI(t *testing.T) {
 		turnColor = (turnColor + 1) % color.NumColors
 		fmt.Printf("Move %d\n", i)
 		fmt.Println(myBoard.Print())
+		util.PrintMemStats()
 	}
 
 	fmt.Println("After moves")
