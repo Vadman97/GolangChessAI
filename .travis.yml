@@ -1,5 +1,4 @@
 language: go
 go:
-  -1.12.x
-  -master
+  - master
 # script: go test -v test
