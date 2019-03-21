@@ -112,7 +112,7 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 		if p.Algorithm == AlgorithmMiniMax {
 			m = p.MiniMax(b, 4, p.PlayerColor)
 		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
-			m = p.AlphaBetaWithMemory(b, 8, NegInf, PosInf, p.PlayerColor)
+			m = p.AlphaBetaWithMemory(b, 4, NegInf, PosInf, p.PlayerColor)
 		} else {
 			panic("invalid ai algorithm")
 		}
@@ -135,8 +135,12 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 			fmt.Printf("\t\t%s\n", move.Print())
 			board.MakeMove(&move, debugBoard)
 		}
+		fmt.Printf("Board evaluation metrics\n")
 		p.evaluationMap.PrintMetrics()
+		fmt.Printf("Transposition table metrics\n")
 		p.alphaBetaTable.PrintMetrics()
+		fmt.Printf("Move cache metrics\n")
+		b.MoveCache.PrintMetrics()
 		return &m.Move
 	}
 }

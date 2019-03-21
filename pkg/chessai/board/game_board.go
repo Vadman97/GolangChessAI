@@ -5,6 +5,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"log"
 	"math/rand"
 	"time"
@@ -62,6 +63,10 @@ var StartRow = map[byte]map[string]int8{
 	},
 }
 
+type MoveCacheEntry struct {
+	black, white []location.Move
+}
+
 type Board struct {
 	// board stores entire layout of pieces on the Width * Height board
 	// more efficient to use ints - faster to copy int than set of bytes
@@ -72,6 +77,7 @@ type Board struct {
 	flags byte
 
 	TestRandGen *rand.Rand
+	MoveCache   *util.ConcurrentBoardMap
 }
 
 func (b *Board) Hash() (result [33]byte) {
@@ -82,7 +88,8 @@ func (b *Board) Hash() (result [33]byte) {
 	// Board stored in (8 * 4 + 1) bytes = 33bytes
 	for i := 0; i < Height; i++ {
 		for bIdx := 0; bIdx < BytesPerRow; bIdx++ {
-			result[i*BytesPerRow+bIdx] |= byte(b.board[i] & (PieceMask << byte(bIdx*BytesPerRow)))
+			p := b.board[i] & (0xFF << byte(bIdx*8)) >> byte(bIdx*8)
+			result[i*BytesPerRow+bIdx] |= byte(p)
 		}
 	}
 	result[32] = b.flags
@@ -123,6 +130,7 @@ func (b *Board) Copy() *Board {
 		newBoard.board[i] = b.board[i]
 	}
 	newBoard.flags = b.flags
+	newBoard.MoveCache = b.MoveCache
 	return &newBoard
 }
 
@@ -131,6 +139,7 @@ func (b *Board) ResetDefault() {
 	b.board[1] = StartingRowHex[1]
 	b.board[6] = StartingRowHex[6]
 	b.board[7] = StartingRowHex[7]
+	b.MoveCache = util.NewConcurrentBoardMap()
 }
 
 func (b *Board) ResetDefaultSlow() {
@@ -246,21 +255,33 @@ func (b *Board) RandomizeIllegal() {
 	b.flags = byte(b.TestRandGen.Uint32())
 }
 
+/*
+ *	Only this is cached and not GetAllAttackableMoves for now because this calls GetAllAttackableMoves
+ *	May need to cache that one too when we use it for CheckMate / Tie evaluation
+ */
 func (b *Board) GetAllMoves(c byte) *[]location.Move {
 	// TODO(Vadim) when king under attack, moves that block check are the only possible ones
-	black, white := b.getAllMoves(c == color.Black, c == color.White)
+	h := b.Hash()
+	entry := &MoveCacheEntry{}
+	if v, ok := b.MoveCache.Read(&h); !ok {
+		bp, wp := b.getAllMoves(true, true)
+		entry.black, entry.white = *bp, *wp
+		b.MoveCache.Store(&h, entry)
+	} else {
+		entry = v.(*MoveCacheEntry)
+	}
 	if c == color.Black {
-		return black
+		return &entry.black
 	} else if c == color.White {
-		return white
+		return &entry.white
 	}
 	return nil
 }
 
 func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]location.Move) {
 	var blackMoves, whiteMoves []location.Move
-	// TODO(Vadim) think of how to optimize this, profile it and write tests
 	for r := 0; r < Height; r++ {
+		// this is just a speedup - if the whole row is empty don't look at pieces
 		if b.board[r] == 0 {
 			continue
 		}
@@ -290,12 +311,11 @@ func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]location.M
 
 /**
  * Returns all attack moves for a specific color.
- * TODO We need to cache this!
  */
 func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
 	attackable := CreateEmptyAttackableBoard()
 	for r := 0; r < Height; r++ {
-		//TODO (Devan) figure out what this check is for
+		// this is just a speedup - if the whole row is empty don't look at pieces
 		if b.board[r] == 0 {
 			continue
 		}

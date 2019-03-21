@@ -24,7 +24,7 @@ func NewTranspositionTable() *TranspositionTable {
 }
 
 func (m *TranspositionTable) Store(hash *[33]byte, entry *TranspositionTableEntry) {
-	idx := getIdx(hash)
+	idx := HashToMapKey(hash)
 
 	_, ok := m.entryMap[idx[0]]
 	if !ok {
@@ -48,7 +48,7 @@ func (m *TranspositionTable) Store(hash *[33]byte, entry *TranspositionTableEntr
 }
 
 func (m *TranspositionTable) Read(hash *[33]byte) (*TranspositionTableEntry, bool) {
-	idx := getIdx(hash)
+	idx := HashToMapKey(hash)
 
 	m1, ok := m.entryMap[idx[0]]
 	if ok {
@@ -69,5 +69,5 @@ func (m *TranspositionTable) Read(hash *[33]byte) (*TranspositionTableEntry, boo
 }
 
 func (m *TranspositionTable) PrintMetrics() {
-	fmt.Printf("Total entries in transposition table %d\n", m.numStored)
+	fmt.Printf("\tTotal entries in transposition table %d\n", m.numStored)
 }
