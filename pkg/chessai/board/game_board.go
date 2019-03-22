@@ -64,7 +64,8 @@ var StartRow = map[byte]map[string]int8{
 }
 
 type MoveCacheEntry struct {
-	black, white []location.Move
+	// color -> move
+	moves map[byte]interface{}
 }
 
 type Board struct {
@@ -260,27 +261,28 @@ func (b *Board) RandomizeIllegal() {
  *	Only this is cached and not GetAllAttackableMoves for now because this calls GetAllAttackableMoves
  *	May need to cache that one too when we use it for CheckMate / Tie evaluation
  */
-func (b *Board) GetAllMoves(c byte) *[]location.Move {
+func (b *Board) GetAllMoves(color byte) *[]location.Move {
 	// TODO(Vadim) when king under attack, moves that block check are the only possible ones
 	h := b.Hash()
-	entry := &MoveCacheEntry{}
+	entry := &MoveCacheEntry{
+		moves: make(map[byte]interface{}),
+	}
 	if v, ok := b.MoveCache.Read(&h); !ok {
-		bp, wp := b.getAllMoves(true, true)
-		entry.black, entry.white = *bp, *wp
+		entry.moves[color] = b.getAllMoves(color)
 		b.MoveCache.Store(&h, entry)
 	} else {
 		entry = v.(*MoveCacheEntry)
+		// we've gotten the other color but not the one we want
+		if entry.moves[color] == nil {
+			entry.moves[color] = b.getAllMoves(color)
+			b.MoveCache.Store(&h, entry)
+		}
 	}
-	if c == color.Black {
-		return &entry.black
-	} else if c == color.White {
-		return &entry.white
-	}
-	return nil
+	return entry.moves[color].(*[]location.Move)
 }
 
-func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]location.Move) {
-	var blackMoves, whiteMoves []location.Move
+func (b *Board) getAllMoves(color byte) *[]location.Move {
+	var moves []location.Move
 	for r := 0; r < Height; r++ {
 		// this is just a speedup - if the whole row is empty don't look at pieces
 		if b.board[r] == 0 {
@@ -290,38 +292,35 @@ func (b *Board) getAllMoves(getBlack, getWhite bool) (black, white *[]location.M
 			l := location.Location{int8(r), int8(c)}
 			if !b.IsEmpty(l) {
 				p := b.GetPiece(l)
-				moves := p.GetMoves(b)
-				if moves != nil {
-					if getBlack && p.GetColor() == color.Black {
-						blackMoves = append(blackMoves, *moves...)
-					} else if getWhite && p.GetColor() == color.White {
-						whiteMoves = append(whiteMoves, *moves...)
-					}
+				if p.GetColor() == color {
+					moves = append(moves, *p.GetMoves(b)...)
 				}
 			}
 		}
 	}
-	if getBlack {
-		black = &blackMoves
-	}
-	if getWhite {
-		white = &whiteMoves
-	}
-	return
+	return &moves
 }
 
 /*
  * Caches getAllAttackableMoves
  */
-func (b *Board) GetAllAttackableMoves(color byte) (entry AttackableBoard) {
+func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
 	h := b.Hash()
-	if v, ok := b.AttackableCache.Read(&h); !ok {
-		entry = b.getAllAttackableMoves(color)
-		b.AttackableCache.Store(&h, &entry)
-	} else {
-		entry = *v.(*AttackableBoard)
+	entry := &MoveCacheEntry{
+		moves: make(map[byte]interface{}),
 	}
-	return
+	if v, ok := b.AttackableCache.Read(&h); !ok {
+		entry.moves[color] = b.getAllAttackableMoves(color)
+		b.AttackableCache.Store(&h, entry)
+	} else {
+		entry = v.(*MoveCacheEntry)
+		// we've gotten the other color but not the one we want
+		if entry.moves[color] == nil {
+			entry.moves[color] = b.getAllAttackableMoves(color)
+			b.AttackableCache.Store(&h, entry)
+		}
+	}
+	return entry.moves[color].(AttackableBoard)
 }
 
 /**
