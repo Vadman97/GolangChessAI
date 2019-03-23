@@ -23,7 +23,7 @@ func TestBoardAI(t *testing.T) {
 	aiPlayerDumb.Algorithm = ai.AlgorithmAlphaBetaWithMemory
 	g := game.NewGame(aiPlayerDumb, aiPlayerSmart)
 
-	fmt.Println("Before moves")
+	fmt.Println("Before moves:")
 	fmt.Println(g.CurrentBoard.Print())
 	start := time.Now()
 	for i := 0; i < MovesToPlay; i++ {
@@ -37,7 +37,7 @@ func TestBoardAI(t *testing.T) {
 		util.PrintMemStats()
 	}
 
-	fmt.Println("After moves")
+	fmt.Println("After moves:")
 	fmt.Println(g.CurrentBoard.Print())
 	// comment out printing inside loop for accurate timing
 	fmt.Printf("Played %d moves in %d ms.\n", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
