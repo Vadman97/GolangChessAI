@@ -12,12 +12,12 @@ type Game struct {
 	CurrentTurnColor byte
 	Players          map[byte]*ai.Player
 	PlayTime         map[byte]time.Duration
-	MovesPlayed      int
+	MovesPlayed      uint
 }
 
 func (g *Game) PlayTurn() {
 	g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard)
-	g.CurrentTurnColor = (g.CurrentTurnColor + 1) % color.NumColors
+	g.CurrentTurnColor ^= 1
 	g.MovesPlayed++
 }
 
