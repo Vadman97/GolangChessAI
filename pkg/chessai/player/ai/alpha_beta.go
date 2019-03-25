@@ -23,13 +23,13 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 	if entry, ok := p.alphaBetaTable.Read(&h); ok {
 		e := *entry
 		if e.Lower >= beta {
-			p.Metrics.MovesPruned++
+			p.Metrics.MovesPrunedTransposition++
 			return &ScoredMove{
 				Move:  e.BestMove,
 				Score: e.Lower,
 			}
 		} else if e.Upper <= alpha {
-			p.Metrics.MovesPruned++
+			p.Metrics.MovesPrunedTransposition++
 			return &ScoredMove{
 				Move:  e.BestMove,
 				Score: e.Upper,
@@ -66,7 +66,7 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 		alpha, beta = compareAlphaBeta(currentPlayer == p.PlayerColor, alpha, beta, candidate)
 		if alpha >= beta {
 			// alpha-beta cutoff
-			p.Metrics.MovesPruned += int64(len(*moves) - i)
+			p.Metrics.MovesPrunedAB += int64(len(*moves) - i)
 			break
 		}
 	}
