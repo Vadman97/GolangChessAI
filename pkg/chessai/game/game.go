@@ -16,7 +16,9 @@ type Game struct {
 }
 
 func (g *Game) PlayTurn() {
+	start := time.Now()
 	g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard)
+	g.PlayTime[g.CurrentTurnColor] += time.Now().Sub(start)
 	g.CurrentTurnColor ^= 1
 	g.MovesPlayed++
 }

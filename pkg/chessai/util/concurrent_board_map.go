@@ -12,10 +12,10 @@ const (
 )
 
 type ConcurrentBoardMap struct {
-	scoreMap            [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]interface{}
-	locks               [NumSlices]sync.RWMutex
-	lockUsage           [NumSlices]uint64
-	numHits, numQueries [NumSlices]uint64
+	scoreMap                       [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]interface{}
+	locks                          [NumSlices]sync.RWMutex
+	lockUsage                      [NumSlices]uint64
+	numHits, numWrites, numQueries [NumSlices]uint64
 }
 
 func NewConcurrentBoardMap() *ConcurrentBoardMap {
@@ -28,7 +28,7 @@ func NewConcurrentBoardMap() *ConcurrentBoardMap {
 	return &m
 }
 
-func getIdx(hash *[33]byte) (idx [4]uint64) {
+func HashToMapKey(hash *[33]byte) (idx [4]uint64) {
 	for x := 0; x < 32; x += 8 {
 		idx[x/8] = binary.BigEndian.Uint64((*hash)[x : x+8])
 	}
@@ -40,13 +40,13 @@ func (m *ConcurrentBoardMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
 	for i := 0; i < 28; i += 4 {
 		s += (binary.BigEndian.Uint32(hash[i:i+4]) / NumSlices) % NumSlices
 	}
-	s += uint32(hash[32]) % NumSlices
+	s = (s + uint32(hash[32])) % NumSlices
 	atomic.AddUint64(&m.lockUsage[s], 1)
 	return &m.locks[s], s
 }
 
 func (m *ConcurrentBoardMap) Store(hash *[33]byte, value interface{}) {
-	idx := getIdx(hash)
+	idx := HashToMapKey(hash)
 
 	lock, lockIdx := m.getLock(hash)
 	lock.Lock()
@@ -68,12 +68,12 @@ func (m *ConcurrentBoardMap) Store(hash *[33]byte, value interface{}) {
 	if !ok {
 		m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]] = make(map[byte]interface{})
 	}
-
+	m.numWrites[lockIdx]++
 	m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]] = value
 }
 
 func (m *ConcurrentBoardMap) Read(hash *[33]byte) (interface{}, bool) {
-	idx := getIdx(hash)
+	idx := HashToMapKey(hash)
 
 	lock, lockIdx := m.getLock(hash)
 	lock.Lock()
@@ -102,17 +102,20 @@ func (m *ConcurrentBoardMap) Read(hash *[33]byte) (interface{}, bool) {
 }
 
 func (m *ConcurrentBoardMap) PrintMetrics() {
-	//fmt.Printf("Lock Usages: \n")
-	totalItems := uint64(0)
+	totalLockUsage := uint64(0)
 	totalHits := uint64(0)
-	totalQueries := uint64(0)
+	totalReads := uint64(0)
+	totalWrites := uint64(0)
 	for i := 0; i < NumSlices; i++ {
 		//fmt.Printf("Slice #%d, Used #%d times\n", i, m.lockUsage[i])
-		totalItems += m.lockUsage[i]
+		totalLockUsage += m.lockUsage[i]
 		totalHits += m.numHits[i]
-		totalQueries += m.numQueries[i]
+		totalReads += m.numQueries[i]
+		totalWrites += m.numWrites[i]
 	}
-	fmt.Printf("Total entries in map %d\n", totalItems)
-	fmt.Printf("Hit ratio %f%% (%d/%d)\n", 100.0*float64(totalHits)/float64(totalQueries),
-		totalHits, totalQueries)
+	fmt.Printf("\tTotal entries in map %d. Reads %d. Writes %d\n", totalWrites, totalReads, totalWrites)
+	fmt.Printf("\tHit ratio %f%% (%d/%d)\n", 100.0*float64(totalHits)/float64(totalReads),
+		totalHits, totalReads)
+	fmt.Printf("\tRead ratio %f%%\n", 100.0*float64(totalReads)/float64(totalReads+totalWrites))
+	fmt.Printf("\tLock usages in map %d\n", totalLockUsage)
 }

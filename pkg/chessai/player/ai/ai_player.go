@@ -124,11 +124,8 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 		} else {
 			panic("invalid ai algorithm")
 		}
-		c := "Black"
-		if p.PlayerColor == color.White {
-			c = "White"
-		}
-		fmt.Printf("AI (%s:%d - %s) best move leads to score %d\n", p.Algorithm, p.Depth, c, m.Score)
+		fmt.Printf("AI (%s:%d - %s) best move leads to score %d\n", p.Algorithm, p.Depth, p.Repr(), m.Score)
+		fmt.Printf("%s best move leads to score %d\n", p.Repr(), m.Score)
 		debugBoard := b.Copy()
 		//for i := 0; i < len(m.MoveSequence); i++ {
 		for i := len(m.MoveSequence) - 1; i >= 0; i-- {
@@ -143,8 +140,15 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 			fmt.Printf("\t\t%s\n", move.Print())
 			board.MakeMove(&move, debugBoard)
 		}
+		fmt.Printf("Board evaluation metrics\n")
 		p.evaluationMap.PrintMetrics()
+		fmt.Printf("Transposition table metrics\n")
 		p.alphaBetaTable.PrintMetrics()
+		fmt.Printf("Move cache metrics\n")
+		b.MoveCache.PrintMetrics()
+		fmt.Printf("Attack Move cache metrics\n")
+		b.AttackableCache.PrintMetrics()
+		fmt.Printf("\n\n")
 		return &m.Move
 	}
 }
@@ -224,4 +228,12 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 
 	p.evaluationMap.Store(&hash, int32(eval.TotalScore))
 	return eval
+}
+
+func (p *Player) Repr() string {
+	c := "Black"
+	if p.PlayerColor == color.White {
+		c = "White"
+	}
+	return fmt.Sprintf("AI (%s - %s)", p.Algorithm, c)
 }
