@@ -75,10 +75,12 @@ type ScoredMove struct {
 }
 
 type Player struct {
-	TurnCount      int
-	PlayerColor    byte
-	Algorithm      string
-	Depth          int
+	Algorithm   string
+	PlayerColor byte
+	Depth       int
+	TurnCount   int
+	Metrics     *Metrics
+
 	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
 }
@@ -86,9 +88,10 @@ type Player struct {
 func NewAIPlayer(c byte) *Player {
 	return &Player{
 		Algorithm:      AlgorithmAlphaBetaWithMemory,
+		PlayerColor:    c,
 		Depth:          4,
 		TurnCount:      0,
-		PlayerColor:    c,
+		Metrics:        &Metrics{},
 		evaluationMap:  util.NewConcurrentBoardMap(),
 		alphaBetaTable: util.NewTranspositionTable(),
 	}
@@ -125,6 +128,7 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 			panic("invalid ai algorithm")
 		}
 		fmt.Printf("AI (%s:%d - %s) best move leads to score %d\n", p.Algorithm, p.Depth, p.Repr(), m.Score)
+		fmt.Printf("\t%s\n", p.Metrics.Print())
 		fmt.Printf("%s best move leads to score %d\n", p.Repr(), m.Score)
 		debugBoard := b.Copy()
 		//for i := 0; i < len(m.MoveSequence); i++ {

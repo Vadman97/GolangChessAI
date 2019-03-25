@@ -10,6 +10,7 @@ import (
 func (p *Player) AlphaBetaRecurse(b *board.Board, m location.Move, depth, alpha, beta int, currentPlayer byte) *ScoredMove {
 	newBoard := b.Copy()
 	board.MakeMove(&m, newBoard)
+	p.Metrics.MovesConsidered++
 	candidate := p.AlphaBetaWithMemory(newBoard, depth-1, alpha, beta, (currentPlayer+1)%color.NumColors)
 	candidate.Move = m
 	candidate.MoveSequence = append(candidate.MoveSequence, m)
@@ -22,11 +23,13 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 	if entry, ok := p.alphaBetaTable.Read(&h); ok {
 		e := *entry
 		if e.Lower >= beta {
+			p.Metrics.MovesPruned++
 			return &ScoredMove{
 				Move:  e.BestMove,
 				Score: e.Lower,
 			}
 		} else if e.Upper <= alpha {
+			p.Metrics.MovesPruned++
 			return &ScoredMove{
 				Move:  e.BestMove,
 				Score: e.Upper,
@@ -55,7 +58,7 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 		best.Score = PosInf
 	}
 	moves := b.GetAllMoves(currentPlayer)
-	for _, m := range *moves {
+	for i, m := range *moves {
 		candidate := p.AlphaBetaRecurse(b, m, depth, alpha, beta, currentPlayer)
 		if compare(currentPlayer == p.PlayerColor, &best, candidate) {
 			best = *candidate
@@ -63,6 +66,7 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 		alpha, beta = compareAlphaBeta(currentPlayer == p.PlayerColor, alpha, beta, candidate)
 		if alpha >= beta {
 			// alpha-beta cutoff
+			p.Metrics.MovesPruned += int64(len(*moves) - i)
 			break
 		}
 	}
