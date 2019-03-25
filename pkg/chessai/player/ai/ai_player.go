@@ -143,7 +143,7 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 			panic("invalid ai algorithm")
 		}
 		fmt.Printf("AI (%s:%d - %s) best move leads to score %d\n", p.Algorithm, p.Depth, p.Repr(), m.Score)
-		fmt.Printf("\t%s\n", p.Metrics.Print())
+		fmt.Printf("%s\n", p.Metrics.Print())
 		fmt.Printf("%s best move leads to score %d\n", p.Repr(), m.Score)
 		debugBoard := b.Copy()
 		//for i := 0; i < len(m.MoveSequence); i++ {
