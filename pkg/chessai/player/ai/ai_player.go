@@ -38,8 +38,8 @@ const (
 	PieceAdvanceWeight    = 100
 	PieceNumMovesWeight   = 10
 	PieceNumAttacksWeight = 10
-	KingDisplacedWeight   = -1000
-	KingCastledWeight     = 500
+	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
+	KingCastledWeight     = 1 * PieceValueWeight  // one pawn
 )
 
 const (

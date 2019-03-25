@@ -145,7 +145,7 @@ func (r *King) canCastle(m *location.Move, b *Board) bool {
 			if r.underAttack(loc, b) {
 				return false
 			}
-			if !b.IsEmpty(loc) {
+			if !b.IsEmpty(loc) && b.GetPiece(loc).GetPieceType() != piece.KingType {
 				return false
 			}
 		}

@@ -10,7 +10,8 @@ type Metrics struct {
 
 func (metrics *Metrics) Print() (res string) {
 	res += fmt.Sprintf("Considered %d\n", metrics.MovesConsidered)
-	res += fmt.Sprintf("\tPruned     %d\n", metrics.MovesPrunedAB+metrics.MovesPrunedTransposition)
+	pruned := metrics.MovesPrunedAB + metrics.MovesPrunedTransposition
+	res += fmt.Sprintf("\tPruned     %f (%d)\n", float64(pruned)/float64(pruned+metrics.MovesConsidered), pruned)
 	if metrics.MovesPrunedAB > 0 || metrics.MovesPrunedTransposition > 0 {
 		res += fmt.Sprintf("\t\tPrunedAB:    %d\n", metrics.MovesPrunedAB)
 		res += fmt.Sprintf("\t\tPrunedTrans: %d\n", metrics.MovesPrunedTransposition)
