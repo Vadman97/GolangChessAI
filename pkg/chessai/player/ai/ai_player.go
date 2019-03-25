@@ -133,11 +133,15 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
-		var m *ScoredMove
+		var m = &ScoredMove{}
 		if p.Algorithm == AlgorithmMiniMax {
 			m = p.MiniMax(b, p.Depth, p.PlayerColor)
 		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
 			m = p.AlphaBetaWithMemory(b, p.Depth, NegInf, PosInf, p.PlayerColor)
+		} else if p.Algorithm == AlgorithmMTDF {
+			for d := 0; d < p.Depth; d++ {
+				m = p.MTDF(b, m, d, p.PlayerColor)
+			}
 		} else if p.Algorithm == AlgorithmRandom {
 			m = p.Random(b)
 		} else {
