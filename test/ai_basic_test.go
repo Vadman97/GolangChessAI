@@ -13,7 +13,7 @@ import (
 
 func TestBoardAI(t *testing.T) {
 	const MovesToPlay = 100
-	const TimeToPlay = 600 * time.Second
+	const TimeToPlay = 60 * time.Second
 
 	aiPlayerSmart := ai.NewAIPlayer(color.Black)
 	aiPlayerSmart.Algorithm = ai.AlgorithmMiniMax
@@ -31,6 +31,7 @@ func TestBoardAI(t *testing.T) {
 			fmt.Printf("Aborting - out of time\n")
 			break
 		}
+		fmt.Printf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor].Repr())
 		g.PlayTurn()
 		fmt.Printf("Move %d\n", g.MovesPlayed)
 		fmt.Println(g.CurrentBoard.Print())

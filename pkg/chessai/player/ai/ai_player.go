@@ -19,6 +19,7 @@ const (
 const (
 	AlgorithmMiniMax             = "MiniMax"
 	AlgorithmAlphaBetaWithMemory = "AlphaBetaMemory"
+	AlgorithmMTDF                = "MTDF"
 	AlgorithmRandom              = "Random"
 )
 
@@ -243,6 +244,11 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 		} else {
 			eval.TotalScore -= score
 		}
+	}
+
+	// if the search depth is odd, flip score
+	if p.Depth%2 == 1 {
+		eval.TotalScore = -eval.TotalScore
 	}
 
 	p.evaluationMap.Store(&hash, int32(eval.TotalScore))
