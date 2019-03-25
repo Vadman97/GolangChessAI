@@ -224,11 +224,10 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 			// TODO(Vadim) piece advance does not work right
 			score += PieceAdvanceWeight * int(eval.PieceAdvanced[c][pieceType])
 		}
-		if b.GetFlag(board.FlagKingMoved, c) && !b.GetFlag(board.FlagCastled, c) {
-			score += KingDisplacedWeight
-		}
 		if b.GetFlag(board.FlagCastled, c) {
 			score += KingCastledWeight
+		} else if b.GetFlag(board.FlagKingMoved, c) {
+			score += KingDisplacedWeight
 		}
 		for column := int8(0); column < board.Width; column++ {
 			// duplicate score grows exponentially for each additional pawn
