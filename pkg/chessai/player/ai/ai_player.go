@@ -8,7 +8,6 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"math"
-	"math/rand"
 )
 
 const (
@@ -102,11 +101,12 @@ type Player struct {
 
 func NewAIPlayer(c byte) *Player {
 	return &Player{
-		Algorithm:      AlgorithmAlphaBetaWithMemory,
-		PlayerColor:    c,
-		Depth:          4,
-		TurnCount:      0,
-		Opening:        rand.Intn(len(OpeningMoves[c])),
+		Algorithm:   AlgorithmAlphaBetaWithMemory,
+		PlayerColor: c,
+		Depth:       4,
+		TurnCount:   0,
+		// Opening:        rand.Intn(len(OpeningMoves[c])),
+		Opening:        OpeningNone,
 		Metrics:        &Metrics{},
 		evaluationMap:  util.NewConcurrentBoardMap(),
 		alphaBetaTable: util.NewTranspositionTable(),
@@ -139,7 +139,7 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
 			m = p.AlphaBetaWithMemory(b, p.Depth, NegInf, PosInf, p.PlayerColor)
 		} else if p.Algorithm == AlgorithmMTDF {
-			for d := 0; d < p.Depth; d++ {
+			for d := 1; d <= p.Depth; d++ {
 				m = p.MTDF(b, m, d, p.PlayerColor)
 			}
 		} else if p.Algorithm == AlgorithmRandom {
