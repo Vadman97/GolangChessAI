@@ -8,6 +8,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"math"
+	"math/rand"
 )
 
 const (
@@ -44,9 +45,13 @@ const (
 	PawnDuplicateWeight = -1
 )
 
-// color -> openers
-var OpeningMoves = map[byte][]*location.Move{
-	color.Black: {
+const (
+	OpeningNone = -1
+)
+
+// color -> list of openings: { list of moves }
+var OpeningMoves = map[byte][][]*location.Move{
+	color.Black: {{
 		&location.Move{
 			Start: location.Location{Row: board.StartRow[color.Black]["Pawn"], Col: 4},
 			End:   location.Location{Row: board.StartRow[color.Black]["Pawn"] + 2, Col: 4},
@@ -55,8 +60,12 @@ var OpeningMoves = map[byte][]*location.Move{
 			Start: location.Location{Row: board.StartRow[color.Black]["Piece"], Col: 1},
 			End:   location.Location{Row: board.StartRow[color.Black]["Piece"] + 2, Col: 2},
 		},
-	},
-	color.White: {
+		&location.Move{
+			Start: location.Location{Row: board.StartRow[color.Black]["Piece"], Col: 5},
+			End:   location.Location{Row: board.StartRow[color.Black]["Piece"] + 3, Col: 2},
+		},
+	}},
+	color.White: {{
 		&location.Move{
 			Start: location.Location{Row: board.StartRow[color.White]["Pawn"], Col: 4},
 			End:   location.Location{Row: board.StartRow[color.White]["Pawn"] - 2, Col: 4},
@@ -65,7 +74,11 @@ var OpeningMoves = map[byte][]*location.Move{
 			Start: location.Location{Row: board.StartRow[color.White]["Piece"], Col: 6},
 			End:   location.Location{Row: board.StartRow[color.White]["Piece"] - 2, Col: 5},
 		},
-	},
+		&location.Move{
+			Start: location.Location{Row: board.StartRow[color.White]["Piece"], Col: 5},
+			End:   location.Location{Row: board.StartRow[color.White]["Piece"] - 3, Col: 2},
+		},
+	}},
 }
 
 type ScoredMove struct {
@@ -79,6 +92,7 @@ type Player struct {
 	PlayerColor byte
 	Depth       int
 	TurnCount   int
+	Opening     int
 	Metrics     *Metrics
 
 	evaluationMap  *util.ConcurrentBoardMap
@@ -91,6 +105,7 @@ func NewAIPlayer(c byte) *Player {
 		PlayerColor:    c,
 		Depth:          4,
 		TurnCount:      0,
+		Opening:        rand.Intn(len(OpeningMoves[c])),
 		Metrics:        &Metrics{},
 		evaluationMap:  util.NewConcurrentBoardMap(),
 		alphaBetaTable: util.NewTranspositionTable(),
@@ -114,8 +129,8 @@ func compare(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) b
 }
 
 func (p *Player) GetBestMove(b *board.Board) *location.Move {
-	if p.TurnCount < len(OpeningMoves) {
-		return OpeningMoves[p.PlayerColor][p.TurnCount]
+	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
+		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
 		var m *ScoredMove
 		if p.Algorithm == AlgorithmMiniMax {
@@ -239,5 +254,5 @@ func (p *Player) Repr() string {
 	if p.PlayerColor == color.White {
 		c = "White"
 	}
-	return fmt.Sprintf("AI (%s - %s)", p.Algorithm, c)
+	return fmt.Sprintf("AI (%s,depth:%d - %s)", p.Algorithm, p.Depth, c)
 }

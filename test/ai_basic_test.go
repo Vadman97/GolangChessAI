@@ -20,7 +20,7 @@ func TestBoardAI(t *testing.T) {
 	aiPlayerSmart.Depth = 4
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
 	aiPlayerDumb.Algorithm = ai.AlgorithmAlphaBetaWithMemory
-	aiPlayerSmart.Depth = 4
+	aiPlayerDumb.Depth = 4
 	g := game.NewGame(aiPlayerDumb, aiPlayerSmart)
 
 	fmt.Println("Before moves:")
