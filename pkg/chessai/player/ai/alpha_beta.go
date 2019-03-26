@@ -17,6 +17,12 @@ func (p *Player) AlphaBetaRecurse(b *board.Board, m location.Move, depth, alpha,
 }
 
 func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, currentPlayer byte) *ScoredMove {
+	if depth == 0 {
+		return &ScoredMove{
+			Score: p.EvaluateBoard(b).TotalScore,
+		}
+	}
+
 	// transposition table lookup
 	h := b.Hash()
 	if entry, ok := p.alphaBetaTable.Read(&h); ok {
@@ -41,28 +47,28 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 			beta = entry.Upper
 		}
 	}
-
-	if depth == 0 {
-		return &ScoredMove{
-			Score: p.EvaluateBoard(b).TotalScore,
-		}
-	}
-
+	var maximizingPlayer = currentPlayer == p.PlayerColor
 	var best ScoredMove
-	if currentPlayer == p.PlayerColor {
-		// maximizing player
+	if maximizingPlayer {
 		best.Score = NegInf
 	} else {
-		// minimizing player
 		best.Score = PosInf
 	}
 	moves := b.GetAllMoves(currentPlayer)
 	for i, m := range *moves {
 		candidate := p.AlphaBetaRecurse(b, m, depth, alpha, beta, currentPlayer)
-		if compare(currentPlayer == p.PlayerColor, &best, candidate) {
+		if betterMove(maximizingPlayer, &best, candidate) {
 			best = *candidate
 		}
-		alpha, beta = compareAlphaBeta(currentPlayer == p.PlayerColor, alpha, beta, candidate)
+		if maximizingPlayer {
+			if best.Score > alpha {
+				alpha = best.Score
+			}
+		} else {
+			if best.Score < beta {
+				beta = best.Score
+			}
+		}
 		if alpha >= beta {
 			// alpha-beta cutoff
 			p.Metrics.MovesPrunedAB += int64(len(*moves) - i)
@@ -93,20 +99,4 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 	}
 
 	return &best
-}
-
-func compareAlphaBeta(maximizingP bool, currentAlpha, currentBeta int, candidate *ScoredMove) (int, int) {
-	if maximizingP {
-		if candidate.Score > currentAlpha {
-			return candidate.Score, currentBeta
-		} else {
-			return currentAlpha, currentBeta
-		}
-	} else {
-		if candidate.Score < currentBeta {
-			return currentAlpha, candidate.Score
-		} else {
-			return currentAlpha, currentBeta
-		}
-	}
 }

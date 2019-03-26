@@ -17,14 +17,12 @@ func (p *Player) MiniMaxRecurse(b *board.Board, m location.Move, depth int, curr
 
 func (p *Player) MiniMax(b *board.Board, depth int, currentPlayer byte) *ScoredMove {
 	if depth == 0 {
-		eval := p.EvaluateBoard(b)
 		return &ScoredMove{
-			Score: eval.TotalScore,
+			Score: p.EvaluateBoard(b).TotalScore,
 		}
 	}
 
 	var best ScoredMove
-	// TODO(Vadim) if depth is odd, flip these?
 	if currentPlayer == p.PlayerColor {
 		// maximizing player
 		best.Score = NegInf
@@ -35,7 +33,7 @@ func (p *Player) MiniMax(b *board.Board, depth int, currentPlayer byte) *ScoredM
 	moves := b.GetAllMoves(currentPlayer)
 	for _, m := range *moves {
 		candidate := p.MiniMaxRecurse(b, m, depth, currentPlayer)
-		if compare(currentPlayer == p.PlayerColor, &best, candidate) {
+		if betterMove(currentPlayer == p.PlayerColor, &best, candidate) {
 			best = *candidate
 		}
 	}
