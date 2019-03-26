@@ -267,16 +267,16 @@ func (b *Board) GetAllMoves(color byte) *[]location.Move {
 	entry := &MoveCacheEntry{
 		moves: make(map[byte]interface{}),
 	}
-	if v, ok := b.MoveCache.Read(&h); !ok {
-		entry.moves[color] = b.getAllMoves(color)
-		b.MoveCache.Store(&h, entry)
-	} else {
-		entry = v.(*MoveCacheEntry)
+	if cacheEntry, cacheExists := b.MoveCache.Read(&h); cacheExists {
+		entry = cacheEntry.(*MoveCacheEntry)
 		// we've gotten the other color but not the one we want
 		if entry.moves[color] == nil {
 			entry.moves[color] = b.getAllMoves(color)
 			b.MoveCache.Store(&h, entry)
 		}
+	} else {
+		entry.moves[color] = b.getAllMoves(color)
+		b.MoveCache.Store(&h, entry)
 	}
 	return entry.moves[color].(*[]location.Move)
 }
@@ -309,16 +309,16 @@ func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
 	entry := &MoveCacheEntry{
 		moves: make(map[byte]interface{}),
 	}
-	if v, ok := b.AttackableCache.Read(&h); !ok {
-		entry.moves[color] = b.getAllAttackableMoves(color)
-		b.AttackableCache.Store(&h, entry)
-	} else {
-		entry = v.(*MoveCacheEntry)
+	if cacheEntry, cacheExists := b.AttackableCache.Read(&h); cacheExists {
+		entry = cacheEntry.(*MoveCacheEntry)
 		// we've gotten the other color but not the one we want
 		if entry.moves[color] == nil {
 			entry.moves[color] = b.getAllAttackableMoves(color)
 			b.AttackableCache.Store(&h, entry)
 		}
+	} else {
+		entry.moves[color] = b.getAllAttackableMoves(color)
+		b.AttackableCache.Store(&h, entry)
 	}
 	return entry.moves[color].(AttackableBoard)
 }
