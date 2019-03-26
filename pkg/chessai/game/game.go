@@ -13,13 +13,13 @@ type Game struct {
 	Players          map[byte]*ai.Player
 	PlayTime         map[byte]time.Duration
 	MovesPlayed      uint
+	PreviousMove     *board.LastMove
 }
 
 func (g *Game) PlayTurn() {
 	start := time.Now()
-	g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard)
+	g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, g.PreviousMove)
 	g.PlayTime[g.CurrentTurnColor] += time.Now().Sub(start)
-	g.CurrentTurnColor ^= 1
 	g.MovesPlayed++
 }
 
