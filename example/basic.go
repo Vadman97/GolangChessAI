@@ -21,7 +21,7 @@ func main() {
 	start := time.Now()
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < MovesToPlay; i++ {
-		moves := *myBoard.GetAllMoves(turnColor)
+		moves := *myBoard.GetAllMoves(turnColor, nil)
 		if len(moves) == 0 {
 			break
 		}
