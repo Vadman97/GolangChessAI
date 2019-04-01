@@ -16,6 +16,7 @@ type Game struct {
 	PlayTime         map[byte]time.Duration
 	MovesPlayed      uint
 	PreviousMove     *board.LastMove
+	GameStatus       byte
 }
 
 func (g *Game) PlayTurn() {
@@ -24,6 +25,15 @@ func (g *Game) PlayTurn() {
 	g.PlayTime[g.CurrentTurnColor] += time.Now().Sub(start)
 	g.CurrentTurnColor ^= 1
 	g.MovesPlayed++
+	if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
+		if g.CurrentTurnColor == color.White {
+			g.GameStatus = BlackWin
+		} else {
+			g.GameStatus = WhiteWin
+		}
+	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
+		g.GameStatus = Stalemate
+	}
 }
 
 func (g *Game) Print() (result string) {
@@ -51,6 +61,7 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 		},
 		MovesPlayed:  0,
 		PreviousMove: nil,
+		GameStatus:   Active,
 	}
 	g.CurrentBoard.ResetDefault()
 	return &g

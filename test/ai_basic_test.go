@@ -38,6 +38,10 @@ func TestBoardAI(t *testing.T) {
 		fmt.Println(g.CurrentBoard.Print())
 		fmt.Println(g.Print())
 		util.PrintMemStats()
+		if g.GameStatus != game.Active {
+			fmt.Printf("Game Over! Result is: %s\n", game.StatusStrings[g.GameStatus])
+			break
+		}
 	}
 
 	fmt.Println("After moves:")
