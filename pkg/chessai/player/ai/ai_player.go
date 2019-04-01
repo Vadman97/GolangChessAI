@@ -88,12 +88,13 @@ type ScoredMove struct {
 }
 
 type Player struct {
-	Algorithm   string
-	PlayerColor byte
-	Depth       int
-	TurnCount   int
-	Opening     int
-	Metrics     *Metrics
+	Algorithm                 string
+	TranspositionTableEnabled bool
+	PlayerColor               byte
+	Depth                     int
+	TurnCount                 int
+	Opening                   int
+	Metrics                   *Metrics
 
 	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
@@ -101,10 +102,11 @@ type Player struct {
 
 func NewAIPlayer(c byte) *Player {
 	return &Player{
-		Algorithm:   AlgorithmAlphaBetaWithMemory,
-		PlayerColor: c,
-		Depth:       4,
-		TurnCount:   0,
+		Algorithm:                 AlgorithmAlphaBetaWithMemory,
+		TranspositionTableEnabled: true,
+		PlayerColor:               c,
+		Depth:                     4,
+		TurnCount:                 0,
 		// Opening:        rand.Intn(len(OpeningMoves[c])),
 		Opening:        OpeningNone,
 		Metrics:        &Metrics{},
@@ -133,7 +135,9 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
-		var m = &ScoredMove{}
+		var m = &ScoredMove{
+			Score: NegInf,
+		}
 		if p.Algorithm == AlgorithmMiniMax {
 			m = p.MiniMax(b, p.Depth, p.PlayerColor)
 		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {

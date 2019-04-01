@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
@@ -21,6 +22,12 @@ func (g *Game) PlayTurn() {
 	g.PlayTime[g.CurrentTurnColor] += time.Now().Sub(start)
 	g.CurrentTurnColor ^= 1
 	g.MovesPlayed++
+}
+
+func (g *Game) Print() (result string) {
+	result += fmt.Sprintf("White %s has thought for %s\n", g.Players[color.White].Repr(), g.PlayTime[color.White])
+	result += fmt.Sprintf("Black %s has thought for %s", g.Players[color.Black].Repr(), g.PlayTime[color.Black])
+	return
 }
 
 func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
