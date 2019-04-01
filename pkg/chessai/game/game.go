@@ -19,7 +19,13 @@ type Game struct {
 	GameStatus       byte
 }
 
-func (g *Game) PlayTurn() {
+/**
+ * Makes a move.  Returns boolean indicating if game is still active.
+ */
+func (g *Game) PlayTurn() bool {
+	if g.GameStatus != Active {
+		panic("Game is not active!")
+	}
 	start := time.Now()
 	g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, g.PreviousMove)
 	g.PlayTime[g.CurrentTurnColor] += time.Now().Sub(start)
@@ -34,6 +40,7 @@ func (g *Game) PlayTurn() {
 	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
 		g.GameStatus = Stalemate
 	}
+	return g.GameStatus == Active
 }
 
 func (g *Game) Print() (result string) {

@@ -33,12 +33,12 @@ func TestBoardAI(t *testing.T) {
 			break
 		}
 		fmt.Printf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor].Repr())
-		g.PlayTurn()
+		active := g.PlayTurn()
 		fmt.Printf("Move %d\n", g.MovesPlayed)
 		fmt.Println(g.CurrentBoard.Print())
 		fmt.Println(g.Print())
 		util.PrintMemStats()
-		if g.GameStatus != game.Active {
+		if !active {
 			fmt.Printf("Game Over! Result is: %s\n", game.StatusStrings[g.GameStatus])
 			break
 		}
