@@ -404,7 +404,7 @@ func (b *Board) getAllAttackableMoves(color byte) AttackableBoard {
 /**
  * Determines if a king of color c is under attack by the opposite color.
  */
-func (b *Board) isKingInCheck(c byte) bool {
+func (b *Board) IsKingInCheck(c byte) bool {
 	oppositeColor := c ^ 1
 	attackableBoard := b.GetAllAttackableMoves(oppositeColor)
 	return IsLocationUnderAttack(attackableBoard, b.KingLocations[c])
@@ -418,7 +418,7 @@ func (b *Board) isKingInCheck(c byte) bool {
 func (b *Board) willMoveLeaveKingInCheck(c byte, m location.Move) bool {
 	boardCopy := b.Copy()
 	MakeMove(&m, boardCopy)
-	return boardCopy.isKingInCheck(c)
+	return boardCopy.IsKingInCheck(c)
 }
 
 /**

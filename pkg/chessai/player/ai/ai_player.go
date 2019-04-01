@@ -38,7 +38,8 @@ const (
 	PieceNumMovesWeight   = 10
 	PieceNumAttacksWeight = 10
 	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
-	KingCastledWeight     = 1 * PieceValueWeight  // one pawn
+	KingCastledWeight     = 3 * PieceValueWeight  // three pawn
+	KingCheckedWeight     = 1 * PieceValueWeight  // one pawn
 )
 
 const (
@@ -91,7 +92,8 @@ type Player struct {
 	Algorithm                 string
 	TranspositionTableEnabled bool
 	PlayerColor               byte
-	Depth                     int
+	MaxSearchDepth            int
+	CurrentSearchDepth        int
 	TurnCount                 int
 	Opening                   int
 	Metrics                   *Metrics
@@ -105,7 +107,8 @@ func NewAIPlayer(c byte) *Player {
 		Algorithm:                 AlgorithmAlphaBetaWithMemory,
 		TranspositionTableEnabled: true,
 		PlayerColor:               c,
-		Depth:                     4,
+		MaxSearchDepth:            4,
+		CurrentSearchDepth:        4,
 		TurnCount:                 0,
 		// Opening:        rand.Intn(len(OpeningMoves[c])),
 		Opening:        OpeningNone,
@@ -135,17 +138,18 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
+		// reset metrics for each move
+		p.Metrics = &Metrics{}
+
 		var m = &ScoredMove{
-			Score: NegInf,
+			Score: 0,
 		}
 		if p.Algorithm == AlgorithmMiniMax {
-			m = p.MiniMax(b, p.Depth, p.PlayerColor, previousMove)
+			m = p.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
 		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
-			m = p.AlphaBetaWithMemory(b, p.Depth, NegInf, PosInf, p.PlayerColor, previousMove)
+			m = p.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
 		} else if p.Algorithm == AlgorithmMTDF {
-			for d := 1; d <= p.Depth; d++ {
-				m = p.MTDF(b, m, d, p.PlayerColor, previousMove)
-			}
+			m = p.IterativeMTDF(b, m, previousMove)
 		} else if p.Algorithm == AlgorithmRandom {
 			m = p.Random(b, previousMove)
 		} else {
@@ -173,7 +177,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		b.MoveCache.PrintMetrics()
 		fmt.Printf("Attack Move cache metrics\n")
 		b.AttackableCache.PrintMetrics()
-		fmt.Printf("\nAI (%s:%d - %s) best move leads to score %d\n", p.Algorithm, p.Depth, p.Repr(), m.Score)
+		fmt.Printf("\nAI (%s:%d - %s) best move leads to score %d\n", p.Algorithm, p.MaxSearchDepth, p.Repr(), m.Score)
 		fmt.Printf("%s\n", p.Metrics.Print())
 		fmt.Printf("%s best move leads to score %d\n", p.Repr(), m.Score)
 		fmt.Printf("\n\n")
@@ -190,8 +194,9 @@ func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove) *board.L
 func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 	hash := b.Hash()
 	if score, ok := p.evaluationMap.Read(&hash); ok {
+		s := p.ensureScorePerspective(score.(int))
 		return &board.Evaluation{
-			TotalScore: int(score.(int32)),
+			TotalScore: s,
 		}
 	}
 
@@ -226,13 +231,15 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 		score := 0
 		for pieceType, value := range PieceValue {
 			score += PieceValueWeight * value * int(eval.PieceCounts[c][pieceType])
-			// TODO(Vadim) piece advance does not work right
 			score += PieceAdvanceWeight * int(eval.PieceAdvanced[c][pieceType])
 		}
 		if b.GetFlag(board.FlagCastled, c) {
 			score += KingCastledWeight
 		} else if b.GetFlag(board.FlagKingMoved, c) {
 			score += KingDisplacedWeight
+		}
+		if b.IsKingInCheck(c) {
+			score += KingCheckedWeight
 		}
 		for column := int8(0); column < board.Width; column++ {
 			// duplicate score grows exponentially for each additional pawn
@@ -243,9 +250,12 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 		// possible attacks
 		score += PieceNumAttacksWeight * int(eval.NumAttacks[c])
 
-		//if p.IsWin() {
-		//	// TODO(Vadim)
-		//}
+		/* TODO(Vadim)
+		if b.IsWin(c) {
+			score = PosInf
+		} else if b.IsTie(c) {
+			score = 0
+		}*/
 
 		if c == p.PlayerColor {
 			eval.TotalScore += score
@@ -253,14 +263,18 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 			eval.TotalScore -= score
 		}
 	}
+	p.evaluationMap.Store(&hash, int(eval.TotalScore))
 
-	// if the search depth is odd, flip score
-	if p.Depth%2 == 1 {
-		eval.TotalScore = -eval.TotalScore
-	}
-
-	p.evaluationMap.Store(&hash, int32(eval.TotalScore))
+	eval.TotalScore = p.ensureScorePerspective(eval.TotalScore)
 	return eval
+}
+
+func (p *Player) ensureScorePerspective(score int) int {
+	// if the search depth is odd, flip score
+	if p.CurrentSearchDepth%2 == 1 {
+		score = -score
+	}
+	return score
 }
 
 func (p *Player) Repr() string {
@@ -268,5 +282,5 @@ func (p *Player) Repr() string {
 	if p.PlayerColor == color.White {
 		c = "White"
 	}
-	return fmt.Sprintf("AI (%s,depth:%d - %s)", p.Algorithm, p.Depth, c)
+	return fmt.Sprintf("AI (%s,depth:%d - %s)", p.Algorithm, p.MaxSearchDepth, c)
 }

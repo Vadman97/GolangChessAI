@@ -7,21 +7,22 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"testing"
 	"time"
 )
 
 func TestBoardAI(t *testing.T) {
-	const MovesToPlay = 40
+	const MovesToPlay = 20
 	const TimeToPlay = 60 * time.Second
 
+	rand.Seed(time.Now().UnixNano())
 	aiPlayerSmart := ai.NewAIPlayer(color.Black)
-	aiPlayerSmart.Algorithm = ai.AlgorithmMiniMax
-	aiPlayerSmart.Depth = 4
+	aiPlayerSmart.Algorithm = ai.AlgorithmAlphaBetaWithMemory
+	aiPlayerSmart.MaxSearchDepth = 4
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
-	aiPlayerDumb.Algorithm = ai.AlgorithmAlphaBetaWithMemory
-	aiPlayerDumb.TranspositionTableEnabled = true
-	aiPlayerDumb.Depth = 4
+	aiPlayerDumb.Algorithm = ai.AlgorithmRandom
+	aiPlayerDumb.MaxSearchDepth = 4
 	g := game.NewGame(aiPlayerDumb, aiPlayerSmart)
 
 	fmt.Println("Before moves:")
