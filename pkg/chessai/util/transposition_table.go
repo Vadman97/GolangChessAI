@@ -11,8 +11,9 @@ type TranspositionTableEntry struct {
 }
 
 type TranspositionTable struct {
-	entryMap  map[uint64]map[uint64]map[uint64]map[uint64]map[byte]*TranspositionTableEntry
-	numStored int
+	entryMap          map[uint64]map[uint64]map[uint64]map[uint64]map[byte]*TranspositionTableEntry
+	numStored         int
+	numReads, numHits int
 }
 
 func NewTranspositionTable() *TranspositionTable {
@@ -49,6 +50,7 @@ func (m *TranspositionTable) Store(hash *[33]byte, entry *TranspositionTableEntr
 
 func (m *TranspositionTable) Read(hash *[33]byte) (*TranspositionTableEntry, bool) {
 	idx := HashToMapKey(hash)
+	m.numReads++
 
 	m1, ok := m.entryMap[idx[0]]
 	if ok {
@@ -59,6 +61,9 @@ func (m *TranspositionTable) Read(hash *[33]byte) (*TranspositionTableEntry, boo
 				m4, ok := m3[idx[3]]
 				if ok {
 					v, ok := m4[(*hash)[32]]
+					if ok {
+						m.numHits++
+					}
 					return v, ok
 				}
 			}
@@ -70,4 +75,6 @@ func (m *TranspositionTable) Read(hash *[33]byte) (*TranspositionTableEntry, boo
 
 func (m *TranspositionTable) PrintMetrics() {
 	fmt.Printf("\tTotal entries in transposition table %d\n", m.numStored)
+	fmt.Printf("\tHit ratio %f%% (%d/%d)\n", 100.0*float64(m.numHits)/float64(m.numReads),
+		m.numHits, m.numReads)
 }

@@ -12,10 +12,10 @@ const (
 )
 
 type ConcurrentBoardMap struct {
-	scoreMap       [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]interface{}
-	locks          [NumSlices]sync.RWMutex
-	lockUsage      [NumSlices]uint64
-	entriesWritten [NumSlices]uint64
+	scoreMap                       [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]interface{}
+	locks                          [NumSlices]sync.RWMutex
+	lockUsage                      [NumSlices]uint64
+	numHits, numWrites, numQueries [NumSlices]uint64
 }
 
 func NewConcurrentBoardMap() *ConcurrentBoardMap {
@@ -68,7 +68,7 @@ func (m *ConcurrentBoardMap) Store(hash *[33]byte, value interface{}) {
 	if !ok {
 		m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]] = make(map[byte]interface{})
 	}
-	m.entriesWritten[lockIdx]++
+	m.numWrites[lockIdx]++
 	m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]] = value
 }
 
@@ -78,6 +78,7 @@ func (m *ConcurrentBoardMap) Read(hash *[33]byte) (interface{}, bool) {
 	lock, lockIdx := m.getLock(hash)
 	lock.Lock()
 	defer lock.Unlock()
+	m.numQueries[lockIdx]++
 
 	m1, ok := m.scoreMap[lockIdx][idx[0]]
 	if ok {
@@ -88,6 +89,9 @@ func (m *ConcurrentBoardMap) Read(hash *[33]byte) (interface{}, bool) {
 				m4, ok := m3[idx[3]]
 				if ok {
 					v, ok := m4[(*hash)[32]]
+					if ok {
+						m.numHits[lockIdx]++
+					}
 					return v, ok
 				}
 			}
@@ -98,13 +102,20 @@ func (m *ConcurrentBoardMap) Read(hash *[33]byte) (interface{}, bool) {
 }
 
 func (m *ConcurrentBoardMap) PrintMetrics() {
-	//fmt.Printf("Lock Usages: \n")
-	totalLocks, totalEntries := uint64(0), uint64(0)
+	totalLockUsage := uint64(0)
+	totalHits := uint64(0)
+	totalReads := uint64(0)
+	totalWrites := uint64(0)
 	for i := 0; i < NumSlices; i++ {
 		//fmt.Printf("Slice #%d, Used #%d times\n", i, m.lockUsage[i])
-		totalLocks += m.lockUsage[i]
-		totalEntries += m.entriesWritten[i]
+		totalLockUsage += m.lockUsage[i]
+		totalHits += m.numHits[i]
+		totalReads += m.numQueries[i]
+		totalWrites += m.numWrites[i]
 	}
-	fmt.Printf("\tLock usages in map %d\n", totalLocks)
-	fmt.Printf("\tTotal entries in map %d\n", totalEntries)
+	fmt.Printf("\tTotal entries in map %d. Reads %d. Writes %d\n", totalWrites, totalReads, totalWrites)
+	fmt.Printf("\tHit ratio %f%% (%d/%d)\n", 100.0*float64(totalHits)/float64(totalReads),
+		totalHits, totalReads)
+	fmt.Printf("\tRead ratio %f%%\n", 100.0*float64(totalReads)/float64(totalReads+totalWrites))
+	fmt.Printf("\tLock usages in map %d\n", totalLockUsage)
 }

@@ -12,18 +12,16 @@ import (
 )
 
 func TestBoardAI(t *testing.T) {
-	//TODO
-	//Skipping this test for now, we need to implement case where there are no more moves and this test will end
-	//Right now, white is losing (Good!) but ends up with no moves
-	//Implement in a separate PR
-	t.Skip()
-	const MovesToPlay = 100
+	const MovesToPlay = 40
 	const TimeToPlay = 60 * time.Second
 
 	aiPlayerSmart := ai.NewAIPlayer(color.Black)
 	aiPlayerSmart.Algorithm = ai.AlgorithmMiniMax
+	aiPlayerSmart.Depth = 4
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
 	aiPlayerDumb.Algorithm = ai.AlgorithmAlphaBetaWithMemory
+	aiPlayerDumb.TranspositionTableEnabled = true
+	aiPlayerDumb.Depth = 4
 	g := game.NewGame(aiPlayerDumb, aiPlayerSmart)
 
 	fmt.Println("Before moves:")
@@ -34,22 +32,23 @@ func TestBoardAI(t *testing.T) {
 			fmt.Printf("Aborting - out of time\n")
 			break
 		}
+		fmt.Printf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor].Repr())
 		g.PlayTurn()
 		fmt.Printf("Move %d\n", g.MovesPlayed)
 		fmt.Println(g.CurrentBoard.Print())
-		fmt.Printf("White %s has thought for %s\n", g.Players[color.White].Repr(), g.PlayTime[color.White])
-		fmt.Printf("Black %s has thought for %s\n", g.Players[color.Black].Repr(), g.PlayTime[color.Black])
+		fmt.Println(g.Print())
 		util.PrintMemStats()
 	}
 
 	fmt.Println("After moves:")
 	fmt.Println(g.CurrentBoard.Print())
+	fmt.Println(g.Print())
 	// comment out printing inside loop for accurate timing
 	fmt.Printf("Played %d moves in %d ms.\n", g.MovesPlayed, time.Now().Sub(start)/time.Millisecond)
 
 	smartScore := aiPlayerSmart.EvaluateBoard(g.CurrentBoard).TotalScore
 	dumbScore := aiPlayerDumb.EvaluateBoard(g.CurrentBoard).TotalScore
-	fmt.Printf("Good AI Evaluation %d.\n", smartScore)
-	fmt.Printf("Bad AI Evaluation %d.\n", dumbScore)
+	fmt.Printf("Good AI %s Evaluation %d.\n", aiPlayerSmart.Repr(), smartScore)
+	fmt.Printf("Bad AI %s Evaluation %d.\n", aiPlayerDumb.Repr(), dumbScore)
 	assert.True(t, smartScore > dumbScore)
 }

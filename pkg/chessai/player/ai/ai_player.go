@@ -17,7 +17,9 @@ const (
 
 const (
 	AlgorithmMiniMax             = "MiniMax"
-	AlgorithmAlphaBetaWithMemory = "AlphaBeta"
+	AlgorithmAlphaBetaWithMemory = "AlphaBetaMemory"
+	AlgorithmMTDF                = "MTDF"
+	AlgorithmRandom              = "Random"
 )
 
 var PieceValue = map[byte]int{
@@ -30,19 +32,26 @@ var PieceValue = map[byte]int{
 }
 
 const (
-	PieceValueWeight    = 1000
-	PawnStructureWeight = 200
-	PieceAdvanceWeight  = 100
-	PieceNumMovesWeight = 1
+	PieceValueWeight      = 1000
+	PawnStructureWeight   = 500
+	PieceAdvanceWeight    = 100
+	PieceNumMovesWeight   = 10
+	PieceNumAttacksWeight = 10
+	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
+	KingCastledWeight     = 1 * PieceValueWeight  // one pawn
 )
 
 const (
 	PawnDuplicateWeight = -1
 )
 
-// color -> openers
-var OpeningMoves = map[byte][]*location.Move{
-	color.Black: {
+const (
+	OpeningNone = -1
+)
+
+// color -> list of openings: { list of moves }
+var OpeningMoves = map[byte][][]*location.Move{
+	color.Black: {{
 		&location.Move{
 			Start: location.Location{Row: board.StartRow[color.Black]["Pawn"], Col: 4},
 			End:   location.Location{Row: board.StartRow[color.Black]["Pawn"] + 2, Col: 4},
@@ -51,8 +60,12 @@ var OpeningMoves = map[byte][]*location.Move{
 			Start: location.Location{Row: board.StartRow[color.Black]["Piece"], Col: 1},
 			End:   location.Location{Row: board.StartRow[color.Black]["Piece"] + 2, Col: 2},
 		},
-	},
-	color.White: {
+		&location.Move{
+			Start: location.Location{Row: board.StartRow[color.Black]["Piece"], Col: 5},
+			End:   location.Location{Row: board.StartRow[color.Black]["Piece"] + 3, Col: 2},
+		},
+	}},
+	color.White: {{
 		&location.Move{
 			Start: location.Location{Row: board.StartRow[color.White]["Pawn"], Col: 4},
 			End:   location.Location{Row: board.StartRow[color.White]["Pawn"] - 2, Col: 4},
@@ -61,7 +74,11 @@ var OpeningMoves = map[byte][]*location.Move{
 			Start: location.Location{Row: board.StartRow[color.White]["Piece"], Col: 6},
 			End:   location.Location{Row: board.StartRow[color.White]["Piece"] - 2, Col: 5},
 		},
-	},
+		&location.Move{
+			Start: location.Location{Row: board.StartRow[color.White]["Piece"], Col: 5},
+			End:   location.Location{Row: board.StartRow[color.White]["Piece"] - 3, Col: 2},
+		},
+	}},
 }
 
 type ScoredMove struct {
@@ -71,24 +88,34 @@ type ScoredMove struct {
 }
 
 type Player struct {
-	TurnCount      int
-	PlayerColor    byte
-	Algorithm      string
+	Algorithm                 string
+	TranspositionTableEnabled bool
+	PlayerColor               byte
+	Depth                     int
+	TurnCount                 int
+	Opening                   int
+	Metrics                   *Metrics
+
 	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
 }
 
 func NewAIPlayer(c byte) *Player {
 	return &Player{
-		Algorithm:      AlgorithmAlphaBetaWithMemory,
-		TurnCount:      0,
-		PlayerColor:    c,
+		Algorithm:                 AlgorithmAlphaBetaWithMemory,
+		TranspositionTableEnabled: true,
+		PlayerColor:               c,
+		Depth:                     4,
+		TurnCount:                 0,
+		// Opening:        rand.Intn(len(OpeningMoves[c])),
+		Opening:        OpeningNone,
+		Metrics:        &Metrics{},
 		evaluationMap:  util.NewConcurrentBoardMap(),
 		alphaBetaTable: util.NewTranspositionTable(),
 	}
 }
 
-func compare(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) bool {
+func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) bool {
 	if maximizingP {
 		if candidate.Score > currentBest.Score {
 			return true
@@ -105,18 +132,25 @@ func compare(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) b
 }
 
 func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *location.Move {
-	if p.TurnCount < len(OpeningMoves) {
-		return OpeningMoves[p.PlayerColor][p.TurnCount]
+	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
+		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
-		var m *ScoredMove
+		var m = &ScoredMove{
+			Score: NegInf,
+		}
 		if p.Algorithm == AlgorithmMiniMax {
-			m = p.MiniMax(b, 2, p.PlayerColor, previousMove)
+			m = p.MiniMax(b, p.Depth, p.PlayerColor, previousMove)
 		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
-			m = p.AlphaBetaWithMemory(b, 4, NegInf, PosInf, p.PlayerColor, previousMove)
+			m = p.AlphaBetaWithMemory(b, p.Depth, NegInf, PosInf, p.PlayerColor, previousMove)
+		} else if p.Algorithm == AlgorithmMTDF {
+			for d := 1; d <= p.Depth; d++ {
+				m = p.MTDF(b, m, d, p.PlayerColor, previousMove)
+			}
+		} else if p.Algorithm == AlgorithmRandom {
+			m = p.Random(b, previousMove)
 		} else {
 			panic("invalid ai algorithm")
 		}
-		fmt.Printf("%s best move leads to score %d\n", p.Repr(), m.Score)
 		debugBoard := b.Copy()
 		//for i := 0; i < len(m.MoveSequence); i++ {
 		for i := len(m.MoveSequence) - 1; i >= 0; i-- {
@@ -139,6 +173,9 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		b.MoveCache.PrintMetrics()
 		fmt.Printf("Attack Move cache metrics\n")
 		b.AttackableCache.PrintMetrics()
+		fmt.Printf("\nAI (%s:%d - %s) best move leads to score %d\n", p.Algorithm, p.Depth, p.Repr(), m.Score)
+		fmt.Printf("%s\n", p.Metrics.Print())
+		fmt.Printf("%s best move leads to score %d\n", p.Repr(), m.Score)
 		fmt.Printf("\n\n")
 		return &m.Move
 	}
@@ -166,6 +203,10 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 			if p := b.GetPiece(location.Location{Row: r, Col: c}); p != nil {
 				eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
 				eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b)))
+				aMoves := p.GetAttackableMoves(b)
+				if aMoves != nil {
+					eval.NumAttacks[p.GetColor()] += uint16(len(*aMoves))
+				}
 
 				if p.GetPieceType() == piece.PawnType {
 					eval.PawnColumns[p.GetColor()][c]++
@@ -188,18 +229,34 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 			// TODO(Vadim) piece advance does not work right
 			score += PieceAdvanceWeight * int(eval.PieceAdvanced[c][pieceType])
 		}
+		if b.GetFlag(board.FlagCastled, c) {
+			score += KingCastledWeight
+		} else if b.GetFlag(board.FlagKingMoved, c) {
+			score += KingDisplacedWeight
+		}
 		for column := int8(0); column < board.Width; column++ {
 			// duplicate score grows exponentially for each additional pawn
 			score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[c][column] - 1)) - 1)
 		}
-		// count possible moves
+		// possible moves
 		score += PieceNumMovesWeight * int(eval.NumMoves[c])
+		// possible attacks
+		score += PieceNumAttacksWeight * int(eval.NumAttacks[c])
+
+		//if p.IsWin() {
+		//	// TODO(Vadim)
+		//}
 
 		if c == p.PlayerColor {
 			eval.TotalScore += score
 		} else {
 			eval.TotalScore -= score
 		}
+	}
+
+	// if the search depth is odd, flip score
+	if p.Depth%2 == 1 {
+		eval.TotalScore = -eval.TotalScore
 	}
 
 	p.evaluationMap.Store(&hash, int32(eval.TotalScore))
@@ -211,5 +268,5 @@ func (p *Player) Repr() string {
 	if p.PlayerColor == color.White {
 		c = "White"
 	}
-	return fmt.Sprintf("AI (%s - %s)", p.Algorithm, c)
+	return fmt.Sprintf("AI (%s,depth:%d - %s)", p.Algorithm, p.Depth, c)
 }
