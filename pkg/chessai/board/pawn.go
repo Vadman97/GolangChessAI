@@ -116,6 +116,8 @@ func (r *Pawn) getForwardMoves(board *Board) *[]location.Move {
 		// can only add if empty - no attacking forward with pawns
 		if board.IsEmpty(l) {
 			moves = append(moves, location.Move{r.GetPosition(), l})
+		} else {
+			return &moves
 		}
 	}
 	return &moves
