@@ -421,6 +421,22 @@ func (b *Board) willMoveLeaveKingInCheck(c byte, m location.Move) bool {
 	return boardCopy.isKingInCheck(c)
 }
 
+/**
+ * Checks if the king of color c is in checkmate.
+ */
+func (b *Board) IsInCheckmate(c byte, previousMove *LastMove) bool {
+	moves := b.GetAllMoves(c, previousMove)
+	return (len(*moves) == 0) && b.isKingInCheck(c)
+}
+
+/**
+ * Checks if the board is in a stalemate based on color c not having any moves and its king is also not in check.
+ */
+func (b *Board) IsStalemate(c byte, previousMove *LastMove) bool {
+	moves := b.GetAllMoves(c, previousMove)
+	return (len(*moves) == 0) && !b.isKingInCheck(c)
+}
+
 func (b *Board) move(m *location.Move) {
 	// more efficient function than using SetPiece(end, GetPiece(start)) - tested with benchmark
 
