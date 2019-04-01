@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"time"
 )
@@ -33,7 +34,12 @@ func (g *Game) Print() (result string) {
 
 func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 	g := Game{
-		CurrentBoard:     &board.Board{},
+		CurrentBoard: &board.Board{
+			KingLocations: [color.NumColors]location.Location{
+				{Row: 7, Col: 4},
+				{Row: 0, Col: 4},
+			},
+		},
 		CurrentTurnColor: color.White,
 		Players: map[byte]*ai.Player{
 			color.White: whitePlayer,

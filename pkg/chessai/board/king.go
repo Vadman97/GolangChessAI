@@ -55,7 +55,7 @@ func (r *King) GetNormalMoves(board *Board) *[]location.Move {
 			if i != 0 || j != 0 {
 				l := r.GetPosition()
 				l = l.Add(location.Location{int8(i), int8(j)})
-				if l.InBounds() && !r.underAttack(l, board) {
+				if l.InBounds() {
 					pieceOnLocation := board.GetPiece(l)
 					if (pieceOnLocation == nil) || (pieceOnLocation.GetColor() != r.Color) {
 						moves = append(moves, location.Move{r.GetPosition(), l})
@@ -123,6 +123,7 @@ func (r *King) Move(m *location.Move, b *Board) {
 		b.SetFlag(FlagCastled, r.GetColor(), true)
 	}
 	b.SetFlag(FlagKingMoved, r.GetColor(), true)
+	b.KingLocations[r.Color] = m.End
 }
 
 /**
