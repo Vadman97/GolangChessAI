@@ -279,7 +279,7 @@ func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move
 		b.MoveCache.Store(&h, entry)
 	}
 	if previousMove != nil {
-		enPassantMoves := b.getEnPassantMoves(color, previousMove)
+		enPassantMoves := b.GetEnPassantMoves(color, previousMove)
 		allMoves := append(*(entry.moves[color].(*[]location.Move)), *enPassantMoves...)
 		return &allMoves
 	}
@@ -309,7 +309,7 @@ func (b *Board) getAllMoves(color byte) *[]location.Move {
 /**
  * Determines possible en passant moves based on color, board, and last move.
  */
-func (b *Board) getEnPassantMoves(c byte, previousMove *LastMove) *[]location.Move {
+func (b *Board) GetEnPassantMoves(c byte, previousMove *LastMove) *[]location.Move {
 	if previousMove == nil {
 		return nil
 	}
@@ -330,11 +330,11 @@ func (b *Board) getEnPassantMoves(c byte, previousMove *LastMove) *[]location.Mo
 			}
 		}
 		if captureLocation != nil {
-			for i := -1; i < 1; i += 2 {
+			for i := -1; i <= 1; i += 2 {
 				adjacentLoc := move.End.Add(location.Location{Row: 0, Col: int8(i)})
 				if adjacentLoc.InBounds() {
 					adjacentPiece := b.GetPiece(adjacentLoc)
-					if adjacentPiece.GetColor() == c && adjacentPiece.GetPieceType() == piece.PawnType {
+					if adjacentPiece != nil && adjacentPiece.GetColor() == c && adjacentPiece.GetPieceType() == piece.PawnType {
 						enPassantMoves = append(enPassantMoves, location.Move{Start: adjacentLoc, End: *captureLocation})
 					}
 				}
