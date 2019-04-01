@@ -235,7 +235,7 @@ func (b *Board) Print() (result string) {
 }
 
 func (b *Board) MakeRandomMove() {
-	moves := *b.GetAllMoves(byte(rand.Int() % color.NumColors))
+	moves := *b.GetAllMoves(byte(rand.Int()%color.NumColors), nil)
 	if len(moves) > 0 {
 		MakeMove(&moves[rand.Int()%len(moves)], b)
 	}
@@ -261,7 +261,7 @@ func (b *Board) RandomizeIllegal() {
  *	Only this is cached and not GetAllAttackableMoves for now because this calls GetAllAttackableMoves
  *	May need to cache that one too when we use it for CheckMate / Tie evaluation
  */
-func (b *Board) GetAllMoves(color byte) *[]location.Move {
+func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move {
 	// TODO(Vadim) when king under attack, moves that block check are the only possible ones
 	h := b.Hash()
 	entry := &MoveCacheEntry{
@@ -278,18 +278,23 @@ func (b *Board) GetAllMoves(color byte) *[]location.Move {
 		entry.moves[color] = b.getAllMoves(color)
 		b.MoveCache.Store(&h, entry)
 	}
+	if previousMove != nil {
+		enPassantMoves := b.GetEnPassantMoves(color, previousMove)
+		allMoves := append(*(entry.moves[color].(*[]location.Move)), *enPassantMoves...)
+		return &allMoves
+	}
 	return entry.moves[color].(*[]location.Move)
 }
 
 func (b *Board) getAllMoves(color byte) *[]location.Move {
 	var moves []location.Move
-	for r := 0; r < Height; r++ {
+	for row := 0; row < Height; row++ {
 		// this is just a speedup - if the whole row is empty don't look at pieces
-		if b.board[r] == 0 {
+		if b.board[row] == 0 {
 			continue
 		}
-		for c := 0; c < Width; c++ {
-			l := location.Location{int8(r), int8(c)}
+		for col := 0; col < Width; col++ {
+			l := location.Location{Row: int8(row), Col: int8(col)}
 			if !b.IsEmpty(l) {
 				p := b.GetPiece(l)
 				if p.GetColor() == color {
@@ -299,6 +304,44 @@ func (b *Board) getAllMoves(color byte) *[]location.Move {
 		}
 	}
 	return &moves
+}
+
+/**
+ * Determines possible en passant moves based on color, board, and last move.
+ */
+func (b *Board) GetEnPassantMoves(c byte, previousMove *LastMove) *[]location.Move {
+	if previousMove == nil {
+		return nil
+	}
+	var enPassantMoves []location.Move
+	lastPieceMoved := *previousMove.Piece
+	if (lastPieceMoved.GetColor() != c) && (lastPieceMoved.GetPieceType() == piece.PawnType) {
+		move := previousMove.Move
+		var captureLocation *location.Location = nil
+		if lastPieceMoved.GetColor() == color.Black {
+			if (move.Start.Row == 1) && (move.End.Row == 3) {
+				l := move.End.Add(location.UpMove)
+				captureLocation = &l
+			}
+		} else {
+			if (move.Start.Row == 6) && (move.End.Row == 4) {
+				l := move.End.Add(location.DownMove)
+				captureLocation = &l
+			}
+		}
+		if captureLocation != nil {
+			for i := -1; i <= 1; i += 2 {
+				adjacentLoc := move.End.Add(location.Location{Row: 0, Col: int8(i)})
+				if adjacentLoc.InBounds() {
+					adjacentPiece := b.GetPiece(adjacentLoc)
+					if adjacentPiece != nil && adjacentPiece.GetColor() == c && adjacentPiece.GetPieceType() == piece.PawnType {
+						enPassantMoves = append(enPassantMoves, location.Move{Start: adjacentLoc, End: *captureLocation})
+					}
+				}
+			}
+		}
+	}
+	return &enPassantMoves
 }
 
 /*

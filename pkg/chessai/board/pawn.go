@@ -38,23 +38,6 @@ func (r *Pawn) GetPosition() location.Location {
 func (r *Pawn) GetMoves(board *Board) *[]location.Move {
 	var moves []location.Move
 
-	// check en passant
-	for _, m := range []location.Location{location.LeftMove, location.RightMove} {
-		move := m.Add(r.Location)
-		if eP := r.checkEnPassant(move, board); eP != nil {
-			// there is an enemy en passant pawn there
-			end := r.GetPosition()
-			end = end.Add(r.forward(1))
-			end = end.Add(m)
-			if end.InBounds() {
-				moves = append(moves, location.Move{
-					Start: r.GetPosition(),
-					End:   end,
-				})
-			}
-		}
-	}
-
 	moves = append(moves, *r.getCaptureMoves(board)...)
 	moves = append(moves, *r.getForwardMoves(board)...)
 	return &moves
@@ -133,6 +116,8 @@ func (r *Pawn) getForwardMoves(board *Board) *[]location.Move {
 		// can only add if empty - no attacking forward with pawns
 		if board.IsEmpty(l) {
 			moves = append(moves, location.Move{r.GetPosition(), l})
+		} else {
+			return &moves
 		}
 	}
 	return &moves

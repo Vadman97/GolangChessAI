@@ -7,16 +7,18 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
-func (p *Player) AlphaBetaRecurse(b *board.Board, m location.Move, depth, alpha, beta int, currentPlayer byte) *ScoredMove {
+func (p *Player) AlphaBetaRecurse(b *board.Board, m location.Move, depth, alpha, beta int, currentPlayer byte,
+	previousMove *board.LastMove) *ScoredMove {
 	newBoard := b.Copy()
 	board.MakeMove(&m, newBoard)
-	candidate := p.AlphaBetaWithMemory(newBoard, depth-1, alpha, beta, (currentPlayer+1)%color.NumColors)
+	candidate := p.AlphaBetaWithMemory(newBoard, depth-1, alpha, beta, (currentPlayer+1)%color.NumColors, previousMove)
 	candidate.Move = m
 	candidate.MoveSequence = append(candidate.MoveSequence, m)
 	return candidate
 }
 
-func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, currentPlayer byte) *ScoredMove {
+func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, currentPlayer byte,
+	previousMove *board.LastMove) *ScoredMove {
 	// transposition table lookup
 	h := b.Hash()
 	if entry, ok := p.alphaBetaTable.Read(&h); ok {
@@ -54,9 +56,9 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 		// minimizing player
 		best.Score = PosInf
 	}
-	moves := b.GetAllMoves(currentPlayer)
+	moves := b.GetAllMoves(currentPlayer, previousMove)
 	for _, m := range *moves {
-		candidate := p.AlphaBetaRecurse(b, m, depth, alpha, beta, currentPlayer)
+		candidate := p.AlphaBetaRecurse(b, m, depth, alpha, beta, currentPlayer, previousMove)
 		if compare(currentPlayer == p.PlayerColor, &best, candidate) {
 			best = *candidate
 		}

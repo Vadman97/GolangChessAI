@@ -8,24 +8,38 @@ import (
 	"testing"
 )
 
-func benchMoveCount(t *testing.T, l location.Location, initialMove *[]location.Move, expectedMoves int) {
+func buildBoardWithInitialMoves(initialMove *[]location.Move) (*board.Board, *board.LastMove) {
 	bo1 := board.Board{}
 	bo1.ResetDefault()
+	var lastMove *board.LastMove
 	if initialMove != nil {
 		for _, m := range *initialMove {
-			board.MakeMove(&m, &bo1)
+			lastMove = board.MakeMove(&m, &bo1)
 		}
 	}
+	return &bo1, lastMove
+}
+
+func benchMoveCount(t *testing.T, l location.Location, initialMove *[]location.Move, expectedMoves int) {
+	bo1, _ := buildBoardWithInitialMoves(initialMove)
 	if l.Row == 0 {
 		assert.Equal(t, color.Black, bo1.GetPiece(l).GetColor())
 	} else if l.Row == 7 {
 		assert.Equal(t, color.White, bo1.GetPiece(l).GetColor())
 	}
-	moves := bo1.GetPiece(l).GetMoves(&bo1)
+	moves := bo1.GetPiece(l).GetMoves(bo1)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, expectedMoves, len(*moves))
 	}
+}
+
+func benchEnPassantMoveCount(t *testing.T, initialMove *[]location.Move, expectedMoves int) {
+	bo1, lastMove := buildBoardWithInitialMoves(initialMove)
+	c := (*lastMove.Piece).GetColor()
+	c ^= 1
+	moves := bo1.GetEnPassantMoves(c, lastMove)
+	assert.Equal(t, expectedMoves, len(*moves))
 }
 
 func TestBishopGetMovesStart(t *testing.T) {
@@ -134,16 +148,80 @@ func TestPawnGetMovesAttack(t *testing.T) {
 	}}, 2)
 }
 
-func TestPawnGetMovesEnPassant(t *testing.T) {
-	benchMoveCount(t, location.Location{Row: 3, Col: 3}, &[]location.Move{
+func TestGetMovesEnPassantSingleOpportunity(t *testing.T) {
+	benchEnPassantMoveCount(t, &[]location.Move{
 		{
 			Start: location.Location{Row: 6, Col: 3},
 			End:   location.Location{Row: 3, Col: 3},
-		}, {
+		},
+		{
+			Start: location.Location{Row: 1, Col: 4},
+			End:   location.Location{Row: 3, Col: 4},
+		},
+	}, 1)
+}
+
+func TestGetMovesEnPassantDoubleOpportunity(t *testing.T) {
+	benchEnPassantMoveCount(t, &[]location.Move{
+		{
+			Start: location.Location{Row: 6, Col: 3},
+			End:   location.Location{Row: 3, Col: 3},
+		},
+		{
+			Start: location.Location{Row: 6, Col: 5},
+			End:   location.Location{Row: 3, Col: 5},
+		},
+		{
 			Start: location.Location{Row: 1, Col: 4},
 			End:   location.Location{Row: 3, Col: 4},
 		},
 	}, 2)
+}
+
+func TestGetMovesEnPassantSameColor(t *testing.T) {
+	benchEnPassantMoveCount(t, &[]location.Move{
+		{
+			Start: location.Location{Row: 1, Col: 4},
+			End:   location.Location{Row: 3, Col: 4},
+		},
+		{
+			Start: location.Location{Row: 1, Col: 2},
+			End:   location.Location{Row: 3, Col: 2},
+		},
+		{
+			Start: location.Location{Row: 1, Col: 3},
+			End:   location.Location{Row: 3, Col: 3},
+		},
+	}, 0)
+}
+
+func TestGetMovesEnPassantMissedOpportunity(t *testing.T) {
+	benchEnPassantMoveCount(t, &[]location.Move{
+		{
+			Start: location.Location{Row: 6, Col: 3},
+			End:   location.Location{Row: 3, Col: 3},
+		},
+		{
+			Start: location.Location{Row: 1, Col: 4},
+			End:   location.Location{Row: 3, Col: 4},
+		},
+		{
+			Start: location.Location{Row: 6, Col: 5},
+			End:   location.Location{Row: 3, Col: 5},
+		},
+	}, 0)
+}
+
+func TestGetMovesBlackEnPassant(t *testing.T) {
+	benchMoveCount(t, location.Location{Row: 4, Col: 2}, &[]location.Move{
+		{
+			Start: location.Location{Row: 1, Col: 2},
+			End:   location.Location{Row: 4, Col: 2},
+		}, {
+			Start: location.Location{Row: 6, Col: 1},
+			End:   location.Location{Row: 4, Col: 1},
+		},
+	}, 1)
 }
 
 func TestPawnGetMovesStartBlack(t *testing.T) {
@@ -162,18 +240,6 @@ func TestPawnGetMovesBlackAttack(t *testing.T) {
 		Start: location.Location{Row: 1, Col: 3},
 		End:   location.Location{Row: 5, Col: 3},
 	}}, 2)
-}
-
-func TestPawnGetMovesBlackEnPassant(t *testing.T) {
-	benchMoveCount(t, location.Location{Row: 4, Col: 2}, &[]location.Move{
-		{
-			Start: location.Location{Row: 1, Col: 2},
-			End:   location.Location{Row: 4, Col: 2},
-		}, {
-			Start: location.Location{Row: 6, Col: 1},
-			End:   location.Location{Row: 4, Col: 1},
-		},
-	}, 2)
 }
 
 func TestKingGetMovesStart(t *testing.T) {
