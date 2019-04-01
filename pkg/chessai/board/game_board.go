@@ -79,6 +79,7 @@ type Board struct {
 
 	TestRandGen                *rand.Rand
 	MoveCache, AttackableCache *util.ConcurrentBoardMap
+	KingLocations              [color.NumColors]location.Location
 }
 
 func (b *Board) Hash() (result [33]byte) {
@@ -132,6 +133,7 @@ func (b *Board) Copy() *Board {
 	newBoard.flags = b.flags
 	newBoard.MoveCache = b.MoveCache
 	newBoard.AttackableCache = b.AttackableCache
+	newBoard.KingLocations = b.KingLocations
 	return &newBoard
 }
 
@@ -142,6 +144,7 @@ func (b *Board) ResetDefault() {
 	b.board[7] = StartingRowHex[7]
 	b.MoveCache = util.NewConcurrentBoardMap()
 	b.AttackableCache = util.NewConcurrentBoardMap()
+	b.KingLocations = [color.NumColors]location.Location{{Row: 7, Col: 4}, {Row: 0, Col: 4}}
 }
 
 func (b *Board) ResetDefaultSlow() {
@@ -156,6 +159,7 @@ func (b *Board) ResetDefaultSlow() {
 		StartingRow[c].SetColor(color.White)
 		b.SetPiece(location.Location{7, c}, StartingRow[c])
 	}
+	b.KingLocations = [color.NumColors]location.Location{{Row: 7, Col: 4}, {Row: 0, Col: 4}}
 }
 
 func (b *Board) SetPiece(l location.Location, p Piece) {
@@ -262,7 +266,6 @@ func (b *Board) RandomizeIllegal() {
  *	May need to cache that one too when we use it for CheckMate / Tie evaluation
  */
 func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move {
-	// TODO(Vadim) when king under attack, moves that block check are the only possible ones
 	h := b.Hash()
 	entry := &MoveCacheEntry{
 		moves: make(map[byte]interface{}),
@@ -286,7 +289,7 @@ func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move
 	return entry.moves[color].(*[]location.Move)
 }
 
-func (b *Board) getAllMoves(color byte) *[]location.Move {
+func (b *Board) getAllMoves(c byte) *[]location.Move {
 	var moves []location.Move
 	for row := 0; row < Height; row++ {
 		// this is just a speedup - if the whole row is empty don't look at pieces
@@ -297,8 +300,13 @@ func (b *Board) getAllMoves(color byte) *[]location.Move {
 			l := location.Location{Row: int8(row), Col: int8(col)}
 			if !b.IsEmpty(l) {
 				p := b.GetPiece(l)
-				if p.GetColor() == color {
-					moves = append(moves, *p.GetMoves(b)...)
+				if p.GetColor() == c {
+					additionalMoves := *p.GetMoves(b)
+					for _, nextMove := range additionalMoves {
+						if !b.willMoveLeaveKingInCheck(c, nextMove) {
+							moves = append(moves, nextMove)
+						}
+					}
 				}
 			}
 		}
@@ -335,7 +343,10 @@ func (b *Board) GetEnPassantMoves(c byte, previousMove *LastMove) *[]location.Mo
 				if adjacentLoc.InBounds() {
 					adjacentPiece := b.GetPiece(adjacentLoc)
 					if adjacentPiece != nil && adjacentPiece.GetColor() == c && adjacentPiece.GetPieceType() == piece.PawnType {
-						enPassantMoves = append(enPassantMoves, location.Move{Start: adjacentLoc, End: *captureLocation})
+						potentialMove := location.Move{Start: adjacentLoc, End: *captureLocation}
+						if !b.willMoveLeaveKingInCheck(c, potentialMove) {
+							enPassantMoves = append(enPassantMoves, potentialMove)
+						}
 					}
 				}
 			}
@@ -388,6 +399,26 @@ func (b *Board) getAllAttackableMoves(color byte) AttackableBoard {
 		}
 	}
 	return attackable
+}
+
+/**
+ * Determines if a king of color c is under attack by the opposite color.
+ */
+func (b *Board) isKingInCheck(c byte) bool {
+	oppositeColor := c ^ 1
+	attackableBoard := b.GetAllAttackableMoves(oppositeColor)
+	return IsLocationUnderAttack(attackableBoard, b.KingLocations[c])
+}
+
+/**
+ * Applies a move to the board and then checks to see if it will result in king of color c being in check.
+ * This could mean that the king was in check and will still be in check, or that king has been put into check as a
+ * result of the move.
+ */
+func (b *Board) willMoveLeaveKingInCheck(c byte, m location.Move) bool {
+	boardCopy := b.Copy()
+	MakeMove(&m, boardCopy)
+	return boardCopy.isKingInCheck(c)
 }
 
 func (b *Board) move(m *location.Move) {
