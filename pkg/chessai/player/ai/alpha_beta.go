@@ -5,7 +5,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
-func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, currentPlayer byte) *ScoredMove {
+func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
 	if depth == 0 {
 		return &ScoredMove{
 			Score: p.EvaluateBoard(b).TotalScore,
@@ -48,12 +48,12 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 	} else {
 		best.Score = PosInf
 	}
-	moves := b.GetAllMoves(currentPlayer)
+	moves := b.GetAllMoves(currentPlayer, previousMove)
 	for i, m := range *moves {
 		newBoard := b.Copy()
 		board.MakeMove(&m, newBoard)
 		p.Metrics.MovesConsidered++
-		candidate := p.AlphaBetaWithMemory(newBoard, depth-1, alpha, beta, currentPlayer^1)
+		candidate := p.AlphaBetaWithMemory(newBoard, depth-1, alpha, beta, currentPlayer^1, previousMove)
 		candidate.Move = m
 		candidate.MoveSequence = append(candidate.MoveSequence, m)
 		if betterMove(maximizingPlayer, &best, candidate) {
@@ -61,6 +61,7 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 		}
 		if maximizingPlayer {
 			if best.Score > alpha {
+				// TODO(Vadim) why does adding this make ab prune too much
 				//alpha = best.Score
 			}
 		} else {

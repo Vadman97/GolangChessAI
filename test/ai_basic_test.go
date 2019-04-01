@@ -12,8 +12,8 @@ import (
 )
 
 func TestBoardAI(t *testing.T) {
-	const MovesToPlay = 20
-	const TimeToPlay = 600 * time.Second
+	const MovesToPlay = 40
+	const TimeToPlay = 60 * time.Second
 
 	aiPlayerSmart := ai.NewAIPlayer(color.Black)
 	aiPlayerSmart.Algorithm = ai.AlgorithmMiniMax
@@ -21,7 +21,7 @@ func TestBoardAI(t *testing.T) {
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
 	aiPlayerDumb.Algorithm = ai.AlgorithmAlphaBetaWithMemory
 	aiPlayerDumb.TranspositionTableEnabled = true
-	aiPlayerDumb.Depth = 6
+	aiPlayerDumb.Depth = 4
 	g := game.NewGame(aiPlayerDumb, aiPlayerSmart)
 
 	fmt.Println("Before moves:")

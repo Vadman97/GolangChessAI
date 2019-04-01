@@ -18,7 +18,7 @@ type Piece interface {
 	Move(m *location.Move, b *Board)
 }
 
-func MakeMove(m *location.Move, b *Board) {
+func MakeMove(m *location.Move, b *Board) *LastMove {
 	// no UnMove function because we delete the piece we destroy
 	// easier to store copy of board before making move
 	end := m.GetEnd()
@@ -26,12 +26,15 @@ func MakeMove(m *location.Move, b *Board) {
 	// TODO(Vadim) verify that you can take the piece based on Color - here or in getMoves?
 	if end.Equals(start) {
 		log.Fatalf("Invalid move attempted! Start and End same: %+v", start)
+		return nil
 	} else {
 		// piece holds information about its location for convenience
 		// game tree stores as compressed game board -> have way to hash compressed game board fast
 		// location stored in board coordinates but can be expanded to piece objects
 		b.move(m)
-		b.GetPiece(end).Move(m, b)
+		pieceMoved := b.GetPiece(end)
+		pieceMoved.Move(m, b)
+		return &(LastMove{Piece: &pieceMoved, Move: m})
 	}
 }
 

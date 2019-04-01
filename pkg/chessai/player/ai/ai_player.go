@@ -131,7 +131,7 @@ func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove
 	}
 }
 
-func (p *Player) GetBestMove(b *board.Board) *location.Move {
+func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *location.Move {
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
@@ -139,15 +139,15 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 			Score: NegInf,
 		}
 		if p.Algorithm == AlgorithmMiniMax {
-			m = p.MiniMax(b, p.Depth, p.PlayerColor)
+			m = p.MiniMax(b, p.Depth, p.PlayerColor, previousMove)
 		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
-			m = p.AlphaBetaWithMemory(b, p.Depth, NegInf, PosInf, p.PlayerColor)
+			m = p.AlphaBetaWithMemory(b, p.Depth, NegInf, PosInf, p.PlayerColor, previousMove)
 		} else if p.Algorithm == AlgorithmMTDF {
 			for d := 1; d <= p.Depth; d++ {
-				m = p.MTDF(b, m, d, p.PlayerColor)
+				m = p.MTDF(b, m, d, p.PlayerColor, previousMove)
 			}
 		} else if p.Algorithm == AlgorithmRandom {
-			m = p.Random(b)
+			m = p.Random(b, previousMove)
 		} else {
 			panic("invalid ai algorithm")
 		}
@@ -181,9 +181,10 @@ func (p *Player) GetBestMove(b *board.Board) *location.Move {
 	}
 }
 
-func (p *Player) MakeMove(b *board.Board) {
-	board.MakeMove(p.GetBestMove(b), b)
+func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove) *board.LastMove {
+	move := board.MakeMove(p.GetBestMove(b, previousMove), b)
 	p.TurnCount++
+	return move
 }
 
 func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {

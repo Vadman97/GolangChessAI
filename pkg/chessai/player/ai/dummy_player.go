@@ -5,8 +5,8 @@ import (
 	"math/rand"
 )
 
-func (p *Player) Random(b *board.Board) *ScoredMove {
-	moves := *b.GetAllMoves(p.PlayerColor)
+func (p *Player) Random(b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	moves := *b.GetAllMoves(p.PlayerColor, previousMove)
 	idx := rand.Intn(len(moves))
 	return &ScoredMove{
 		Move: moves[idx],
