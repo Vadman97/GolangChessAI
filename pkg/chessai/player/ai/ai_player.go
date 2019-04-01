@@ -250,19 +250,23 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 		// possible attacks
 		score += PieceNumAttacksWeight * int(eval.NumAttacks[c])
 
-		/* TODO(Vadim)
-		if b.IsWin(c) {
-			score = PosInf
-		} else if b.IsTie(c) {
-			score = 0
-		}*/
-
 		if c == p.PlayerColor {
 			eval.TotalScore += score
 		} else {
 			eval.TotalScore -= score
 		}
 	}
+
+	// technically ignores en passant, but that should be ok
+	// TODO(Vadim) figure out if we can optimize, this makes very slow
+	/* if b.IsInCheckmate(p.PlayerColor, nil) {
+		eval.TotalScore = NegInf
+	} else if b.IsInCheckmate(p.PlayerColor ^ 1, nil) {
+		eval.TotalScore = PosInf
+	} else if b.IsStalemate(p.PlayerColor, nil) || b.IsStalemate(p.PlayerColor ^ 1, nil) {
+		eval.TotalScore = 0
+	} */
+
 	p.evaluationMap.Store(&hash, int(eval.TotalScore))
 
 	eval.TotalScore = p.ensureScorePerspective(eval.TotalScore)

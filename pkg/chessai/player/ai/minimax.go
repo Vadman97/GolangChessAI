@@ -8,7 +8,7 @@ import (
 func (p *Player) MiniMaxRecurse(b *board.Board, m location.Move, depth int, currentPlayer byte,
 	previousMove *board.LastMove) *ScoredMove {
 	newBoard := b.Copy()
-	board.MakeMove(&m, newBoard)
+	previousMove = board.MakeMove(&m, newBoard)
 	p.Metrics.MovesConsidered++
 	candidate := p.MiniMax(newBoard, depth-1, currentPlayer^1, previousMove)
 	candidate.Move = m

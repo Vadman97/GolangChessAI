@@ -426,7 +426,7 @@ func (b *Board) willMoveLeaveKingInCheck(c byte, m location.Move) bool {
  */
 func (b *Board) IsInCheckmate(c byte, previousMove *LastMove) bool {
 	moves := b.GetAllMoves(c, previousMove)
-	return (len(*moves) == 0) && b.isKingInCheck(c)
+	return (len(*moves) == 0) && b.IsKingInCheck(c)
 }
 
 /**
@@ -434,7 +434,7 @@ func (b *Board) IsInCheckmate(c byte, previousMove *LastMove) bool {
  */
 func (b *Board) IsStalemate(c byte, previousMove *LastMove) bool {
 	moves := b.GetAllMoves(c, previousMove)
-	return (len(*moves) == 0) && !b.isKingInCheck(c)
+	return (len(*moves) == 0) && !b.IsKingInCheck(c)
 }
 
 func (b *Board) move(m *location.Move) {

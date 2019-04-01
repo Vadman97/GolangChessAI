@@ -51,7 +51,7 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 	moves := b.GetAllMoves(currentPlayer, previousMove)
 	for i, m := range *moves {
 		newBoard := b.Copy()
-		board.MakeMove(&m, newBoard)
+		previousMove = board.MakeMove(&m, newBoard)
 		p.Metrics.MovesConsidered++
 		candidate := p.AlphaBetaWithMemory(newBoard, depth-1, alpha, beta, currentPlayer^1, previousMove)
 		candidate.Move = m
