@@ -19,9 +19,9 @@ func TestBoardAI(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	aiPlayerSmart := ai.NewAIPlayer(color.Black)
 	aiPlayerSmart.Algorithm = ai.AlgorithmAlphaBetaWithMemory
-	aiPlayerSmart.MaxSearchDepth = 4
+	aiPlayerSmart.MaxSearchDepth = 3
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
-	aiPlayerDumb.Algorithm = ai.AlgorithmMiniMax
+	aiPlayerDumb.Algorithm = ai.AlgorithmRandom
 	aiPlayerDumb.MaxSearchDepth = 2
 	g := game.NewGame(aiPlayerDumb, aiPlayerSmart)
 

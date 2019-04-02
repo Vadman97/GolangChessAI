@@ -80,6 +80,8 @@ type Board struct {
 	TestRandGen                *rand.Rand
 	MoveCache, AttackableCache *util.ConcurrentBoardMap
 	KingLocations              [color.NumColors]location.Location
+
+	CacheGetAllAttackableMoves bool
 }
 
 func (b *Board) Hash() (result [33]byte) {
@@ -134,6 +136,7 @@ func (b *Board) Copy() *Board {
 	newBoard.MoveCache = b.MoveCache
 	newBoard.AttackableCache = b.AttackableCache
 	newBoard.KingLocations = b.KingLocations
+	newBoard.CacheGetAllAttackableMoves = b.CacheGetAllAttackableMoves
 	return &newBoard
 }
 
@@ -145,6 +148,7 @@ func (b *Board) ResetDefault() {
 	b.MoveCache = util.NewConcurrentBoardMap()
 	b.AttackableCache = util.NewConcurrentBoardMap()
 	b.KingLocations = [color.NumColors]location.Location{{Row: 7, Col: 4}, {Row: 0, Col: 4}}
+	b.CacheGetAllAttackableMoves = true
 }
 
 func (b *Board) ResetDefaultSlow() {
@@ -159,7 +163,10 @@ func (b *Board) ResetDefaultSlow() {
 		StartingRow[c].SetColor(color.White)
 		b.SetPiece(location.Location{7, c}, StartingRow[c])
 	}
+	b.MoveCache = util.NewConcurrentBoardMap()
+	b.AttackableCache = util.NewConcurrentBoardMap()
 	b.KingLocations = [color.NumColors]location.Location{{Row: 7, Col: 4}, {Row: 0, Col: 4}}
+	b.CacheGetAllAttackableMoves = true
 }
 
 func (b *Board) SetPiece(l location.Location, p Piece) {
@@ -359,22 +366,26 @@ func (b *Board) GetEnPassantMoves(c byte, previousMove *LastMove) *[]location.Mo
  * Caches getAllAttackableMoves
  */
 func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
-	h := b.Hash()
-	entry := &MoveCacheEntry{
-		moves: make(map[byte]interface{}),
-	}
-	if cacheEntry, cacheExists := b.AttackableCache.Read(&h); cacheExists {
-		entry = cacheEntry.(*MoveCacheEntry)
-		// we've gotten the other color but not the one we want
-		if entry.moves[color] == nil {
+	if b.CacheGetAllAttackableMoves {
+		h := b.Hash()
+		entry := &MoveCacheEntry{
+			moves: make(map[byte]interface{}),
+		}
+		if cacheEntry, cacheExists := b.AttackableCache.Read(&h); cacheExists {
+			entry = cacheEntry.(*MoveCacheEntry)
+			// we've gotten the other color but not the one we want
+			if entry.moves[color] == nil {
+				entry.moves[color] = b.getAllAttackableMoves(color)
+				b.AttackableCache.Store(&h, entry)
+			}
+		} else {
 			entry.moves[color] = b.getAllAttackableMoves(color)
 			b.AttackableCache.Store(&h, entry)
 		}
+		return entry.moves[color].(AttackableBoard)
 	} else {
-		entry.moves[color] = b.getAllAttackableMoves(color)
-		b.AttackableCache.Store(&h, entry)
+		return b.getAllAttackableMoves(color)
 	}
-	return entry.moves[color].(AttackableBoard)
 }
 
 /**
