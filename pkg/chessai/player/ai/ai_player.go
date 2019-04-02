@@ -7,7 +7,9 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"log"
 	"math"
+	"os"
 )
 
 const (
@@ -38,6 +40,7 @@ const (
 	PieceNumMovesWeight   = 10
 	PieceNumAttacksWeight = 10
 	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
+	RookDisplacedWeight   = -1 * PieceValueWeight // neg 1 pawn
 	KingCastledWeight     = 3 * PieceValueWeight  // three pawn
 	KingCheckedWeight     = 1 * PieceValueWeight  // one pawn
 )
@@ -100,6 +103,7 @@ type Player struct {
 
 	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
+	Debug          bool
 }
 
 func NewAIPlayer(c byte) *Player {
@@ -113,6 +117,7 @@ func NewAIPlayer(c byte) *Player {
 		// Opening:        rand.Intn(len(OpeningMoves[c])),
 		Opening:        OpeningNone,
 		Metrics:        &Metrics{},
+		Debug:          true,
 		evaluationMap:  util.NewConcurrentBoardMap(),
 		alphaBetaTable: util.NewTranspositionTable(),
 	}
@@ -155,32 +160,9 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		} else {
 			panic("invalid ai algorithm")
 		}
-		debugBoard := b.Copy()
-		//for i := 0; i < len(m.MoveSequence); i++ {
-		for i := len(m.MoveSequence) - 1; i >= 0; i-- {
-			move := m.MoveSequence[i]
-			start := debugBoard.GetPiece(move.Start)
-			end := debugBoard.GetPiece(move.End)
-			startStr, endStr := board.GetColorTypeRepr(start), board.GetColorTypeRepr(end)
-			if end == nil {
-				endStr = "_"
-			}
-			fmt.Printf("\t%s to %s\n", startStr, endStr)
-			fmt.Printf("\t\t%s\n", move.Print())
-			board.MakeMove(&move, debugBoard)
+		if p.Debug {
+			p.printMoveDebug(b, m)
 		}
-		fmt.Printf("Board evaluation metrics\n")
-		p.evaluationMap.PrintMetrics()
-		fmt.Printf("Transposition table metrics\n")
-		p.alphaBetaTable.PrintMetrics()
-		fmt.Printf("Move cache metrics\n")
-		b.MoveCache.PrintMetrics()
-		fmt.Printf("Attack Move cache metrics\n")
-		b.AttackableCache.PrintMetrics()
-		fmt.Printf("\nAI (%s:%d - %s) best move leads to score %d\n", p.Algorithm, p.MaxSearchDepth, p.Repr(), m.Score)
-		fmt.Printf("%s\n", p.Metrics.Print())
-		fmt.Printf("%s best move leads to score %d\n", p.Repr(), m.Score)
-		fmt.Printf("\n\n")
 		return &m.Move
 	}
 }
@@ -235,8 +217,14 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 		}
 		if b.GetFlag(board.FlagCastled, c) {
 			score += KingCastledWeight
-		} else if b.GetFlag(board.FlagKingMoved, c) {
-			score += KingDisplacedWeight
+		} else {
+			// has not castled but
+			if b.GetFlag(board.FlagKingMoved, c) {
+				score += KingDisplacedWeight
+			}
+			if b.GetFlag(board.FlagLeftRookMoved, c) || b.GetFlag(board.FlagRightRookMoved, c) {
+				score += RookDisplacedWeight
+			}
 		}
 		if b.IsKingInCheck(c) {
 			score += KingCheckedWeight
@@ -259,6 +247,9 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 
 	// technically ignores en passant, but that should be ok
 	// TODO(Vadim) figure out if we can optimize, this makes very slow
+	if b.IsInCheckmate(p.PlayerColor, nil) {
+		eval.TotalScore = NegInf
+	}
 	/* if b.IsInCheckmate(p.PlayerColor, nil) {
 		eval.TotalScore = NegInf
 	} else if b.IsInCheckmate(p.PlayerColor ^ 1, nil) {
@@ -287,4 +278,40 @@ func (p *Player) Repr() string {
 		c = "White"
 	}
 	return fmt.Sprintf("AI (%s,depth:%d - %s)", p.Algorithm, p.MaxSearchDepth, c)
+}
+
+func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
+	const LogFile = "moveDebug.log"
+	file, err := os.OpenFile(LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal("Cannot open file", err)
+	}
+	defer func() { _ = file.Close() }()
+	var result string
+	debugBoard := b.Copy()
+	for i := len(m.MoveSequence) - 1; i >= 0; i-- {
+		move := m.MoveSequence[i]
+		start := debugBoard.GetPiece(move.Start)
+		end := debugBoard.GetPiece(move.End)
+		startStr, endStr := board.GetColorTypeRepr(start), board.GetColorTypeRepr(end)
+		if end == nil {
+			endStr = "_"
+		}
+		result += fmt.Sprintf("\t%s to %s\n", startStr, endStr)
+		result += fmt.Sprintf("\t\t%s\n", move.Print())
+		board.MakeMove(&move, debugBoard)
+	}
+	result += fmt.Sprintf("Board evaluation metrics\n")
+	result += p.evaluationMap.PrintMetrics()
+	result += fmt.Sprintf("Transposition table metrics\n")
+	result += p.alphaBetaTable.PrintMetrics()
+	result += fmt.Sprintf("Move cache metrics\n")
+	result += b.MoveCache.PrintMetrics()
+	result += fmt.Sprintf("Attack Move cache metrics\n")
+	result += b.AttackableCache.PrintMetrics()
+	result += fmt.Sprintf("\nAI %s best move leads to score %d\n", p.Repr(), m.Score)
+	result += fmt.Sprintf("%s\n", p.Metrics.Print())
+	result += fmt.Sprintf("%s best move leads to score %d\n", p.Repr(), m.Score)
+	result += fmt.Sprintf("\n\n")
+	_, _ = fmt.Fprint(file, result)
 }

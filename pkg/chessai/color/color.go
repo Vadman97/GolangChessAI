@@ -7,3 +7,7 @@ const (
 	BlackChar = 'B'
 	NumColors = 2
 )
+
+var Names = [...]string{
+	"White", "Black",
+}

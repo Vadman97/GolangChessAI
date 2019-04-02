@@ -18,3 +18,16 @@ func TestMax(t *testing.T) {
 	assert.Equal(t, -1, util.MaxScore(-2, -1))
 	assert.Equal(t, -1, util.MaxScore(-1, -2))
 }
+
+func TestMin(t *testing.T) {
+	assert.Equal(t, 3, util.MinScore(5, 3))
+	assert.Equal(t, 3, util.MinScore(3, 3))
+	assert.Equal(t, 3, util.MinScore(3, 5))
+	assert.Equal(t, 0, util.MinScore(0, 0))
+	assert.Equal(t, -1, util.MinScore(0, -1))
+	assert.Equal(t, -1, util.MinScore(-1, -1))
+	assert.Equal(t, -1, util.MinScore(-1, 0))
+	assert.Equal(t, -1, util.MinScore(-1, -1))
+	assert.Equal(t, -2, util.MinScore(-2, -1))
+	assert.Equal(t, -2, util.MinScore(-1, -2))
+}

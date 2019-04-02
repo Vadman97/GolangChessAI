@@ -13,7 +13,8 @@ type Game struct {
 	CurrentBoard     *board.Board
 	CurrentTurnColor byte
 	Players          map[byte]*ai.Player
-	PlayTime         map[byte]time.Duration
+	LastMoveTime     map[byte]time.Duration
+	TotalMoveTime    map[byte]time.Duration
 	MovesPlayed      uint
 	PreviousMove     *board.LastMove
 	GameStatus       byte
@@ -28,7 +29,8 @@ func (g *Game) PlayTurn() bool {
 	}
 	start := time.Now()
 	g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, g.PreviousMove)
-	g.PlayTime[g.CurrentTurnColor] += time.Now().Sub(start)
+	g.LastMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
+	g.TotalMoveTime[g.CurrentTurnColor] += g.LastMoveTime[g.CurrentTurnColor]
 	g.CurrentTurnColor ^= 1
 	g.MovesPlayed++
 	if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
@@ -39,13 +41,27 @@ func (g *Game) PlayTurn() bool {
 		}
 	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
 		g.GameStatus = Stalemate
+	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
+		g.GameStatus = Stalemate
 	}
 	return g.GameStatus == Active
 }
 
 func (g *Game) Print() (result string) {
-	result += fmt.Sprintf("White %s has thought for %s\n", g.Players[color.White].Repr(), g.PlayTime[color.White])
-	result += fmt.Sprintf("Black %s has thought for %s", g.Players[color.Black].Repr(), g.PlayTime[color.Black])
+	// we just played white if we are now on black, show info for white
+	if g.CurrentTurnColor == color.Black {
+		result += fmt.Sprintf("White %s thought for %s\n", g.Players[color.White].Repr(), g.LastMoveTime[color.White])
+	} else {
+		result += fmt.Sprintf("Black %s thought for %s\n", g.Players[color.Black].Repr(), g.LastMoveTime[color.Black])
+	}
+	if g.MovesPlayed%2 == 0 {
+		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed)
+		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed)
+		result += fmt.Sprintf("Average move time:\n")
+		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
+		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
+	}
+	result += fmt.Sprintf("Game state: %s", StatusStrings[g.GameStatus])
 	return
 }
 
@@ -62,7 +78,11 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 			color.White: whitePlayer,
 			color.Black: blackPlayer,
 		},
-		PlayTime: map[byte]time.Duration{
+		TotalMoveTime: map[byte]time.Duration{
+			color.White: 0,
+			color.Black: 0,
+		},
+		LastMoveTime: map[byte]time.Duration{
 			color.White: 0,
 			color.Black: 0,
 		},

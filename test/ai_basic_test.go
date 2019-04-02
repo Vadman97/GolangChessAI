@@ -21,8 +21,8 @@ func TestBoardAI(t *testing.T) {
 	aiPlayerSmart.Algorithm = ai.AlgorithmAlphaBetaWithMemory
 	aiPlayerSmart.MaxSearchDepth = 4
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
-	aiPlayerDumb.Algorithm = ai.AlgorithmRandom
-	aiPlayerDumb.MaxSearchDepth = 4
+	aiPlayerDumb.Algorithm = ai.AlgorithmMiniMax
+	aiPlayerDumb.MaxSearchDepth = 2
 	g := game.NewGame(aiPlayerDumb, aiPlayerSmart)
 
 	fmt.Println("Before moves:")
@@ -35,7 +35,7 @@ func TestBoardAI(t *testing.T) {
 		}
 		fmt.Printf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor].Repr())
 		active := g.PlayTurn()
-		fmt.Printf("Move %d\n", g.MovesPlayed)
+		fmt.Printf("Move %d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
 		fmt.Println(g.CurrentBoard.Print())
 		fmt.Println(g.Print())
 		util.PrintMemStats()

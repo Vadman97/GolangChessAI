@@ -101,21 +101,22 @@ func (m *ConcurrentBoardMap) Read(hash *[33]byte) (interface{}, bool) {
 	return 0, false
 }
 
-func (m *ConcurrentBoardMap) PrintMetrics() {
+func (m *ConcurrentBoardMap) PrintMetrics() (result string) {
 	totalLockUsage := uint64(0)
 	totalHits := uint64(0)
 	totalReads := uint64(0)
 	totalWrites := uint64(0)
 	for i := 0; i < NumSlices; i++ {
-		//fmt.Printf("Slice #%d, Used #%d times\n", i, m.lockUsage[i])
+		//result += fmt.Sprintf("Slice #%d, Used #%d times\n", i, m.lockUsage[i])
 		totalLockUsage += m.lockUsage[i]
 		totalHits += m.numHits[i]
 		totalReads += m.numQueries[i]
 		totalWrites += m.numWrites[i]
 	}
-	fmt.Printf("\tTotal entries in map %d. Reads %d. Writes %d\n", totalWrites, totalReads, totalWrites)
-	fmt.Printf("\tHit ratio %f%% (%d/%d)\n", 100.0*float64(totalHits)/float64(totalReads),
+	result += fmt.Sprintf("\tTotal entries in map %d. Reads %d. Writes %d\n", totalWrites, totalReads, totalWrites)
+	result += fmt.Sprintf("\tHit ratio %f%% (%d/%d)\n", 100.0*float64(totalHits)/float64(totalReads),
 		totalHits, totalReads)
-	fmt.Printf("\tRead ratio %f%%\n", 100.0*float64(totalReads)/float64(totalReads+totalWrites))
-	fmt.Printf("\tLock usages in map %d\n", totalLockUsage)
+	result += fmt.Sprintf("\tRead ratio %f%%\n", 100.0*float64(totalReads)/float64(totalReads+totalWrites))
+	result += fmt.Sprintf("\tLock usages in map %d\n", totalLockUsage)
+	return
 }
