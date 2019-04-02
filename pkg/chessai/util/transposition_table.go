@@ -73,8 +73,9 @@ func (m *TranspositionTable) Read(hash *[33]byte) (*TranspositionTableEntry, boo
 	return nil, false
 }
 
-func (m *TranspositionTable) PrintMetrics() {
-	fmt.Printf("\tTotal entries in transposition table %d\n", m.numStored)
-	fmt.Printf("\tHit ratio %f%% (%d/%d)\n", 100.0*float64(m.numHits)/float64(m.numReads),
+func (m *TranspositionTable) PrintMetrics() (result string) {
+	result += fmt.Sprintf("\tTotal entries in transposition table %d\n", m.numStored)
+	result += fmt.Sprintf("\tHit ratio %f%% (%d/%d)\n", 100.0*float64(m.numHits)/float64(m.numReads),
 		m.numHits, m.numReads)
+	return
 }

@@ -49,9 +49,9 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 		best.Score = PosInf
 	}
 	moves := b.GetAllMoves(currentPlayer, previousMove)
-	for i, m := range *moves {
+	for _, m := range *moves {
 		newBoard := b.Copy()
-		board.MakeMove(&m, newBoard)
+		previousMove = board.MakeMove(&m, newBoard)
 		p.Metrics.MovesConsidered++
 		candidate := p.AlphaBetaWithMemory(newBoard, depth-1, alpha, beta, currentPlayer^1, previousMove)
 		candidate.Move = m
@@ -60,19 +60,15 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 			best = *candidate
 		}
 		if maximizingPlayer {
-			if best.Score > alpha {
-				// TODO(Vadim) why does adding this make ab prune too much
-				//alpha = best.Score
-			}
+			// TODO(Vadim) why does adding this make ab prune too much
+			alpha = util.MaxScore(best.Score, alpha)
 		} else {
-			if best.Score < beta {
-				beta = best.Score
-			}
+			beta = util.MinScore(best.Score, beta)
 		}
 		if alpha >= beta {
 			// alpha-beta cutoff
-			p.Metrics.MovesPrunedAB += int64(len(*moves) - i)
-			break
+			p.Metrics.MovesPrunedAB++
+			continue
 		}
 	}
 
