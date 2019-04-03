@@ -50,12 +50,12 @@ func (r *King) GetMoves(board *Board) *[]location.Move {
  */
 func (r *King) GetNormalMoves(board *Board) *[]location.Move {
 	var moves []location.Move
-	for i := -1; i <= 1; i++ {
-		for j := -1; j <= 1; j++ {
+	for i := int8(-1); i <= 1; i++ {
+		for j := int8(-1); j <= 1; j++ {
 			if i != 0 || j != 0 {
 				l := r.GetPosition()
-				l = l.Add(location.Location{int8(i), int8(j)})
-				if l.InBounds() {
+				l, inBounds := l.AddRelative(location.RelativeLocation{i, j})
+				if inBounds {
 					pieceOnLocation := board.GetPiece(l)
 					if (pieceOnLocation == nil) || (pieceOnLocation.GetColor() != r.Color) {
 						moves = append(moves, location.Move{r.GetPosition(), l})
@@ -74,15 +74,18 @@ func (r *King) GetCastleMoves(board *Board) *[]location.Move {
 	var moves []location.Move
 	if !board.GetFlag(FlagCastled, r.GetColor()) && !board.GetFlag(FlagKingMoved, r.GetColor()) {
 		right, left := r.GetPosition(), r.GetPosition()
+		var rightIn, leftIn bool
 		for i := 0; i < 2; i++ {
-			right = right.Add(location.RightMove)
-			left = left.Add(location.LeftMove)
+			var rin, lin bool
+			right, rin = right.AddRelative(location.RightMove)
+			left, lin = left.AddRelative(location.LeftMove)
+			rightIn, leftIn = rightIn || rin, leftIn || lin
 		}
 		rightM, leftM := location.Move{r.GetPosition(), right}, location.Move{r.GetPosition(), left}
-		if r.canCastle(&rightM, board) && !board.GetFlag(FlagRightRookMoved, r.GetColor()) {
+		if rightIn && r.canCastle(&rightM, board) && !board.GetFlag(FlagRightRookMoved, r.GetColor()) {
 			moves = append(moves, rightM)
 		}
-		if r.canCastle(&leftM, board) && !board.GetFlag(FlagLeftRookMoved, r.GetColor()) {
+		if leftIn && r.canCastle(&leftM, board) && !board.GetFlag(FlagLeftRookMoved, r.GetColor()) {
 			moves = append(moves, leftM)
 		}
 	}
@@ -94,12 +97,12 @@ func (r *King) GetCastleMoves(board *Board) *[]location.Move {
  */
 func (r *King) GetAttackableMoves(board *Board) AttackableBoard {
 	attackableBoard := CreateEmptyAttackableBoard()
-	for i := -1; i <= 1; i++ {
-		for j := -1; j <= 1; j++ {
+	for i := int8(-1); i <= 1; i++ {
+		for j := int8(-1); j <= 1; j++ {
 			if i != 0 || j != 0 {
 				loc := r.GetPosition()
-				loc = loc.Add(location.Location{Row: int8(i), Col: int8(j)})
-				if loc.InBounds() {
+				loc, inBounds := loc.AddRelative(location.RelativeLocation{i, j})
+				if inBounds {
 					SetLocationAttackable(attackableBoard, loc)
 				}
 			}
@@ -109,17 +112,21 @@ func (r *King) GetAttackableMoves(board *Board) AttackableBoard {
 }
 
 func (r *King) Move(m *location.Move, b *Board) {
-	if m.Start.Col == 4 && m.Start.Col-2 == m.End.Col {
+	startCol := m.Start.GetCol()
+	endCol := m.End.GetCol()
+	right, _ := m.End.AddRelative(location.RightMove)
+	left, _ := m.End.AddRelative(location.LeftMove)
+	if startCol == 4 && startCol-2 == endCol {
 		// left castle
 		// piece right of king set to the rook from left of dest
-		b.SetPiece(m.End.Add(location.RightMove), b.GetPiece(m.End.Add(location.LeftMove)))
-		b.SetPiece(m.End.Add(location.LeftMove), nil)
+		b.SetPiece(right, b.GetPiece(left))
+		b.SetPiece(left, nil)
 		b.SetFlag(FlagCastled, r.GetColor(), true)
-	} else if m.Start.Col == 4 && m.Start.Col+2 == m.End.Col {
+	} else if startCol == 4 && startCol+2 == endCol {
 		// right castle
 		// piece right of king set to the rook from left of dest
-		b.SetPiece(m.End.Add(location.LeftMove), b.GetPiece(m.End.Add(location.RightMove)))
-		b.SetPiece(m.End.Add(location.RightMove), nil)
+		b.SetPiece(left, b.GetPiece(right))
+		b.SetPiece(right, nil)
 		b.SetFlag(FlagCastled, r.GetColor(), true)
 	}
 	b.SetFlag(FlagKingMoved, r.GetColor(), true)
@@ -131,28 +138,26 @@ func (r *King) Move(m *location.Move, b *Board) {
  * all squares between a king and rook are empty.
  */
 func (r *King) canCastle(m *location.Move, b *Board) bool {
-	if m.End.InBounds() {
-		// rook can be under attack - only need to check two spaces where king will move
-		var leftLocation, rightLocation location.Location
-		if m.End.Col < m.Start.Col {
-			leftLocation = m.End
-			rightLocation = m.Start
-		} else {
-			leftLocation = m.Start
-			rightLocation = m.End
-		}
-		for c := leftLocation.Col; c <= rightLocation.Col; c++ {
-			loc := location.Location{Row: leftLocation.Row, Col: c}
-			if r.underAttack(loc, b) {
-				return false
-			}
-			if !b.IsEmpty(loc) && b.GetPiece(loc).GetPieceType() != piece.KingType {
-				return false
-			}
-		}
-		return true
+	// rook can be under attack - only need to check two spaces where king will move
+	var leftLocation, rightLocation location.Location
+	if m.End.GetCol() < m.Start.GetCol() {
+		leftLocation = m.End
+		rightLocation = m.Start
+	} else {
+		leftLocation = m.Start
+		rightLocation = m.End
 	}
-	return false
+	llRow, llCol := leftLocation.Get()
+	for c := llCol; c <= rightLocation.GetCol(); c++ {
+		loc := location.NewLocation(llRow, c)
+		if r.underAttack(loc, b) {
+			return false
+		}
+		if !b.IsEmpty(loc) && b.GetPiece(loc).GetPieceType() != piece.KingType {
+			return false
+		}
+	}
+	return true
 }
 
 /**

@@ -41,23 +41,27 @@ func (r *Queen) GetMoves(board *Board) *[]location.Move {
 	var moves []location.Move
 	for i := 0; i < 8; i++ {
 		loc := r.GetPosition()
+		var inBounds bool
 		for true {
 			if i == 0 {
-				loc = loc.Add(location.UpMove)
+				loc, inBounds = loc.AddRelative(location.UpMove)
 			} else if i == 1 {
-				loc = loc.Add(location.RightUpMove)
+				loc, inBounds = loc.AddRelative(location.RightUpMove)
 			} else if i == 2 {
-				loc = loc.Add(location.RightMove)
+				loc, inBounds = loc.AddRelative(location.RightMove)
 			} else if i == 3 {
-				loc = loc.Add(location.RightDownMove)
+				loc, inBounds = loc.AddRelative(location.RightDownMove)
 			} else if i == 4 {
-				loc = loc.Add(location.DownMove)
+				loc, inBounds = loc.AddRelative(location.DownMove)
 			} else if i == 5 {
-				loc = loc.Add(location.LeftDownMove)
+				loc, inBounds = loc.AddRelative(location.LeftDownMove)
 			} else if i == 6 {
-				loc = loc.Add(location.LeftMove)
+				loc, inBounds = loc.AddRelative(location.LeftMove)
 			} else if i == 7 {
-				loc = loc.Add(location.LeftUpMove)
+				loc, inBounds = loc.AddRelative(location.LeftUpMove)
+			}
+			if !inBounds {
+				break
 			}
 			validMove, checkNext := CheckLocationForPiece(r.GetColor(), loc, board)
 			if validMove {
@@ -78,29 +82,30 @@ func (r *Queen) GetAttackableMoves(board *Board) AttackableBoard {
 	attackableBoard := CreateEmptyAttackableBoard()
 	for i := 0; i < 8; i++ {
 		loc := r.GetPosition()
+		var inBounds bool
 		for true {
 			if i == 0 {
-				loc = loc.Add(location.UpMove)
+				loc, inBounds = loc.AddRelative(location.UpMove)
 			} else if i == 1 {
-				loc = loc.Add(location.RightUpMove)
+				loc, inBounds = loc.AddRelative(location.RightUpMove)
 			} else if i == 2 {
-				loc = loc.Add(location.RightMove)
+				loc, inBounds = loc.AddRelative(location.RightMove)
 			} else if i == 3 {
-				loc = loc.Add(location.RightDownMove)
+				loc, inBounds = loc.AddRelative(location.RightDownMove)
 			} else if i == 4 {
-				loc = loc.Add(location.DownMove)
+				loc, inBounds = loc.AddRelative(location.DownMove)
 			} else if i == 5 {
-				loc = loc.Add(location.LeftDownMove)
+				loc, inBounds = loc.AddRelative(location.LeftDownMove)
 			} else if i == 6 {
-				loc = loc.Add(location.LeftMove)
+				loc, inBounds = loc.AddRelative(location.LeftMove)
 			} else if i == 7 {
-				loc = loc.Add(location.LeftUpMove)
+				loc, inBounds = loc.AddRelative(location.LeftUpMove)
 			}
-			attackable, checkNext := CheckLocationForAttackability(loc, board)
-			if attackable {
-				SetLocationAttackable(attackableBoard, loc)
+			if !inBounds {
+				break
 			}
-			if !checkNext {
+			SetLocationAttackable(attackableBoard, loc)
+			if !CheckLocationForAttackability(loc, board) {
 				break
 			}
 		}

@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
@@ -22,12 +23,16 @@ func buildBoardWithInitialMoves(initialMove *[]location.Move) (*board.Board, *bo
 
 func testPieceGetMoves(t *testing.T, l location.Location, initialMove *[]location.Move, expectedMoves int) {
 	bo1, _ := buildBoardWithInitialMoves(initialMove)
-	if l.Row == 0 {
+	if l.GetRow() == 0 {
 		assert.Equal(t, color.Black, bo1.GetPiece(l).GetColor())
-	} else if l.Row == 7 {
+	} else if l.GetRow() == 7 {
 		assert.Equal(t, color.White, bo1.GetPiece(l).GetColor())
 	}
+	fmt.Println(bo1.Print())
 	moves := bo1.GetPiece(l).GetMoves(bo1)
+	for _, m := range *moves {
+		fmt.Println(m.Print())
+	}
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, expectedMoves, len(*moves))
@@ -43,120 +48,120 @@ func testEnPassantGetMoves(t *testing.T, initialMove *[]location.Move, expectedM
 }
 
 func TestBishopGetMovesStart(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 7, Col: 2}, nil, 0)
+	testPieceGetMoves(t, location.NewLocation(7, 2), nil, 0)
 }
 
 func TestBishopGetMoves(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 5, Col: 4}, &[]location.Move{{
-		Start: location.Location{Row: 7, Col: 2},
-		End:   location.Location{Row: 5, Col: 4},
+	testPieceGetMoves(t, location.NewLocation(5, 4), &[]location.Move{{
+		Start: location.NewLocation(7, 2),
+		End:   location.NewLocation(5, 4),
 	}}, 7)
 }
 
 func TestBishopGetMovesStartBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 0, Col: 2}, nil, 0)
+	testPieceGetMoves(t, location.NewLocation(0, 2), nil, 0)
 }
 
 func TestBishopGetMovesBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 2, Col: 4}, &[]location.Move{{
-		Start: location.Location{Row: 0, Col: 2},
-		End:   location.Location{Row: 2, Col: 4},
+	testPieceGetMoves(t, location.NewLocation(2, 4), &[]location.Move{{
+		Start: location.NewLocation(0, 2),
+		End:   location.NewLocation(2, 4),
 	}}, 7)
 }
 
 func TestQueenGetMovesStart(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 7, Col: 3}, nil, 0)
+	testPieceGetMoves(t, location.NewLocation(7, 3), nil, 0)
 }
 
 func TestQueenGetMoves(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 5, Col: 3}, &[]location.Move{{
-		Start: location.Location{Row: 7, Col: 3},
-		End:   location.Location{Row: 5, Col: 3},
+	testPieceGetMoves(t, location.NewLocation(5, 3), &[]location.Move{{
+		Start: location.NewLocation(7, 3),
+		End:   location.NewLocation(5, 3),
 	}}, 18)
 }
 
 func TestQueenGetMovesStartBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 0, Col: 3}, nil, 0)
+	testPieceGetMoves(t, location.NewLocation(0, 3), nil, 0)
 }
 
 func TestQueenGetMovesBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 2, Col: 3}, &[]location.Move{{
-		Start: location.Location{Row: 0, Col: 3},
-		End:   location.Location{Row: 2, Col: 3},
+	testPieceGetMoves(t, location.NewLocation(2, 3), &[]location.Move{{
+		Start: location.NewLocation(0, 3),
+		End:   location.NewLocation(2, 3),
 	}}, 18)
 }
 
 func TestRookGetMovesStart(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 7, Col: 7}, nil, 0)
+	testPieceGetMoves(t, location.NewLocation(7, 7), nil, 0)
 }
 
 func TestRookGetMoves(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 4, Col: 4}, &[]location.Move{{
-		Start: location.Location{Row: 7, Col: 7},
-		End:   location.Location{Row: 4, Col: 4},
+	testPieceGetMoves(t, location.NewLocation(4, 4), &[]location.Move{{
+		Start: location.NewLocation(7, 7),
+		End:   location.NewLocation(4, 4),
 	}}, 11)
 }
 
 func TestRookGetMovesStartBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 0, Col: 0}, nil, 0)
+	testPieceGetMoves(t, location.NewLocation(0, 0), nil, 0)
 }
 
 func TestRookGetMovesBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 3, Col: 3}, &[]location.Move{{
-		Start: location.Location{Row: 0, Col: 0},
-		End:   location.Location{Row: 3, Col: 3},
+	testPieceGetMoves(t, location.NewLocation(3, 3), &[]location.Move{{
+		Start: location.NewLocation(0, 0),
+		End:   location.NewLocation(3, 3),
 	}}, 11)
 }
 
 func TestKnightGetMovesStart(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 7, Col: 1}, nil, 2)
+	testPieceGetMoves(t, location.NewLocation(7, 1), nil, 2)
 }
 
 func TestKnightGetMoves(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 3, Col: 6}, &[]location.Move{{
-		Start: location.Location{Row: 7, Col: 1},
-		End:   location.Location{Row: 3, Col: 6},
+	testPieceGetMoves(t, location.NewLocation(3, 6), &[]location.Move{{
+		Start: location.NewLocation(7, 1),
+		End:   location.NewLocation(3, 6),
 	}}, 6)
 }
 
 func TestKnightGetMovesStartBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 0, Col: 1}, nil, 2)
+	testPieceGetMoves(t, location.NewLocation(0, 1), nil, 2)
 }
 
 func TestKnightGetMovesBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 4, Col: 6}, &[]location.Move{{
-		Start: location.Location{Row: 0, Col: 1},
-		End:   location.Location{Row: 4, Col: 6},
+	testPieceGetMoves(t, location.NewLocation(4, 6), &[]location.Move{{
+		Start: location.NewLocation(0, 1),
+		End:   location.NewLocation(4, 6),
 	}}, 6)
 }
 
 func TestPawnGetMovesStart(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 6, Col: 3}, nil, 2)
+	testPieceGetMoves(t, location.NewLocation(6, 3), nil, 2)
 }
 
 func TestPawnGetMoves(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 4, Col: 3}, &[]location.Move{{
-		Start: location.Location{Row: 6, Col: 3},
-		End:   location.Location{Row: 4, Col: 3},
+	testPieceGetMoves(t, location.NewLocation(4, 3), &[]location.Move{{
+		Start: location.NewLocation(6, 3),
+		End:   location.NewLocation(4, 3),
 	}}, 1)
 }
 
 func TestPawnGetMovesAttack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 2, Col: 3}, &[]location.Move{{
-		Start: location.Location{Row: 6, Col: 3},
-		End:   location.Location{Row: 2, Col: 3},
+	testPieceGetMoves(t, location.NewLocation(2, 3), &[]location.Move{{
+		Start: location.NewLocation(6, 3),
+		End:   location.NewLocation(2, 3),
 	}}, 2)
 }
 
 func TestGetMovesEnPassantSingleOpportunity(t *testing.T) {
 	testEnPassantGetMoves(t, &[]location.Move{
 		{
-			Start: location.Location{Row: 6, Col: 3},
-			End:   location.Location{Row: 3, Col: 3},
+			Start: location.NewLocation(6, 3),
+			End:   location.NewLocation(3, 3),
 		},
 		{
-			Start: location.Location{Row: 1, Col: 4},
-			End:   location.Location{Row: 3, Col: 4},
+			Start: location.NewLocation(1, 4),
+			End:   location.NewLocation(3, 4),
 		},
 	}, 1)
 }
@@ -164,16 +169,16 @@ func TestGetMovesEnPassantSingleOpportunity(t *testing.T) {
 func TestGetMovesEnPassantDoubleOpportunity(t *testing.T) {
 	testEnPassantGetMoves(t, &[]location.Move{
 		{
-			Start: location.Location{Row: 6, Col: 3},
-			End:   location.Location{Row: 3, Col: 3},
+			Start: location.NewLocation(6, 3),
+			End:   location.NewLocation(3, 3),
 		},
 		{
-			Start: location.Location{Row: 6, Col: 5},
-			End:   location.Location{Row: 3, Col: 5},
+			Start: location.NewLocation(6, 5),
+			End:   location.NewLocation(3, 5),
 		},
 		{
-			Start: location.Location{Row: 1, Col: 4},
-			End:   location.Location{Row: 3, Col: 4},
+			Start: location.NewLocation(1, 4),
+			End:   location.NewLocation(3, 4),
 		},
 	}, 2)
 }
@@ -181,16 +186,16 @@ func TestGetMovesEnPassantDoubleOpportunity(t *testing.T) {
 func TestGetMovesEnPassantSameColor(t *testing.T) {
 	testEnPassantGetMoves(t, &[]location.Move{
 		{
-			Start: location.Location{Row: 1, Col: 4},
-			End:   location.Location{Row: 3, Col: 4},
+			Start: location.NewLocation(1, 4),
+			End:   location.NewLocation(3, 4),
 		},
 		{
-			Start: location.Location{Row: 1, Col: 2},
-			End:   location.Location{Row: 3, Col: 2},
+			Start: location.NewLocation(1, 2),
+			End:   location.NewLocation(3, 2),
 		},
 		{
-			Start: location.Location{Row: 1, Col: 3},
-			End:   location.Location{Row: 3, Col: 3},
+			Start: location.NewLocation(1, 3),
+			End:   location.NewLocation(3, 3),
 		},
 	}, 0)
 }
@@ -198,88 +203,88 @@ func TestGetMovesEnPassantSameColor(t *testing.T) {
 func TestGetMovesEnPassantMissedOpportunity(t *testing.T) {
 	testEnPassantGetMoves(t, &[]location.Move{
 		{
-			Start: location.Location{Row: 6, Col: 3},
-			End:   location.Location{Row: 3, Col: 3},
+			Start: location.NewLocation(6, 3),
+			End:   location.NewLocation(3, 3),
 		},
 		{
-			Start: location.Location{Row: 1, Col: 4},
-			End:   location.Location{Row: 3, Col: 4},
+			Start: location.NewLocation(1, 4),
+			End:   location.NewLocation(3, 4),
 		},
 		{
-			Start: location.Location{Row: 6, Col: 5},
-			End:   location.Location{Row: 3, Col: 5},
+			Start: location.NewLocation(6, 5),
+			End:   location.NewLocation(3, 5),
 		},
 	}, 0)
 }
 
 func TestGetMovesBlackEnPassant(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 4, Col: 2}, &[]location.Move{
+	testPieceGetMoves(t, location.NewLocation(4, 2), &[]location.Move{
 		{
-			Start: location.Location{Row: 1, Col: 2},
-			End:   location.Location{Row: 4, Col: 2},
+			Start: location.NewLocation(1, 2),
+			End:   location.NewLocation(4, 2),
 		}, {
-			Start: location.Location{Row: 6, Col: 1},
-			End:   location.Location{Row: 4, Col: 1},
+			Start: location.NewLocation(6, 1),
+			End:   location.NewLocation(4, 1),
 		},
 	}, 1)
 }
 
 func TestPawnGetMovesStartBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 1, Col: 1}, nil, 2)
+	testPieceGetMoves(t, location.NewLocation(1, 1), nil, 2)
 }
 
 func TestPawnGetMovesBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 3, Col: 1}, &[]location.Move{{
-		Start: location.Location{Row: 1, Col: 1},
-		End:   location.Location{Row: 3, Col: 1},
+	testPieceGetMoves(t, location.NewLocation(3, 1), &[]location.Move{{
+		Start: location.NewLocation(1, 1),
+		End:   location.NewLocation(3, 1),
 	}}, 1)
 }
 
 func TestPawnGetMovesBlackAttack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 5, Col: 3}, &[]location.Move{{
-		Start: location.Location{Row: 1, Col: 3},
-		End:   location.Location{Row: 5, Col: 3},
+	testPieceGetMoves(t, location.NewLocation(5, 3), &[]location.Move{{
+		Start: location.NewLocation(1, 3),
+		End:   location.NewLocation(5, 3),
 	}}, 2)
 }
 
 func TestKingGetMovesStart(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 7, Col: 4}, nil, 0)
+	testPieceGetMoves(t, location.NewLocation(7, 4), nil, 0)
 }
 
 func TestKingGetMoves(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 4, Col: 4}, &[]location.Move{{
-		Start: location.Location{Row: 7, Col: 4},
-		End:   location.Location{Row: 4, Col: 4},
+	testPieceGetMoves(t, location.NewLocation(4, 4), &[]location.Move{{
+		Start: location.NewLocation(7, 4),
+		End:   location.NewLocation(4, 4),
 	}}, 8)
 }
 
 func TestKingGetMovesStartBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 0, Col: 4}, nil, 0)
+	testPieceGetMoves(t, location.NewLocation(0, 4), nil, 0)
 }
 
 func TestKingGetMovesBlack(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 3, Col: 4}, &[]location.Move{{
-		Start: location.Location{Row: 0, Col: 4},
-		End:   location.Location{Row: 3, Col: 4},
+	testPieceGetMoves(t, location.NewLocation(3, 4), &[]location.Move{{
+		Start: location.NewLocation(0, 4),
+		End:   location.NewLocation(3, 4),
 	}}, 8)
 }
 
 func TestKingGetMovesDefended(t *testing.T) {
-	testPieceGetMoves(t, location.Location{Row: 4, Col: 4}, &[]location.Move{{
-		Start: location.Location{Row: 0, Col: 4},
-		End:   location.Location{Row: 4, Col: 4},
+	testPieceGetMoves(t, location.NewLocation(4, 4), &[]location.Move{{
+		Start: location.NewLocation(0, 4),
+		End:   location.NewLocation(4, 4),
 	}}, 8)
 }
 
 func TestKingCannotMoveIntoCheck(t *testing.T) {
 	b, previousMove := buildBoardWithInitialMoves(&[]location.Move{{
-		Start: location.Location{Row: 0, Col: 4},
-		End:   location.Location{Row: 4, Col: 4},
+		Start: location.NewLocation(0, 4),
+		End:   location.NewLocation(4, 4),
 	}})
 	moves := b.GetAllMoves(color.Black, previousMove)
 	numKingMoves := 0
 	for _, m := range *moves {
-		if m.Start.Row == 4 && m.Start.Col == 4 {
+		if m.Start.GetRow() == 4 && m.Start.GetCol() == 4 {
 			numKingMoves++
 		}
 	}

@@ -51,10 +51,10 @@ func testBoard(t *testing.T, fileName string) {
 }
 
 func parseBoard(b *board.Board, boardRows []string) {
-	for r := int8(0); r < board.Height; r++ {
+	for r := location.CoordinateType(0); r < board.Height; r++ {
 		pieces := strings.Split(boardRows[r], "|")
 		for c, pStr := range pieces {
-			l := location.Location{Row: r, Col: int8(c)}
+			l := location.NewLocation(r, location.CoordinateType(c))
 			var p board.Piece
 			if pStr != "   " && len(pStr) == 3 {
 				d := strings.Split(pStr, "_")

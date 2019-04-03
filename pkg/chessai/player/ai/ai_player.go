@@ -57,30 +57,30 @@ const (
 var OpeningMoves = map[byte][][]*location.Move{
 	color.Black: {{
 		&location.Move{
-			Start: location.Location{Row: board.StartRow[color.Black]["Pawn"], Col: 4},
-			End:   location.Location{Row: board.StartRow[color.Black]["Pawn"] + 2, Col: 4},
+			Start: location.NewLocation(board.StartRow[color.Black]["Pawn"], 4),
+			End:   location.NewLocation(board.StartRow[color.Black]["Pawn"]+2, 4),
 		},
 		&location.Move{
-			Start: location.Location{Row: board.StartRow[color.Black]["Piece"], Col: 1},
-			End:   location.Location{Row: board.StartRow[color.Black]["Piece"] + 2, Col: 2},
+			Start: location.NewLocation(board.StartRow[color.Black]["Piece"], 1),
+			End:   location.NewLocation(board.StartRow[color.Black]["Piece"]+2, 2),
 		},
 		&location.Move{
-			Start: location.Location{Row: board.StartRow[color.Black]["Piece"], Col: 5},
-			End:   location.Location{Row: board.StartRow[color.Black]["Piece"] + 3, Col: 2},
+			Start: location.NewLocation(board.StartRow[color.Black]["Piece"], 5),
+			End:   location.NewLocation(board.StartRow[color.Black]["Piece"]+3, 2),
 		},
 	}},
 	color.White: {{
 		&location.Move{
-			Start: location.Location{Row: board.StartRow[color.White]["Pawn"], Col: 4},
-			End:   location.Location{Row: board.StartRow[color.White]["Pawn"] - 2, Col: 4},
+			Start: location.NewLocation(board.StartRow[color.White]["Pawn"], 4),
+			End:   location.NewLocation(board.StartRow[color.White]["Pawn"]-2, 4),
 		},
 		&location.Move{
-			Start: location.Location{Row: board.StartRow[color.White]["Piece"], Col: 6},
-			End:   location.Location{Row: board.StartRow[color.White]["Piece"] - 2, Col: 5},
+			Start: location.NewLocation(board.StartRow[color.White]["Piece"], 6),
+			End:   location.NewLocation(board.StartRow[color.White]["Piece"]-2, 5),
 		},
 		&location.Move{
-			Start: location.Location{Row: board.StartRow[color.White]["Piece"], Col: 5},
-			End:   location.Location{Row: board.StartRow[color.White]["Piece"] - 3, Col: 2},
+			Start: location.NewLocation(board.StartRow[color.White]["Piece"], 5),
+			End:   location.NewLocation(board.StartRow[color.White]["Piece"]-3, 2),
 		},
 	}},
 }
@@ -185,9 +185,9 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 	// TODO(Vadim) make more intricate
 	eval := board.NewEvaluation()
 
-	for r := int8(0); r < board.Width; r++ {
-		for c := int8(0); c < board.Height; c++ {
-			if p := b.GetPiece(location.Location{Row: r, Col: c}); p != nil {
+	for r := location.CoordinateType(0); r < board.Width; r++ {
+		for c := location.CoordinateType(0); c < board.Height; c++ {
+			if p := b.GetPiece(location.NewLocation(r, c)); p != nil {
 				eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
 				eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b)))
 				aMoves := p.GetAttackableMoves(b)
@@ -229,7 +229,7 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 		if b.IsKingInCheck(c) {
 			score += KingCheckedWeight
 		}
-		for column := int8(0); column < board.Width; column++ {
+		for column := location.CoordinateType(0); column < board.Width; column++ {
 			// duplicate score grows exponentially for each additional pawn
 			score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[c][column] - 1)) - 1)
 		}
@@ -247,8 +247,8 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 
 	// technically ignores en passant, but that should be ok
 	// TODO(Vadim) figure out if we can optimize, this makes very slow
-	if b.IsInCheckmate(p.PlayerColor, nil) {
-		eval.TotalScore = NegInf
+	if b.IsInCheckmate(p.PlayerColor^1, nil) {
+		eval.TotalScore = PosInf
 	}
 	/* if b.IsInCheckmate(p.PlayerColor, nil) {
 		eval.TotalScore = NegInf
