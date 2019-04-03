@@ -22,20 +22,17 @@ var LeftUpMove = RelativeLocation{-1, -1}
 type Location struct {
 	// row stored in 3 bits, col stored in 3 bits
 	// 2 bits store pawn promotion piece
-	data     byte
-	row, col CoordinateType
+	data byte
 }
 
 func NewLocation(row, col CoordinateType) (l Location) {
 	l.data |= (byte(row) & 0x7) << 5
 	l.data |= (byte(col) & 0x7) << 2
-	l.row, l.col = l.Get()
 	return
 }
 
 func (l *Location) Set(v Location) {
 	l.data = v.data
-	l.row, l.col = l.Get()
 }
 
 func (l Location) Get() (row, col CoordinateType) {
