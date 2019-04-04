@@ -34,9 +34,9 @@ var PieceValue = map[byte]int{
 }
 
 const (
-	PieceValueWeight      = 1000
-	PawnStructureWeight   = 500
-	PieceAdvanceWeight    = 100
+	PieceValueWeight      = 100
+	PawnStructureWeight   = 50
+	PieceAdvanceWeight    = 50
 	PieceNumMovesWeight   = 10
 	PieceNumAttacksWeight = 10
 	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
@@ -184,78 +184,76 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 		}
 	}
 
-	// TODO(Vadim) make more intricate
 	eval := board.NewEvaluation()
-
-	for r := location.CoordinateType(0); r < board.Width; r++ {
-		for c := location.CoordinateType(0); c < board.Height; c++ {
-			if p := b.GetPiece(location.NewLocation(r, c)); p != nil {
-				eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
-				eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b)))
-				aMoves := p.GetAttackableMoves(b)
-				if aMoves != nil {
-					eval.NumAttacks[p.GetColor()] += uint16(len(*aMoves))
-				}
-
-				if p.GetPieceType() == piece.PawnType {
-					eval.PawnColumns[p.GetColor()][c]++
-					if r != board.StartRow[p.GetColor()]["Pawn"] {
-						eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
-					}
-				} else {
-					if r != board.StartRow[p.GetColor()]["Piece"] {
-						eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
-					}
-				}
-			}
-		}
-	}
-
-	for c := byte(0); c < color.NumColors; c++ {
-		score := 0
-		for pieceType, value := range PieceValue {
-			score += PieceValueWeight * value * int(eval.PieceCounts[c][pieceType])
-			score += PieceAdvanceWeight * int(eval.PieceAdvanced[c][pieceType])
-		}
-		if b.GetFlag(board.FlagCastled, c) {
-			score += KingCastledWeight
-		} else {
-			// has not castled but
-			if b.GetFlag(board.FlagKingMoved, c) {
-				score += KingDisplacedWeight
-			}
-			if b.GetFlag(board.FlagLeftRookMoved, c) || b.GetFlag(board.FlagRightRookMoved, c) {
-				score += RookDisplacedWeight
-			}
-		}
-		if b.IsKingInCheck(c) {
-			score += KingCheckedWeight
-		}
-		for column := location.CoordinateType(0); column < board.Width; column++ {
-			// duplicate score grows exponentially for each additional pawn
-			score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[c][column] - 1)) - 1)
-		}
-		// possible moves
-		score += PieceNumMovesWeight * int(eval.NumMoves[c])
-		// possible attacks
-		score += PieceNumAttacksWeight * int(eval.NumAttacks[c])
-
-		if c == p.PlayerColor {
-			eval.TotalScore += score
-		} else {
-			eval.TotalScore -= score
-		}
-	}
-
 	// technically ignores en passant, but that should be ok
 	// TODO(Vadim) figure out if we can optimize, this makes very slow
-	if b.IsInCheckmate(p.PlayerColor^1, nil) {
-		eval.TotalScore = PosInf
-	} /* else if b.IsInCheckmate(p.PlayerColor, nil) {
+	/*else if b.IsInCheckmate(p.PlayerColor, nil) {
 		eval.TotalScore = NegInf
 	} else if b.IsStalemate(p.PlayerColor, nil) || b.IsStalemate(p.PlayerColor ^ 1, nil) {
 		eval.TotalScore = 0
-	} */
+	}*/
+	if b.IsInCheckmate(p.PlayerColor^1, nil) {
+		eval.TotalScore = PosInf
+	} else {
+		for r := location.CoordinateType(0); r < board.Width; r++ {
+			for c := location.CoordinateType(0); c < board.Height; c++ {
+				if p := b.GetPiece(location.Location{Row: r, Col: c}); p != nil {
+					eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
+					eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b)))
+					aMoves := p.GetAttackableMoves(b)
+					if aMoves != nil {
+						eval.NumAttacks[p.GetColor()] += uint16(len(*aMoves))
+					}
+
+					if p.GetPieceType() == piece.PawnType {
+						eval.PawnColumns[p.GetColor()][c]++
+						if r != board.StartRow[p.GetColor()]["Pawn"] {
+							eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
+						}
+					} else {
+						if r != board.StartRow[p.GetColor()]["Piece"] {
+							eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
+						}
+					}
+				}
+			}
+		}
+		for c := byte(0); c < color.NumColors; c++ {
+			score := 0
+			for pieceType, value := range PieceValue {
+				score += PieceValueWeight * value * int(eval.PieceCounts[c][pieceType])
+				score += PieceAdvanceWeight * int(eval.PieceAdvanced[c][pieceType])
+			}
+			if b.GetFlag(board.FlagCastled, c) {
+				score += KingCastledWeight
+			} else {
+				// has not castled but
+				if b.GetFlag(board.FlagKingMoved, c) {
+					score += KingDisplacedWeight
+				}
+				if b.GetFlag(board.FlagLeftRookMoved, c) || b.GetFlag(board.FlagRightRookMoved, c) {
+					score += RookDisplacedWeight
+				}
+			}
+			if b.IsKingInCheck(c) {
+				score += KingCheckedWeight
+			}
+			for column := location.CoordinateType(0); column < board.Width; column++ {
+				// duplicate score grows exponentially for each additional pawn
+				score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[c][column] - 1)) - 1)
+			}
+			// possible moves
+			score += PieceNumMovesWeight * int(eval.NumMoves[c])
+			// possible attacks
+			score += PieceNumAttacksWeight * int(eval.NumAttacks[c])
+
+			if c == p.PlayerColor {
+				eval.TotalScore += score
+			} else {
+				eval.TotalScore -= score
+			}
+		}
+	}
 
 	if p.evaluationMap != nil {
 		p.evaluationMap.Store(&hash, int(eval.TotalScore))
@@ -302,6 +300,7 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 		result += fmt.Sprintf("\t\t%s\n", move.Print())
 		board.MakeMove(&move, debugBoard)
 	}
+	fmt.Print(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.PrintMetrics()
 	result += fmt.Sprintf("Transposition table metrics\n")
@@ -315,4 +314,9 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 	result += fmt.Sprintf("%s best move leads to score %d\n", p.Repr(), m.Score)
 	result += fmt.Sprintf("\n\n")
 	_, _ = fmt.Fprint(file, result)
+}
+
+func (p *Player) ClearCaches() {
+	p.evaluationMap = util.NewConcurrentBoardMap()
+	p.alphaBetaTable = util.NewTranspositionTable()
 }

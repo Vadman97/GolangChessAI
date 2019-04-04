@@ -5,6 +5,12 @@ import (
 	"runtime"
 )
 
+func GetMemoryUsed() uint64 {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return bToMb(m.Alloc)
+}
+
 func PrintMemStats() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)

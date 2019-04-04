@@ -7,6 +7,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"runtime"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type Game struct {
 	MovesPlayed      uint
 	PreviousMove     *board.LastMove
 	GameStatus       byte
+	CacheMemoryLimit uint64
 }
 
 /**
@@ -82,7 +84,7 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 	for {
 		select {
 		case <-stop:
-			break
+			return
 		default:
 			g.UpdateTime(start)
 			fmt.Printf("%s", g.PrintThinkTime(g.CurrentTurnColor))
@@ -90,14 +92,22 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 			util.PrintMemStats()
 			fmt.Println()
 			// TODO(Vadim) decide if any other player things to print here
-			time.Sleep(30 * time.Second)
 		}
+		time.Sleep(30 * time.Second)
 	}
 }
 
 func (g *Game) UpdateTime(start time.Time) {
 	g.LastMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
 	g.TotalMoveTime[g.CurrentTurnColor] += g.LastMoveTime[g.CurrentTurnColor]
+}
+
+func (g *Game) ClearCaches() {
+	g.CurrentBoard.AttackableCache = util.NewConcurrentBoardMap()
+	g.CurrentBoard.MoveCache = util.NewConcurrentBoardMap()
+	for c := color.White; c < color.NumColors; c++ {
+		g.Players[c].ClearCaches()
+	}
 }
 
 func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
@@ -121,10 +131,23 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 			color.White: 0,
 			color.Black: 0,
 		},
-		MovesPlayed:  0,
-		PreviousMove: nil,
-		GameStatus:   Active,
+		MovesPlayed:      0,
+		PreviousMove:     nil,
+		GameStatus:       Active,
+		CacheMemoryLimit: 8192,
 	}
 	g.CurrentBoard.ResetDefault()
+	go func() {
+		for g.GameStatus == Active {
+			if util.GetMemoryUsed() > g.CacheMemoryLimit {
+				fmt.Printf("Clearing caches\n")
+				g.ClearCaches()
+				runtime.GC()
+				fmt.Printf("Cleared!\n")
+				util.PrintMemStats()
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
 	return &g
 }
