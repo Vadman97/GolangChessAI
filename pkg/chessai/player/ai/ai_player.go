@@ -30,7 +30,7 @@ var PieceValue = map[byte]int{
 	piece.KnightType: 3,
 	piece.RookType:   5,
 	piece.QueenType:  9,
-	piece.KingType:   100,
+	piece.KingType:   100000,
 }
 
 const (
@@ -175,10 +175,12 @@ func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove) *board.L
 
 func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 	hash := b.Hash()
-	if score, ok := p.evaluationMap.Read(&hash); ok {
-		s := p.ensureScorePerspective(score.(int))
-		return &board.Evaluation{
-			TotalScore: s,
+	if p.evaluationMap != nil {
+		if score, ok := p.evaluationMap.Read(&hash); ok {
+			s := p.ensureScorePerspective(score.(int))
+			return &board.Evaluation{
+				TotalScore: s,
+			}
 		}
 	}
 
@@ -249,16 +251,15 @@ func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
 	// TODO(Vadim) figure out if we can optimize, this makes very slow
 	if b.IsInCheckmate(p.PlayerColor^1, nil) {
 		eval.TotalScore = PosInf
-	}
-	/* if b.IsInCheckmate(p.PlayerColor, nil) {
+	} /* else if b.IsInCheckmate(p.PlayerColor, nil) {
 		eval.TotalScore = NegInf
-	} else if b.IsInCheckmate(p.PlayerColor ^ 1, nil) {
-		eval.TotalScore = PosInf
 	} else if b.IsStalemate(p.PlayerColor, nil) || b.IsStalemate(p.PlayerColor ^ 1, nil) {
 		eval.TotalScore = 0
 	} */
 
-	p.evaluationMap.Store(&hash, int(eval.TotalScore))
+	if p.evaluationMap != nil {
+		p.evaluationMap.Store(&hash, int(eval.TotalScore))
+	}
 
 	eval.TotalScore = p.ensureScorePerspective(eval.TotalScore)
 	return eval
