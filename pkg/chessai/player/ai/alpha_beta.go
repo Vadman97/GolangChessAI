@@ -5,17 +5,11 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
-func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
-	if depth == 0 {
-		return &ScoredMove{
-			Score: p.EvaluateBoard(b).TotalScore,
-		}
-	}
-
+func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
 	var h [33]byte
 	if p.TranspositionTableEnabled {
 		// transposition table lookup
-		h = b.Hash()
+		h = root.Hash()
 		if entry, ok := p.alphaBetaTable.Read(&h); ok {
 			e := *entry
 			if e.Lower >= beta {
@@ -41,34 +35,53 @@ func (p *Player) AlphaBetaWithMemory(b *board.Board, depth, alpha, beta int, cur
 			}
 		}
 	}
-	var maximizingPlayer = currentPlayer == p.PlayerColor
 	var best ScoredMove
-	if maximizingPlayer {
-		best.Score = NegInf
+	if depth == 0 {
+		best = ScoredMove{
+			Score: p.EvaluateBoard(root).TotalScore,
+		}
 	} else {
-		best.Score = PosInf
-	}
-	moves := b.GetAllMoves(currentPlayer, previousMove)
-	for _, m := range *moves {
-		newBoard := b.Copy()
-		previousMove = board.MakeMove(&m, newBoard)
-		p.Metrics.MovesConsidered++
-		candidate := p.AlphaBetaWithMemory(newBoard, depth-1, alpha, beta, currentPlayer^1, previousMove)
-		candidate.Move = m
-		candidate.MoveSequence = append(candidate.MoveSequence, m)
-		if betterMove(maximizingPlayer, &best, candidate) {
-			best = *candidate
-		}
+		var maximizingPlayer = currentPlayer == p.PlayerColor
+		var a, b int
 		if maximizingPlayer {
-			// TODO(Vadim) why does adding this make ab prune too much
-			alpha = util.MaxScore(best.Score, alpha)
+			best.Score = NegInf
+			a = alpha
 		} else {
-			beta = util.MinScore(best.Score, beta)
+			best.Score = PosInf
+			b = beta
 		}
-		if alpha >= beta {
-			// alpha-beta cutoff
-			p.Metrics.MovesPrunedAB++
-			continue
+		moves := root.GetAllMoves(currentPlayer, previousMove)
+		for i, m := range *moves {
+			if maximizingPlayer {
+				if best.Score >= beta {
+					p.Metrics.MovesPrunedAB += int64(len(*moves) - i)
+					break
+				}
+			} else {
+				if best.Score <= alpha {
+					p.Metrics.MovesPrunedAB += int64(len(*moves) - i)
+					break
+				}
+			}
+			newBoard := root.Copy()
+			previousMove = board.MakeMove(&m, newBoard)
+			p.Metrics.MovesConsidered++
+			var candidate *ScoredMove
+			if maximizingPlayer {
+				candidate = p.AlphaBetaWithMemory(newBoard, depth-1, a, beta, currentPlayer^1, previousMove)
+			} else {
+				candidate = p.AlphaBetaWithMemory(newBoard, depth-1, alpha, b, currentPlayer^1, previousMove)
+			}
+			candidate.Move = m
+			candidate.MoveSequence = append(candidate.MoveSequence, m)
+			if betterMove(maximizingPlayer, &best, candidate) {
+				best = *candidate
+			}
+			if maximizingPlayer {
+				a = util.MaxScore(best.Score, a)
+			} else {
+				b = util.MinScore(best.Score, b)
+			}
 		}
 	}
 

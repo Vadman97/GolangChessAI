@@ -112,7 +112,7 @@ func NewAIPlayer(c byte) *Player {
 		TranspositionTableEnabled: true,
 		PlayerColor:               c,
 		MaxSearchDepth:            4,
-		CurrentSearchDepth:        4,
+		CurrentSearchDepth:        0,
 		TurnCount:                 0,
 		// Opening:        rand.Intn(len(OpeningMoves[c])),
 		Opening:        OpeningNone,
