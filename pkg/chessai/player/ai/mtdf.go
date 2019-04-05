@@ -2,16 +2,20 @@ package ai
 
 import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
-func (p *Player) MTDF(b *board.Board, guess *ScoredMove, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
+func (p *Player) MTDF(root *board.Board, guess *ScoredMove, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
 	lowerBound := NegInf
 	upperBound := PosInf
 	for true {
-		beta := util.MaxScore(guess.Score, lowerBound+1)
+		var beta int
+		if guess.Score == lowerBound {
+			beta = guess.Score + 1
+		} else {
+			beta = guess.Score
+		}
 
-		guess = p.AlphaBetaWithMemory(b, p.CurrentSearchDepth, beta-1, beta, currentPlayer, previousMove)
+		guess = p.AlphaBetaWithMemory(root, p.CurrentSearchDepth, beta-1, beta, currentPlayer, previousMove)
 		if guess.Score < beta {
 			upperBound = guess.Score
 		} else {
