@@ -5,7 +5,7 @@ import (
 	"math/rand"
 )
 
-func (p *Player) Random(b *board.Board, previousMove *board.LastMove) *ScoredMove {
+func (p *Player) RandomMove(b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	moves := *b.GetAllMoves(p.PlayerColor, previousMove)
 	idx := rand.Intn(len(moves))
 	return &ScoredMove{

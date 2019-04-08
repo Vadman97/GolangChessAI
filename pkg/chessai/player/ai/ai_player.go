@@ -124,7 +124,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		p.Metrics = &Metrics{}
 
 		var m = &ScoredMove{
-			Score: 0,
+			Score: NegInf,
 		}
 		if p.Algorithm == AlgorithmMiniMax {
 			m = p.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
@@ -133,7 +133,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		} else if p.Algorithm == AlgorithmMTDF {
 			m = p.IterativeMTDF(b, m, previousMove)
 		} else if p.Algorithm == AlgorithmRandom {
-			m = p.Random(b, previousMove)
+			m = p.RandomMove(b, previousMove)
 		} else {
 			panic("invalid ai algorithm")
 		}

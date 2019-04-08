@@ -2,6 +2,7 @@ package ai
 
 import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"log"
 )
 
 func (p *Player) MTDF(root *board.Board, guess *ScoredMove, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
@@ -32,6 +33,10 @@ func (p *Player) MTDF(root *board.Board, guess *ScoredMove, currentPlayer byte, 
 func (p *Player) IterativeMTDF(b *board.Board, guess *ScoredMove, previousMove *board.LastMove) *ScoredMove {
 	for p.CurrentSearchDepth = 1; p.CurrentSearchDepth <= p.MaxSearchDepth; p.CurrentSearchDepth++ {
 		guess = p.MTDF(b, guess, p.PlayerColor, previousMove)
+	}
+	if guess.Move.Start.Equals(guess.Move.End) {
+		log.Printf("MTD-f resigns, no best move available.\n")
+		return p.RandomMove(b, previousMove)
 	}
 	return guess
 }
