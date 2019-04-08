@@ -337,6 +337,53 @@ func TestKingCannotMoveIntoCheck(t *testing.T) {
 	assert.Equal(t, 5, numKingMoves)
 }
 
-func TestKingGetMovesCastle(t *testing.T) {
-	// TODO(Vadim)
+func TestKingGetMovesCastleLeft(t *testing.T) {
+	bo1, _ := buildBoardWithInitialMoves(&[]location.Move{{
+		Start: location.NewLocation(0, 3),
+		End:   location.NewLocation(3, 3),
+	}, {
+		Start: location.NewLocation(0, 2),
+		End:   location.NewLocation(3, 2),
+	}, {
+		Start: location.NewLocation(0, 1),
+		End:   location.NewLocation(3, 1),
+	}})
+	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		assert.Equal(t, 2, len(*moves))
+		board.MakeMove(&(*moves)[1], bo1)
+		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 2)))
+		assert.Equal(t, piece.KingType,
+			bo1.GetPiece(location.NewLocation(0, 2)).GetPieceType(),
+		)
+		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 3)))
+		assert.Equal(t, piece.RookType,
+			bo1.GetPiece(location.NewLocation(0, 3)).GetPieceType(),
+		)
+	}
+}
+
+func TestKingGetMovesCastleRight(t *testing.T) {
+	bo1, _ := buildBoardWithInitialMoves(&[]location.Move{{
+		Start: location.NewLocation(0, 5),
+		End:   location.NewLocation(3, 5),
+	}, {
+		Start: location.NewLocation(0, 6),
+		End:   location.NewLocation(3, 6),
+	}})
+	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		assert.Equal(t, 2, len(*moves))
+		board.MakeMove(&(*moves)[1], bo1)
+		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 6)))
+		assert.Equal(t, piece.KingType,
+			bo1.GetPiece(location.NewLocation(0, 6)).GetPieceType(),
+		)
+		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 5)))
+		assert.Equal(t, piece.RookType,
+			bo1.GetPiece(location.NewLocation(0, 5)).GetPieceType(),
+		)
+	}
 }
