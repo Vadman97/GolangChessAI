@@ -11,7 +11,7 @@ func BenchmarkEvaluate(b *testing.B) {
 	p := ai.Player{}
 	bo1 := board.Board{}
 	bo1.ResetDefault()
-	var eval *board.Evaluation
+	var eval *ai.Evaluation
 	for i := 0; i < b.N; i++ {
 		eval = p.EvaluateBoard(&bo1)
 	}

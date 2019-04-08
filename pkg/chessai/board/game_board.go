@@ -3,6 +3,7 @@ package board
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
@@ -81,7 +82,7 @@ type Board struct {
 	MoveCache, AttackableCache *util.ConcurrentBoardMap
 	KingLocations              [color.NumColors]location.Location
 
-	CacheGetAllAttackableMoves bool
+	CacheGetAllMoves, CacheGetAllAttackableMoves bool
 }
 
 func (b *Board) Hash() (result [33]byte) {
@@ -136,6 +137,7 @@ func (b *Board) Copy() *Board {
 	newBoard.MoveCache = b.MoveCache
 	newBoard.AttackableCache = b.AttackableCache
 	newBoard.KingLocations = b.KingLocations
+	newBoard.CacheGetAllMoves = b.CacheGetAllMoves
 	newBoard.CacheGetAllAttackableMoves = b.CacheGetAllAttackableMoves
 	return &newBoard
 }
@@ -151,10 +153,12 @@ func (b *Board) ResetDefault() {
 		location.NewLocation(7, 4),
 		location.NewLocation(0, 4),
 	}
-	b.CacheGetAllAttackableMoves = false
+	b.CacheGetAllMoves = config.Get().CacheGetAllMoves
+	b.CacheGetAllAttackableMoves = config.Get().CacheGetAllAttackableMoves
 }
 
 func (b *Board) ResetDefaultSlow() {
+	b.ResetDefault()
 	for c := location.CoordinateType(0); c < Width; c++ {
 		StartingRow[c].SetPosition(location.NewLocation(0, c))
 		StartingRow[c].SetColor(color.Black)
@@ -166,10 +170,6 @@ func (b *Board) ResetDefaultSlow() {
 		StartingRow[c].SetColor(color.White)
 		b.SetPiece(location.NewLocation(7, c), StartingRow[c])
 	}
-	b.MoveCache = util.NewConcurrentBoardMap()
-	b.AttackableCache = util.NewConcurrentBoardMap()
-	b.KingLocations = [color.NumColors]location.Location{location.NewLocation(7, 4), location.NewLocation(0, 4)}
-	b.CacheGetAllAttackableMoves = false
 }
 
 func (b *Board) SetPiece(l location.Location, p Piece) {
@@ -278,20 +278,24 @@ func (b *Board) RandomizeIllegal() {
  *	May need to cache that one too when we use it for CheckMate / Tie evaluation
  */
 func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move {
-	h := b.Hash()
 	entry := &MoveCacheEntry{
 		moves: make(map[byte]interface{}),
 	}
-	if cacheEntry, cacheExists := b.MoveCache.Read(&h); cacheExists {
-		entry = cacheEntry.(*MoveCacheEntry)
-		// we've gotten the other color but not the one we want
-		if entry.moves[color] == nil {
+	if b.CacheGetAllMoves {
+		h := b.Hash()
+		if cacheEntry, cacheExists := b.MoveCache.Read(&h); cacheExists {
+			entry = cacheEntry.(*MoveCacheEntry)
+			// we've gotten the other color but not the one we want
+			if entry.moves[color] == nil {
+				entry.moves[color] = b.getAllMoves(color)
+				b.MoveCache.Store(&h, entry)
+			}
+		} else {
 			entry.moves[color] = b.getAllMoves(color)
 			b.MoveCache.Store(&h, entry)
 		}
 	} else {
 		entry.moves[color] = b.getAllMoves(color)
-		b.MoveCache.Store(&h, entry)
 	}
 	if previousMove != nil {
 		enPassantMoves := b.GetEnPassantMoves(color, previousMove)

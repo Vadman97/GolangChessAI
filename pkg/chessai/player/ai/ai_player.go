@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 )
 
@@ -22,31 +23,6 @@ const (
 	AlgorithmAlphaBetaWithMemory = "AlphaBetaMemory"
 	AlgorithmMTDF                = "MTDF"
 	AlgorithmRandom              = "Random"
-)
-
-var PieceValue = map[byte]int{
-	piece.PawnType:   1,
-	piece.BishopType: 3,
-	piece.KnightType: 3,
-	piece.RookType:   5,
-	piece.QueenType:  9,
-	piece.KingType:   100,
-}
-
-const (
-	PieceValueWeight      = 1000
-	PawnStructureWeight   = 500
-	PieceAdvanceWeight    = 100
-	PieceNumMovesWeight   = 10
-	PieceNumAttacksWeight = 10
-	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
-	RookDisplacedWeight   = -1 * PieceValueWeight // neg 1 pawn
-	KingCastledWeight     = 3 * PieceValueWeight  // three pawn
-	KingCheckedWeight     = 1 * PieceValueWeight  // one pawn
-)
-
-const (
-	PawnDuplicateWeight = -1
 )
 
 const (
@@ -107,20 +83,21 @@ type Player struct {
 }
 
 func NewAIPlayer(c byte) *Player {
-	return &Player{
+	p := &Player{
 		Algorithm:                 AlgorithmAlphaBetaWithMemory,
 		TranspositionTableEnabled: true,
 		PlayerColor:               c,
-		MaxSearchDepth:            4,
-		CurrentSearchDepth:        4,
 		TurnCount:                 0,
-		// Opening:        rand.Intn(len(OpeningMoves[c])),
-		Opening:        OpeningNone,
-		Metrics:        &Metrics{},
-		Debug:          true,
-		evaluationMap:  util.NewConcurrentBoardMap(),
-		alphaBetaTable: util.NewTranspositionTable(),
+		Opening:                   OpeningNone,
+		Metrics:                   &Metrics{},
+		Debug:                     true,
+		evaluationMap:             util.NewConcurrentBoardMap(),
+		alphaBetaTable:            util.NewTranspositionTable(),
 	}
+	if config.Get().UseOpenings {
+		p.Opening = rand.Intn(len(OpeningMoves[c]))
+	}
+	return p
 }
 
 func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) bool {
@@ -147,7 +124,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		p.Metrics = &Metrics{}
 
 		var m = &ScoredMove{
-			Score: 0,
+			Score: NegInf,
 		}
 		if p.Algorithm == AlgorithmMiniMax {
 			m = p.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
@@ -156,7 +133,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		} else if p.Algorithm == AlgorithmMTDF {
 			m = p.IterativeMTDF(b, m, previousMove)
 		} else if p.Algorithm == AlgorithmRandom {
-			m = p.Random(b, previousMove)
+			m = p.RandomMove(b, previousMove)
 		} else {
 			panic("invalid ai algorithm")
 		}
@@ -171,105 +148,6 @@ func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove) *board.L
 	move := board.MakeMove(p.GetBestMove(b, previousMove), b)
 	p.TurnCount++
 	return move
-}
-
-func (p *Player) EvaluateBoard(b *board.Board) *board.Evaluation {
-	hash := b.Hash()
-	if score, ok := p.evaluationMap.Read(&hash); ok {
-		s := p.ensureScorePerspective(score.(int))
-		return &board.Evaluation{
-			TotalScore: s,
-		}
-	}
-
-	// TODO(Vadim) make more intricate
-	eval := board.NewEvaluation()
-
-	for r := location.CoordinateType(0); r < board.Width; r++ {
-		for c := location.CoordinateType(0); c < board.Height; c++ {
-			if p := b.GetPiece(location.NewLocation(r, c)); p != nil {
-				eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
-				eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b)))
-				aMoves := p.GetAttackableMoves(b)
-				if aMoves != nil {
-					eval.NumAttacks[p.GetColor()] += uint16(len(*aMoves))
-				}
-
-				if p.GetPieceType() == piece.PawnType {
-					eval.PawnColumns[p.GetColor()][c]++
-					if r != board.StartRow[p.GetColor()]["Pawn"] {
-						eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
-					}
-				} else {
-					if r != board.StartRow[p.GetColor()]["Piece"] {
-						eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
-					}
-				}
-			}
-		}
-	}
-
-	for c := byte(0); c < color.NumColors; c++ {
-		score := 0
-		for pieceType, value := range PieceValue {
-			score += PieceValueWeight * value * int(eval.PieceCounts[c][pieceType])
-			score += PieceAdvanceWeight * int(eval.PieceAdvanced[c][pieceType])
-		}
-		if b.GetFlag(board.FlagCastled, c) {
-			score += KingCastledWeight
-		} else {
-			// has not castled but
-			if b.GetFlag(board.FlagKingMoved, c) {
-				score += KingDisplacedWeight
-			}
-			if b.GetFlag(board.FlagLeftRookMoved, c) || b.GetFlag(board.FlagRightRookMoved, c) {
-				score += RookDisplacedWeight
-			}
-		}
-		if b.IsKingInCheck(c) {
-			score += KingCheckedWeight
-		}
-		for column := location.CoordinateType(0); column < board.Width; column++ {
-			// duplicate score grows exponentially for each additional pawn
-			score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[c][column] - 1)) - 1)
-		}
-		// possible moves
-		score += PieceNumMovesWeight * int(eval.NumMoves[c])
-		// possible attacks
-		score += PieceNumAttacksWeight * int(eval.NumAttacks[c])
-
-		if c == p.PlayerColor {
-			eval.TotalScore += score
-		} else {
-			eval.TotalScore -= score
-		}
-	}
-
-	// technically ignores en passant, but that should be ok
-	// TODO(Vadim) figure out if we can optimize, this makes very slow
-	if b.IsInCheckmate(p.PlayerColor^1, nil) {
-		eval.TotalScore = PosInf
-	}
-	/* if b.IsInCheckmate(p.PlayerColor, nil) {
-		eval.TotalScore = NegInf
-	} else if b.IsInCheckmate(p.PlayerColor ^ 1, nil) {
-		eval.TotalScore = PosInf
-	} else if b.IsStalemate(p.PlayerColor, nil) || b.IsStalemate(p.PlayerColor ^ 1, nil) {
-		eval.TotalScore = 0
-	} */
-
-	p.evaluationMap.Store(&hash, int(eval.TotalScore))
-
-	eval.TotalScore = p.ensureScorePerspective(eval.TotalScore)
-	return eval
-}
-
-func (p *Player) ensureScorePerspective(score int) int {
-	// if the search depth is odd, flip score
-	if p.CurrentSearchDepth%2 == 1 {
-		score = -score
-	}
-	return score
 }
 
 func (p *Player) Repr() string {
@@ -301,6 +179,7 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 		result += fmt.Sprintf("\t\t%s\n", move.Print())
 		board.MakeMove(&move, debugBoard)
 	}
+	fmt.Print(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.PrintMetrics()
 	result += fmt.Sprintf("Transposition table metrics\n")
@@ -314,4 +193,9 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 	result += fmt.Sprintf("%s best move leads to score %d\n", p.Repr(), m.Score)
 	result += fmt.Sprintf("\n\n")
 	_, _ = fmt.Fprint(file, result)
+}
+
+func (p *Player) ClearCaches() {
+	p.evaluationMap = util.NewConcurrentBoardMap()
+	p.alphaBetaTable = util.NewTranspositionTable()
 }

@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
@@ -13,13 +14,13 @@ import (
 )
 
 func TestBoardAI(t *testing.T) {
-	const MovesToPlay = 20
-	const TimeToPlay = 60 * time.Second
+	const MovesToPlay = 100
+	const TimeToPlay = 60 * time.Minute
 
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(config.Get().TestRandSeed)
 	aiPlayerSmart := ai.NewAIPlayer(color.Black)
 	aiPlayerSmart.Algorithm = ai.AlgorithmAlphaBetaWithMemory
-	aiPlayerSmart.MaxSearchDepth = 3
+	aiPlayerSmart.MaxSearchDepth = 4
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
 	aiPlayerDumb.Algorithm = ai.AlgorithmRandom
 	aiPlayerDumb.MaxSearchDepth = 2
