@@ -2,6 +2,7 @@ package location
 
 import (
 	"fmt"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 )
 
 type CoordinateType = uint8
@@ -33,6 +34,31 @@ func NewLocation(row, col CoordinateType) (l Location) {
 
 func (l *Location) Set(v Location) {
 	l.data = v.data
+}
+
+func (l Location) CreatePawnPromotion(promotedType byte) Location {
+	found := false
+	for _, option := range piece.PawnPromotionOptions {
+		if promotedType == option {
+			found = true
+			break
+		}
+	}
+	if !found {
+		panic("trying to promote pawn to invalid piece type")
+	}
+	// 0 corresponds to no promotion, thus the +1
+	l.data |= promotedType - piece.PawnPromotionOptions[0] + 1
+	return l
+}
+
+func (l *Location) GetPawnPromotion() (isPromotion bool, promotedType byte) {
+	data := l.data & 0x3
+	if data != 0 {
+		isPromotion = true
+		promotedType = data + piece.PawnPromotionOptions[0] - 1
+	}
+	return
 }
 
 func (l Location) Get() (row, col CoordinateType) {

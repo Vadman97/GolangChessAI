@@ -5,6 +5,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -151,6 +152,51 @@ func TestPawnGetMovesAttack(t *testing.T) {
 		Start: location.NewLocation(6, 3),
 		End:   location.NewLocation(2, 3),
 	}}, 2)
+}
+
+func TestPawnGetMovesPromoteAttackWhite(t *testing.T) {
+	testPieceGetMoves(t, location.NewLocation(1, 3), &[]location.Move{{
+		Start: location.NewLocation(6, 3),
+		End:   location.NewLocation(1, 3),
+	}}, 4)
+}
+
+func TestPawnGetMovesPromoteAttackBlack(t *testing.T) {
+	testPieceGetMoves(t, location.NewLocation(6, 3), &[]location.Move{{
+		Start: location.NewLocation(1, 3),
+		End:   location.NewLocation(6, 3),
+	}}, 4)
+}
+
+func TestPawnGetMovesPromoteWhite(t *testing.T) {
+	bo1, _ := buildBoardWithInitialMoves(&[]location.Move{{
+		Start: location.NewLocation(6, 3),
+		End:   location.NewLocation(3, 3),
+	}, {
+		Start: location.NewLocation(7, 3),
+		End:   location.NewLocation(2, 3),
+	}, {
+		Start: location.NewLocation(7, 2),
+		End:   location.NewLocation(2, 2),
+	}, {
+		Start: location.NewLocation(7, 4),
+		End:   location.NewLocation(2, 4),
+	}, {
+		Start: location.NewLocation(1, 3),
+		End:   location.NewLocation(6, 3),
+	}})
+	fmt.Println(bo1.Print())
+	moves := bo1.GetPiece(location.NewLocation(6, 3)).GetMoves(bo1)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		assert.Equal(t, len(piece.PawnPromotionOptions), len(*moves))
+		for i, m := range *moves {
+			end := m.GetEnd()
+			promotion, promotedType := end.GetPawnPromotion()
+			assert.True(t, promotion)
+			assert.Equal(t, piece.PawnPromotionOptions[i], promotedType)
+		}
+	}
 }
 
 func TestGetMovesEnPassantSingleOpportunity(t *testing.T) {

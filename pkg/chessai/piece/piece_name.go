@@ -19,6 +19,8 @@ const (
 	PawnType   = byte(6)
 )
 
+var PawnPromotionOptions = [...]byte{KnightType, QueenType}
+
 var NameToType = map[rune]byte{
 	RookChar:   RookType,
 	KnightChar: KnightType,

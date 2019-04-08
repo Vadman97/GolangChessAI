@@ -96,7 +96,14 @@ func (r *Pawn) getCaptureMoves(board *Board) *[]location.Move {
 		if !board.IsEmpty(loc) {
 			pieceOnLocation := board.GetPiece(loc)
 			if pieceOnLocation.GetColor() != r.Color {
-				moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+				if r.canPromote(loc) {
+					for _, promotedType := range piece.PawnPromotionOptions {
+						loc = loc.CreatePawnPromotion(promotedType)
+						moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+					}
+				} else {
+					moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+				}
 			}
 		}
 	}
@@ -118,7 +125,14 @@ func (r *Pawn) getForwardMoves(board *Board) *[]location.Move {
 		if inBounds {
 			// can only add if empty - no attacking forward with pawns
 			if board.IsEmpty(l) {
-				moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
+				if r.canPromote(l) {
+					for _, promotedType := range piece.PawnPromotionOptions {
+						l = l.CreatePawnPromotion(promotedType)
+						moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
+					}
+				} else {
+					moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
+				}
 			} else {
 				return &moves
 			}
@@ -127,10 +141,14 @@ func (r *Pawn) getForwardMoves(board *Board) *[]location.Move {
 	return &moves
 }
 
+func (r *Pawn) canPromote(l location.Location) bool {
+	return r.Color == color.Black && l.GetRow() == 7 || r.Color == color.White && l.GetRow() == 0
+}
+
 func (r *Pawn) Move(m *location.Move, b *Board) {
 	if r.Color == color.Black {
 		if m.End.GetRow() == 7 {
-			r.Promote(b)
+			r.Promote(b, m)
 		}
 		// move put us above enemy (enPassant pawn)
 		l, inBounds := r.GetPosition().AddRelative(location.UpMove)
@@ -141,7 +159,7 @@ func (r *Pawn) Move(m *location.Move, b *Board) {
 		}
 	} else if r.Color == color.White {
 		if m.End.GetRow() == 0 {
-			r.Promote(b)
+			r.Promote(b, m)
 		}
 		// move put us above enemy (enPassant pawn)
 		l, inBounds := r.GetPosition().AddRelative(location.DownMove)
@@ -166,12 +184,16 @@ func (r *Pawn) checkEnPassant(l location.Location, b *Board) Piece {
 	return nil
 }
 
-func (r *Pawn) Promote(b *Board) {
-	// TODO(Vadim) somehow enable choosing piece
-	newPiece := Queen{}
+func (r *Pawn) Promote(b *Board, m *location.Move) {
+	// allows chosing a piece  in the location object
+	promoted, newType := m.End.GetPawnPromotion()
+	if !promoted {
+		panic("trying to promote pawn but move was not a promotion")
+	}
+	newPiece := PieceFromType(newType)
 	newPiece.SetColor(r.GetColor())
 	newPiece.SetPosition(r.GetPosition())
-	b.SetPiece(r.GetPosition(), &newPiece)
+	b.SetPiece(r.GetPosition(), newPiece)
 }
 
 func (r *Pawn) forward(i int) location.RelativeLocation {
