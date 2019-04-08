@@ -7,9 +7,11 @@ import (
 )
 
 type Configuration struct {
-	MemoryLimit  uint64
-	TestRandSeed int64
-	UseOpenings  bool
+	MemoryLimit                uint64
+	TestRandSeed               int64
+	UseOpenings                bool
+	CacheGetAllMoves           bool
+	CacheGetAllAttackableMoves bool
 }
 
 const FilePath = "conf.json"

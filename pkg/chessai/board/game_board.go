@@ -3,6 +3,7 @@ package board
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
@@ -152,8 +153,8 @@ func (b *Board) ResetDefault() {
 		location.NewLocation(7, 4),
 		location.NewLocation(0, 4),
 	}
-	b.CacheGetAllMoves = true
-	b.CacheGetAllAttackableMoves = true
+	b.CacheGetAllMoves = config.Get().CacheGetAllMoves
+	b.CacheGetAllAttackableMoves = config.Get().CacheGetAllAttackableMoves
 }
 
 func (b *Board) ResetDefaultSlow() {
