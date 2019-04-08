@@ -85,7 +85,7 @@ type Board struct {
 	CacheGetAllMoves, CacheGetAllAttackableMoves bool
 }
 
-func (b *Board) Hash() (result [33]byte) {
+func (b *Board) Hash() (result util.BoardHash) {
 	// TODO(Vadim) evenly distribute output over {1,0}^264 via SHA256?
 	// store into map[uint64]map[uint64]map[uint64]map[uint64]map[byte]uint32
 	// Want to lookup score for a board using hash value
