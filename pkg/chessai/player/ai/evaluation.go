@@ -69,9 +69,8 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 	hash := b.Hash()
 	if p.evaluationMap != nil {
 		if score, ok := p.evaluationMap.Read(&hash); ok {
-			s := p.ensureScorePerspective(score.(int))
 			return &Evaluation{
-				TotalScore: s,
+				TotalScore: score.(int),
 			}
 		}
 	}
@@ -151,14 +150,5 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 		p.evaluationMap.Store(&hash, int(eval.TotalScore))
 	}
 
-	eval.TotalScore = p.ensureScorePerspective(eval.TotalScore)
 	return eval
-}
-
-func (p *Player) ensureScorePerspective(score int) int {
-	// if the search depth is odd, flip score
-	if p.CurrentSearchDepth%2 == 1 {
-		score = -score
-	}
-	return score
 }
