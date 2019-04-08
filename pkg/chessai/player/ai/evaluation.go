@@ -13,7 +13,7 @@ type Evaluation struct {
 	// [color][pieceType] -> count of pieces off starting position
 	PieceAdvanced map[byte]map[byte]uint8
 	// [color][column] -> num pawns
-	PawnColumns map[byte]map[int8]uint8
+	PawnColumns map[byte]map[location.CoordinateType]uint8
 	// [color] -> num moves
 	NumMoves   map[byte]uint16
 	NumAttacks map[byte]uint16
@@ -30,7 +30,7 @@ func NewEvaluation() *Evaluation {
 			color.Black: {},
 			color.White: {},
 		},
-		PawnColumns: map[byte]map[int8]uint8{
+		PawnColumns: map[byte]map[location.CoordinateType]uint8{
 			color.Black: {},
 			color.White: {},
 		},
@@ -86,9 +86,9 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 	if b.IsInCheckmate(p.PlayerColor^1, nil) {
 		eval.TotalScore = PosInf
 	} else {
-		for r := int8(0); r < board.Width; r++ {
-			for c := int8(0); c < board.Height; c++ {
-				if p := b.GetPiece(location.Location{Row: r, Col: c}); p != nil {
+		for r := location.CoordinateType(0); r < board.Width; r++ {
+			for c := location.CoordinateType(0); c < board.Height; c++ {
+				if p := b.GetPiece(location.NewLocation(r, c)); p != nil {
 					eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
 					eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b)))
 					aMoves := p.GetAttackableMoves(b)
@@ -129,7 +129,7 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 			if b.IsKingInCheck(c) {
 				score += KingCheckedWeight
 			}
-			for column := int8(0); column < board.Width; column++ {
+			for column := location.CoordinateType(0); column < board.Width; column++ {
 				// duplicate score grows exponentially for each additional pawn
 				score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[c][column] - 1)) - 1)
 			}
