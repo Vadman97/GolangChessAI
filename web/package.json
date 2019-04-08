@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "echo \"Error: FUCK TESTS!\" && exit 1",
+    "test": "echo \"Error: hug TESTS!\" && exit 1",
     "build": "webpack --config webpack.config.babel.js",
     "start": "webpack --config webpack.config.babel.js --watch"
   },
