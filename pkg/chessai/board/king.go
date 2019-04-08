@@ -119,8 +119,9 @@ func (r *King) Move(m *location.Move, b *Board) {
 	if startCol == 4 && startCol-2 == endCol {
 		// left castle
 		// piece right of king set to the rook from left of dest
-		b.SetPiece(right, b.GetPiece(left))
-		b.SetPiece(left, nil)
+		leftTwo, _ := left.AddRelative(location.LeftMove)
+		b.SetPiece(right, b.GetPiece(leftTwo))
+		b.SetPiece(leftTwo, nil)
 		b.SetFlag(FlagCastled, r.GetColor(), true)
 	} else if startCol == 4 && startCol+2 == endCol {
 		// right castle
