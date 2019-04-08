@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 )
 
@@ -81,20 +83,21 @@ type Player struct {
 }
 
 func NewAIPlayer(c byte) *Player {
-	return &Player{
+	p := &Player{
 		Algorithm:                 AlgorithmAlphaBetaWithMemory,
 		TranspositionTableEnabled: true,
 		PlayerColor:               c,
-		MaxSearchDepth:            4,
-		CurrentSearchDepth:        0,
 		TurnCount:                 0,
-		// Opening:        rand.Intn(len(OpeningMoves[c])),
-		Opening:        OpeningNone,
-		Metrics:        &Metrics{},
-		Debug:          true,
-		evaluationMap:  util.NewConcurrentBoardMap(),
-		alphaBetaTable: util.NewTranspositionTable(),
+		Opening:                   OpeningNone,
+		Metrics:                   &Metrics{},
+		Debug:                     true,
+		evaluationMap:             util.NewConcurrentBoardMap(),
+		alphaBetaTable:            util.NewTranspositionTable(),
 	}
+	if config.Get().UseOpenings {
+		p.Opening = rand.Intn(len(OpeningMoves[c]))
+	}
+	return p
 }
 
 func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) bool {

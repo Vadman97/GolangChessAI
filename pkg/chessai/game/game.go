@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
@@ -134,7 +135,7 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 		MovesPlayed:      0,
 		PreviousMove:     nil,
 		GameStatus:       Active,
-		CacheMemoryLimit: 8192,
+		CacheMemoryLimit: config.Get().MemoryLimit,
 	}
 	g.CurrentBoard.ResetDefault()
 	go func() {
