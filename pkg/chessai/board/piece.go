@@ -39,9 +39,6 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 }
 
 func CheckLocationForPiece(pieceColor byte, l location.Location, b *Board) (validMove bool, checkNext bool) {
-	if !l.InBounds() {
-		return false, false
-	}
 	if p := b.GetPiece(l); p != nil {
 		if p.GetColor() != pieceColor {
 			return true, false
@@ -56,15 +53,12 @@ func CheckLocationForPiece(pieceColor byte, l location.Location, b *Board) (vali
  * regardless of the color of piece on it. This is necessary since King may take a piece, but
  * put itself into check.  This is less strict than CheckLocationForPiece.
  */
-func CheckLocationForAttackability(l location.Location, b *Board) (validAttack bool, checkNext bool) {
-	if !l.InBounds() {
-		return false, false
-	}
+func CheckLocationForAttackability(l location.Location, b *Board) (checkNext bool) {
 	p := b.GetPiece(l)
 	if p == nil {
-		return true, true
+		return true
 	}
-	return true, false
+	return false
 }
 
 func GetColorTypeRepr(p Piece) string {

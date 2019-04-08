@@ -69,8 +69,8 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 	g := Game{
 		CurrentBoard: &board.Board{
 			KingLocations: [color.NumColors]location.Location{
-				{Row: 7, Col: 4},
-				{Row: 0, Col: 4},
+				location.NewLocation(7, 4),
+				location.NewLocation(0, 4),
 			},
 		},
 		CurrentTurnColor: color.White,

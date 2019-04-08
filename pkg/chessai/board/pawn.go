@@ -50,9 +50,7 @@ func (r *Pawn) GetAttackableMoves(board *Board) AttackableBoard {
 	attackableBoard := CreateEmptyAttackableBoard()
 	locations := r.getAttackLocations(board)
 	for _, loc := range *locations {
-		if loc.InBounds() {
-			SetLocationAttackable(attackableBoard, loc)
-		}
+		SetLocationAttackable(attackableBoard, loc)
 	}
 	return attackableBoard
 }
@@ -62,24 +60,28 @@ func (r *Pawn) GetAttackableMoves(board *Board) AttackableBoard {
  */
 func (r *Pawn) hasMoved() bool {
 	if r.GetColor() == color.Black {
-		return r.Location.Row != 1
+		return r.Location.GetRow() != 1
 	} else if r.GetColor() == color.White {
-		return r.Location.Row != 6
+		return r.Location.GetRow() != 6
 	}
 	return true
 }
 
 /**
- * Determines possible attack locations (diagonal ahead to left or right).
+ * Determines possible attack locations (diagonal ahead to left or right). Only returns inBounds locations
  * TODO cache lookups
  */
 func (r *Pawn) getAttackLocations(board *Board) *[]location.Location {
 	var locations []location.Location
 	for i := -1; i <= 1; i += 2 {
 		loc := r.GetPosition()
-		loc = loc.Add(location.Location{Col: int8(i)})
-		loc = loc.Add(r.forward(1))
-		locations = append(locations, loc)
+		loc, inBounds := loc.AddRelative(location.RelativeLocation{Col: int8(i)})
+		if inBounds {
+			loc, inBounds = loc.AddRelative(r.forward(1))
+			if inBounds {
+				locations = append(locations, loc)
+			}
+		}
 	}
 	return &locations
 }
@@ -91,10 +93,17 @@ func (r *Pawn) getCaptureMoves(board *Board) *[]location.Move {
 	var moves []location.Move
 	locations := r.getAttackLocations(board)
 	for _, loc := range *locations {
-		if loc.InBounds() && !board.IsEmpty(loc) {
+		if !board.IsEmpty(loc) {
 			pieceOnLocation := board.GetPiece(loc)
 			if pieceOnLocation.GetColor() != r.Color {
-				moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+				if r.canPromote(loc) {
+					for _, promotedType := range piece.PawnPromotionOptions {
+						loc = loc.CreatePawnPromotion(promotedType)
+						moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+					}
+				} else {
+					moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+				}
 			}
 		}
 	}
@@ -112,74 +121,86 @@ func (r *Pawn) getForwardMoves(board *Board) *[]location.Move {
 	}
 	for i := 1; i <= forwardThresh; i++ {
 		l := r.GetPosition()
-		l = l.Add(r.forward(i))
-		// can only add if empty - no attacking forward with pawns
-		if board.IsEmpty(l) {
-			moves = append(moves, location.Move{r.GetPosition(), l})
-		} else {
-			return &moves
+		l, inBounds := l.AddRelative(r.forward(i))
+		if inBounds {
+			// can only add if empty - no attacking forward with pawns
+			if board.IsEmpty(l) {
+				if r.canPromote(l) {
+					for _, promotedType := range piece.PawnPromotionOptions {
+						l = l.CreatePawnPromotion(promotedType)
+						moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
+					}
+				} else {
+					moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
+				}
+			} else {
+				return &moves
+			}
 		}
 	}
 	return &moves
 }
 
+func (r *Pawn) canPromote(l location.Location) bool {
+	return r.Color == color.Black && l.GetRow() == 7 || r.Color == color.White && l.GetRow() == 0
+}
+
 func (r *Pawn) Move(m *location.Move, b *Board) {
 	if r.Color == color.Black {
-		if m.End.Row == 7 {
-			r.Promote(b)
-		}
-		// move put us below enemy (enPassant pawn)
-		if eP := r.checkEnPassant(location.UpMove, b); eP != nil {
-			b.SetPiece(eP.GetPosition(), nil)
-		}
-	} else if r.Color == color.White {
-		if m.End.Row == 0 {
-			r.Promote(b)
+		if m.End.GetRow() == 7 {
+			r.Promote(b, m)
 		}
 		// move put us above enemy (enPassant pawn)
-		if eP := r.checkEnPassant(location.DownMove, b); eP != nil {
-			b.SetPiece(eP.GetPosition(), nil)
+		l, inBounds := r.GetPosition().AddRelative(location.UpMove)
+		if inBounds {
+			if eP := r.checkEnPassant(l, b); eP != nil {
+				b.SetPiece(eP.GetPosition(), nil)
+			}
+		}
+	} else if r.Color == color.White {
+		if m.End.GetRow() == 0 {
+			r.Promote(b, m)
+		}
+		// move put us above enemy (enPassant pawn)
+		l, inBounds := r.GetPosition().AddRelative(location.DownMove)
+		if inBounds {
+			if eP := r.checkEnPassant(l, b); eP != nil {
+				b.SetPiece(eP.GetPosition(), nil)
+			}
 		}
 	}
 }
 
 func (r *Pawn) checkEnPassant(l location.Location, b *Board) Piece {
-	if l.InBounds() {
-		enPassantPawn := b.GetPiece(l)
-		if enPassantPawn != nil {
-			pawn, ok := enPassantPawn.(*Pawn)
-			if ok {
-				if r.Color != pawn.GetColor() {
-					// TODO(Vadim) this is flawed - ensure that it is only if the enemy JUST performed dbl move
-					// maybe keep some sort of turn counter - like what turn u made move on?
-					/*
-						Store column index of pawn last double-moved
-						Clear or update on next boardmove - only 3/4 bits? 0-15 pawn ids - store as 4 extra bits
-					*/
-					if (pawn.GetColor() == color.Black && pawn.GetPosition().Row == 3) ||
-						(pawn.GetColor() == color.White && pawn.GetPosition().Row == 4) {
-						return enPassantPawn
-					}
-				}
+	enPassantPawn := b.GetPiece(l)
+	if enPassantPawn != nil {
+		pawn, ok := enPassantPawn.(*Pawn)
+		if ok {
+			if r.Color != pawn.GetColor() {
+				return enPassantPawn
 			}
 		}
 	}
 	return nil
 }
 
-func (r *Pawn) Promote(b *Board) {
-	// TODO(Vadim) somehow enable choosing piece
-	newPiece := Queen{}
+func (r *Pawn) Promote(b *Board, m *location.Move) {
+	// allows chosing a piece  in the location object
+	promoted, newType := m.End.GetPawnPromotion()
+	if !promoted {
+		panic("trying to promote pawn but move was not a promotion")
+	}
+	newPiece := PieceFromType(newType)
 	newPiece.SetColor(r.GetColor())
 	newPiece.SetPosition(r.GetPosition())
-	b.SetPiece(r.GetPosition(), &newPiece)
+	b.SetPiece(r.GetPosition(), newPiece)
 }
 
-func (r *Pawn) forward(i int) location.Location {
+func (r *Pawn) forward(i int) location.RelativeLocation {
 	if r.GetColor() == color.Black {
-		return location.Location{int8(i), 0}
+		return location.RelativeLocation{Row: int8(i)}
 	} else if r.GetColor() == color.White {
-		return location.Location{int8(-i), 0}
+		return location.RelativeLocation{Row: int8(-i)}
 	}
 	panic("invalid color provided to forward")
 }

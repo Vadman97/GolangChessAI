@@ -2,44 +2,112 @@ package location
 
 import (
 	"fmt"
-	"math"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 )
 
-var UpMove = Location{-1, 0}
-var RightUpMove = Location{-1, 1}
-var RightMove = Location{0, 1}
-var RightDownMove = Location{1, 1}
-var DownMove = Location{1, 0}
-var LeftDownMove = Location{1, -1}
-var LeftMove = Location{0, -1}
-var LeftUpMove = Location{-1, -1}
+type CoordinateType = uint8
 
-type Location struct {
+type RelativeLocation struct {
 	Row, Col int8
 }
 
+var UpMove = RelativeLocation{-1, 0}
+var RightUpMove = RelativeLocation{-1, 1}
+var RightMove = RelativeLocation{0, 1}
+var RightDownMove = RelativeLocation{1, 1}
+var DownMove = RelativeLocation{1, 0}
+var LeftDownMove = RelativeLocation{1, -1}
+var LeftMove = RelativeLocation{0, -1}
+var LeftUpMove = RelativeLocation{-1, -1}
+
+type Location struct {
+	// row stored in 3 bits, col stored in 3 bits
+	// 2 bits store pawn promotion piece
+	data byte
+}
+
+func NewLocation(row, col CoordinateType) (l Location) {
+	l.data |= (byte(row) & 0x7) << 5
+	l.data |= (byte(col) & 0x7) << 2
+	return
+}
+
 func (l *Location) Set(v Location) {
-	l.Row = v.Row
-	l.Col = v.Col
+	l.data = v.data
 }
 
-func (l *Location) Add(v Location) Location {
-	newLoc := Location{l.Row, l.Col}
-	newLoc.Row += v.Row
-	newLoc.Col += v.Col
-	return newLoc
+func (l Location) CreatePawnPromotion(promotedType byte) Location {
+	found := false
+	for _, option := range piece.PawnPromotionOptions {
+		if promotedType == option {
+			found = true
+			break
+		}
+	}
+	if !found {
+		panic("trying to promote pawn to invalid piece type")
+	}
+	// 0 corresponds to no promotion, thus the +1
+	l.data |= promotedType - piece.PawnPromotionOptions[0] + 1
+	return l
 }
 
-func (l *Location) Sub(v Location) byte {
-	return byte(math.Abs(float64(v.Row-l.Row)) + math.Abs(float64(v.Col-l.Col)))
+func (l *Location) GetPawnPromotion() (isPromotion bool, promotedType byte) {
+	data := l.data & 0x3
+	if data != 0 {
+		isPromotion = true
+		promotedType = data + piece.PawnPromotionOptions[0] - 1
+	}
+	return
 }
 
-func (l *Location) Equals(v Location) bool {
-	return v.Row == l.Row && v.Col == l.Col
+func (l Location) Get() (row, col CoordinateType) {
+	row = CoordinateType((l.data & (byte(0x7) << 5)) >> 5)
+	col = CoordinateType((l.data & (byte(0x7) << 2)) >> 2)
+	return
 }
 
-func (l *Location) InBounds() bool {
-	return l.Row >= 0 && l.Col >= 0 && l.Row < 8 && l.Col < 8
+func (l Location) GetRow() (row CoordinateType) {
+	row, _ = l.Get()
+	return
+}
+
+func (l Location) GetCol() (col CoordinateType) {
+	_, col = l.Get()
+	return
+}
+
+func (l Location) GetPromotionPiece() byte {
+	return l.data & (byte(0x3))
+}
+
+func (l Location) Add(v Location) Location {
+	row, col := l.Get()
+	row2, col2 := v.Get()
+	return NewLocation(row+row2, col+col2)
+}
+
+func (l Location) AddRelative(v RelativeLocation) (res Location, sumInBounds bool) {
+	row, col := l.Get()
+	r, c := int8(row)+v.Row, int8(col)+v.Col
+	sumInBounds = inBounds(r, c)
+	if sumInBounds {
+		res = NewLocation(CoordinateType(r), CoordinateType(c))
+	}
+	return
+}
+
+func (l Location) Equals(v Location) bool {
+	return v.data == l.data
+}
+
+func inBounds(row, col int8) bool {
+	return row >= 0 && col >= 0 && row < 8 && col < 8
+}
+
+func (l *Location) Print() string {
+	r, c := l.Get()
+	return fmt.Sprintf("(%+v, %+v)", r, c)
 }
 
 type Move struct {
@@ -64,9 +132,5 @@ func (m *Move) Equals(v *Move) bool {
 }
 
 func (m *Move) Print() string {
-	return fmt.Sprintf("move from %+v to %+v", m.Start, m.End)
-}
-
-func (m *Move) GetDistance() byte {
-	return m.End.Sub(m.Start)
+	return fmt.Sprintf("move from %s to %s", m.Start.Print(), m.End.Print())
 }

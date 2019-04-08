@@ -26,12 +26,14 @@ func CombineAttackableBoards(boardOne AttackableBoard, boardTwo AttackableBoard)
  * Makes a specific square attackable on an AttackableBoard.
  */
 func SetLocationAttackable(attackableBoard AttackableBoard, location location.Location) {
-	attackableBoard[location.Row] |= 1 << uint(location.Col)
+	row, col := location.Get()
+	attackableBoard[row] |= 1 << uint(col)
 }
 
 /**
  * Returns a boolean indicating if a specific location on a board is attackable.
  */
 func IsLocationUnderAttack(attackableBoard AttackableBoard, location location.Location) bool {
-	return ((*attackableBoard)[location.Row] & (1 << uint(location.Col))) != 0
+	row, col := location.Get()
+	return ((*attackableBoard)[row] & (1 << uint(col))) != 0
 }

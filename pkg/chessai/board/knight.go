@@ -5,7 +5,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 )
 
-var possibleMoves = []location.Location{
+var possibleMoves = []location.RelativeLocation{
 	{-2, 1},
 	{-1, 2},
 	{1, 2},
@@ -53,8 +53,8 @@ func (r *Knight) getNextLocations(board *Board) *[]location.Location {
 	var locations []location.Location
 	for _, possibleMove := range possibleMoves {
 		loc := r.GetPosition()
-		loc = loc.Add(possibleMove)
-		if loc.InBounds() {
+		loc, inBounds := loc.AddRelative(possibleMove)
+		if inBounds {
 			locations = append(locations, loc)
 		}
 	}

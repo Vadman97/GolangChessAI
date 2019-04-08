@@ -52,7 +52,7 @@ var StartingRowHex = [...]uint32{
 	0x2468A642,
 }
 
-var StartRow = map[byte]map[string]int8{
+var StartRow = map[byte]map[string]location.CoordinateType{
 	color.Black: {
 		"Piece": 0,
 		"Pawn":  1,
@@ -147,33 +147,37 @@ func (b *Board) ResetDefault() {
 	b.board[7] = StartingRowHex[7]
 	b.MoveCache = util.NewConcurrentBoardMap()
 	b.AttackableCache = util.NewConcurrentBoardMap()
-	b.KingLocations = [color.NumColors]location.Location{{Row: 7, Col: 4}, {Row: 0, Col: 4}}
-	b.CacheGetAllAttackableMoves = true
+	b.KingLocations = [color.NumColors]location.Location{
+		location.NewLocation(7, 4),
+		location.NewLocation(0, 4),
+	}
+	b.CacheGetAllAttackableMoves = false
 }
 
 func (b *Board) ResetDefaultSlow() {
-	for c := int8(0); c < Width; c++ {
-		StartingRow[c].SetPosition(location.Location{0, c})
+	for c := location.CoordinateType(0); c < Width; c++ {
+		StartingRow[c].SetPosition(location.NewLocation(0, c))
 		StartingRow[c].SetColor(color.Black)
-		b.SetPiece(location.Location{0, c}, StartingRow[c])
-		b.SetPiece(location.Location{1, c}, &Pawn{location.Location{Row: 1, Col: c}, color.Black})
+		b.SetPiece(location.NewLocation(0, c), StartingRow[c])
+		b.SetPiece(location.NewLocation(1, c), &Pawn{location.NewLocation(1, c), color.Black})
 
-		b.SetPiece(location.Location{6, c}, &Pawn{location.Location{Row: 6, Col: c}, color.White})
-		StartingRow[c].SetPosition(location.Location{7, c})
+		b.SetPiece(location.NewLocation(6, c), &Pawn{location.NewLocation(6, c), color.White})
+		StartingRow[c].SetPosition(location.NewLocation(7, c))
 		StartingRow[c].SetColor(color.White)
-		b.SetPiece(location.Location{7, c}, StartingRow[c])
+		b.SetPiece(location.NewLocation(7, c), StartingRow[c])
 	}
 	b.MoveCache = util.NewConcurrentBoardMap()
 	b.AttackableCache = util.NewConcurrentBoardMap()
-	b.KingLocations = [color.NumColors]location.Location{{Row: 7, Col: 4}, {Row: 0, Col: 4}}
-	b.CacheGetAllAttackableMoves = true
+	b.KingLocations = [color.NumColors]location.Location{location.NewLocation(7, 4), location.NewLocation(0, 4)}
+	b.CacheGetAllAttackableMoves = false
 }
 
 func (b *Board) SetPiece(l location.Location, p Piece) {
 	// set the bytes associated with this piece (only 1 if we store piece in 4 bytes)
 	data := uint32(encodeData(p)) << getBitOffset(l)
-	b.board[l.Row] &^= PieceMask << getBitOffset(l)
-	b.board[l.Row] |= data
+	row, _ := l.Get()
+	b.board[row] &^= PieceMask << getBitOffset(l)
+	b.board[row] |= data
 }
 
 func (b *Board) GetPiece(l location.Location) Piece {
@@ -183,7 +187,8 @@ func (b *Board) GetPiece(l location.Location) Piece {
 
 func (b *Board) getPieceData(l location.Location) byte {
 	pos := getBitOffset(l)
-	return byte((b.board[l.Row] & (PieceMask << pos)) >> pos)
+	row, _ := l.Get()
+	return byte((b.board[row] & (PieceMask << pos)) >> pos)
 }
 
 func (b *Board) SetFlag(flag byte, color byte, value bool) {
@@ -225,7 +230,7 @@ func (b *Board) Print() (result string) {
 	for r := 0; r < Height; r++ {
 		result += fmt.Sprintf("%d ", r)
 		for c := 0; c < Height; c++ {
-			result += fmt.Sprintf("%+v", GetColorTypeRepr(b.GetPiece(location.Location{int8(r), int8(c)})))
+			result += fmt.Sprintf("%+v", GetColorTypeRepr(b.GetPiece(location.NewLocation(location.CoordinateType(r), location.CoordinateType(c)))))
 			if c < Height-1 {
 				result += "|"
 			}
@@ -257,12 +262,12 @@ func (b *Board) RandomizeIllegal() {
 	if b.TestRandGen == nil {
 		b.TestRandGen = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
-	for r := int8(0); r < Height; r++ {
-		for c := int8(0); c < Width; c++ {
+	for r := location.CoordinateType(0); r < Height; r++ {
+		for c := location.CoordinateType(0); c < Width; c++ {
 			p := StartingRow[b.TestRandGen.Int()%len(StartingRow)]
-			p.SetPosition(location.Location{r, c})
+			p.SetPosition(location.NewLocation(r, c))
 			p.SetColor(byte(b.TestRandGen.Int() % 2))
-			b.SetPiece(location.Location{r, c}, p)
+			b.SetPiece(location.NewLocation(r, c), p)
 		}
 	}
 	b.flags = byte(b.TestRandGen.Uint32())
@@ -304,7 +309,7 @@ func (b *Board) getAllMoves(c byte) *[]location.Move {
 			continue
 		}
 		for col := 0; col < Width; col++ {
-			l := location.Location{Row: int8(row), Col: int8(col)}
+			l := location.NewLocation(location.CoordinateType(row), location.CoordinateType(col))
 			if !b.IsEmpty(l) {
 				p := b.GetPiece(l)
 				if p.GetColor() == c {
@@ -333,21 +338,23 @@ func (b *Board) GetEnPassantMoves(c byte, previousMove *LastMove) *[]location.Mo
 	if (lastPieceMoved.GetColor() != c) && (lastPieceMoved.GetPieceType() == piece.PawnType) {
 		move := previousMove.Move
 		var captureLocation *location.Location = nil
+		startRow, _ := move.Start.Get()
+		endRow, _ := move.End.Get()
 		if lastPieceMoved.GetColor() == color.Black {
-			if (move.Start.Row == 1) && (move.End.Row == 3) {
-				l := move.End.Add(location.UpMove)
+			if (startRow == 1) && (endRow == 3) {
+				l, _ := move.End.AddRelative(location.UpMove)
 				captureLocation = &l
 			}
 		} else {
-			if (move.Start.Row == 6) && (move.End.Row == 4) {
-				l := move.End.Add(location.DownMove)
+			if (startRow == 6) && (endRow == 4) {
+				l, _ := move.End.AddRelative(location.DownMove)
 				captureLocation = &l
 			}
 		}
 		if captureLocation != nil {
-			for i := -1; i <= 1; i += 2 {
-				adjacentLoc := move.End.Add(location.Location{Row: 0, Col: int8(i)})
-				if adjacentLoc.InBounds() {
+			for i := int8(-1); i <= 1; i += 2 {
+				adjacentLoc, inBounds := move.End.AddRelative(location.RelativeLocation{0, i})
+				if inBounds {
 					adjacentPiece := b.GetPiece(adjacentLoc)
 					if adjacentPiece != nil && adjacentPiece.GetColor() == c && adjacentPiece.GetPieceType() == piece.PawnType {
 						potentialMove := location.Move{Start: adjacentLoc, End: *captureLocation}
@@ -399,7 +406,7 @@ func (b *Board) getAllAttackableMoves(color byte) AttackableBoard {
 			continue
 		}
 		for c := 0; c < Width; c++ {
-			loc := location.Location{Row: int8(r), Col: int8(c)}
+			loc := location.NewLocation(location.CoordinateType(r), location.CoordinateType(c))
 			if !b.IsEmpty(loc) {
 				pieceOnLocation := b.GetPiece(loc)
 				if pieceOnLocation.GetColor() == color {
@@ -454,9 +461,11 @@ func (b *Board) move(m *location.Move) {
 	// copy Start piece to End
 	startOff := getBitOffset(m.Start)
 	endOff := getBitOffset(m.End)
-	data := (b.board[m.Start.Row] & (PieceMask << startOff)) >> startOff
-	b.board[m.End.Row] &^= PieceMask << endOff
-	b.board[m.End.Row] |= data << endOff
+	startRow := m.Start.GetRow()
+	endRow := m.End.GetRow()
+	data := (b.board[startRow] & (PieceMask << startOff)) >> startOff
+	b.board[endRow] &^= PieceMask << endOff
+	b.board[endRow] |= data << endOff
 
 	// clear piece at Start
 	b.SetPiece(m.Start, nil)
@@ -464,7 +473,7 @@ func (b *Board) move(m *location.Move) {
 
 func getBitOffset(l location.Location) byte {
 	// 28 = ((Width - 1) * BitsPerPiece)
-	return 28 - byte(l.Col*BitsPerPiece)
+	return 28 - byte(l.GetCol()*BitsPerPiece)
 }
 
 func ColorFromChar(cChar rune) byte {
