@@ -182,7 +182,6 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 		result += fmt.Sprintf("\t\t%s\n", move.Print())
 		board.MakeMove(&move, debugBoard)
 	}
-	result += fmt.Sprintf("\nAI %s best move leads to score %d\n", p.Repr(), m.Score)
 	result += fmt.Sprintf("%s\n", p.Metrics.Print())
 	result += fmt.Sprintf("%s best move leads to score %d\n", p.Repr(), m.Score)
 	fmt.Print(result)

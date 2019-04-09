@@ -14,6 +14,8 @@ type Evaluation struct {
 	PieceAdvanced map[byte]map[byte]uint8
 	// [color][column] -> num pawns
 	PawnColumns map[byte]map[location.CoordinateType]uint8
+	// [color][column] -> num pawns
+	PawnRows map[byte]map[location.CoordinateType]uint8
 	// [color] -> num moves
 	NumMoves   map[byte]uint16
 	NumAttacks map[byte]uint16
@@ -31,6 +33,10 @@ func NewEvaluation() *Evaluation {
 			color.White: {},
 		},
 		PawnColumns: map[byte]map[location.CoordinateType]uint8{
+			color.Black: {},
+			color.White: {},
+		},
+		PawnRows: map[byte]map[location.CoordinateType]uint8{
 			color.Black: {},
 			color.White: {},
 		},
@@ -63,6 +69,7 @@ const (
 
 const (
 	PawnDuplicateWeight = -1
+	PawnAdvancedWeight  = 1
 )
 
 func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
@@ -91,8 +98,8 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 		// TODO(Alex) This value may change, but AI right now prevents draws
 		eval.TotalScore = 0
 	} else {
-		for r := location.CoordinateType(0); r < board.Width; r++ {
-			for c := location.CoordinateType(0); c < board.Height; c++ {
+		for r := location.CoordinateType(0); r < board.Height; r++ {
+			for c := location.CoordinateType(0); c < board.Width; c++ {
 				if p := b.GetPiece(location.NewLocation(r, c)); p != nil {
 					eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
 					eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b)))
@@ -103,10 +110,12 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 
 					if p.GetPieceType() == piece.PawnType {
 						eval.PawnColumns[p.GetColor()][c]++
+						eval.PawnRows[p.GetColor()][r]++
 						if r != board.StartRow[p.GetColor()]["Pawn"] {
 							eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
 						}
-					} else {
+						// do not give bonus for advancing king
+					} else if p.GetPieceType() != piece.KingType {
 						if r != board.StartRow[p.GetColor()]["Piece"] {
 							eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
 						}
@@ -137,6 +146,18 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 			for column := location.CoordinateType(0); column < board.Width; column++ {
 				// duplicate score grows exponentially for each additional pawn
 				score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[c][column] - 1)) - 1)
+			}
+			goalRow := board.StartRow[c^1]["Piece"]
+			for row := location.CoordinateType(0); row < board.Height; row++ {
+				// boost score linearly for pawns that are closer to enemy start row
+				dist := int8(goalRow) - int8(row)
+				if dist < 0 {
+					dist = -dist
+				}
+				// height - 1 is distance from pawn start
+				progress := int(board.Height - 1 - dist)
+				// normalize for number of pawns 8
+				score += (PawnStructureWeight * PawnAdvancedWeight * progress * int(eval.PawnRows[c][row])) / 8
 			}
 			// possible moves
 			score += PieceNumMovesWeight * int(eval.NumMoves[c])

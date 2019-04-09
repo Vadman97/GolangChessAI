@@ -86,8 +86,8 @@ func (g *Game) Print() (result string) {
 	result += fmt.Sprintln(g.CurrentBoard.Print())
 	result += g.PrintThinkTime(g.CurrentTurnColor ^ 1)
 	if g.MovesPlayed%2 == 0 {
-		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed)
-		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed)
+		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
+		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
 		result += fmt.Sprintf("Average move time:\n")
 		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
 		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
