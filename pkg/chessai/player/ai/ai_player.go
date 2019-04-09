@@ -80,14 +80,9 @@ type Player struct {
 	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
 	Debug          bool
-	Performance    *PerformanceLogger
 }
 
 func NewAIPlayer(c byte) *Player {
-	performanceLogger := CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
-		config.Get().LogPerformance,
-		config.Get().ExcelPerformanceFileName,
-		config.Get().PerformanceLogFileName)
 	p := &Player{
 		Algorithm:                 AlgorithmAlphaBetaWithMemory,
 		TranspositionTableEnabled: config.Get().TranspositionTableEnabled,
@@ -96,7 +91,6 @@ func NewAIPlayer(c byte) *Player {
 		Opening:                   OpeningNone,
 		Metrics:                   &Metrics{},
 		Debug:                     config.Get().LogDebug,
-		Performance:               performanceLogger,
 		evaluationMap:             util.NewConcurrentBoardMap(),
 		alphaBetaTable:            util.NewTranspositionTable(),
 	}
@@ -122,7 +116,7 @@ func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove
 	}
 }
 
-func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *location.Move {
+func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *location.Move {
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
@@ -146,7 +140,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		if p.Debug {
 			p.printMoveDebug(b, m)
 		}
-		p.printPerformance(b, m)
+		logger.MarkPerformance(b, m, p)
 		if m.Move.Start.Equals(m.Move.End) {
 			log.Printf("%s resigns, no best move available. Picking random.\n", p.Repr())
 			return &p.RandomMove(b, previousMove).Move
@@ -155,8 +149,8 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 	}
 }
 
-func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove) *board.LastMove {
-	move := board.MakeMove(p.GetBestMove(b, previousMove), b)
+func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *board.LastMove {
+	move := board.MakeMove(p.GetBestMove(b, previousMove, logger), b)
 	p.TurnCount++
 	return move
 }
@@ -204,13 +198,6 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 	result += b.AttackableCache.PrintMetrics()
 	result += fmt.Sprintf("\n\n")
 	_, _ = fmt.Fprint(file, result)
-}
-
-/**
- * Calls the performance logger's MarkPerformance() function.
- */
-func (p *Player) printPerformance(b *board.Board, m *ScoredMove) {
-	p.Performance.MarkPerformance(b, m, p)
 }
 
 func (p *Player) ClearCaches() {
