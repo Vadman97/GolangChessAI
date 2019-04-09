@@ -80,9 +80,14 @@ type Player struct {
 	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
 	Debug          bool
+	Performance    *PerformanceLogger
 }
 
 func NewAIPlayer(c byte) *Player {
+	performanceLogger := CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
+		config.Get().LogPerformance,
+		config.Get().ExcelPerformanceFileName,
+		config.Get().PerformanceLogFileName)
 	p := &Player{
 		Algorithm:                 AlgorithmAlphaBetaWithMemory,
 		TranspositionTableEnabled: config.Get().TranspositionTableEnabled,
@@ -90,7 +95,8 @@ func NewAIPlayer(c byte) *Player {
 		TurnCount:                 0,
 		Opening:                   OpeningNone,
 		Metrics:                   &Metrics{},
-		Debug:                     true,
+		Debug:                     config.Get().LogDebug,
+		Performance:               performanceLogger,
 		evaluationMap:             util.NewConcurrentBoardMap(),
 		alphaBetaTable:            util.NewTranspositionTable(),
 	}
@@ -140,6 +146,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		if p.Debug {
 			p.printMoveDebug(b, m)
 		}
+		p.printPerformance(b, m)
 		if m.Move.Start.Equals(m.Move.End) {
 			log.Printf("%s resigns, no best move available. Picking random.\n", p.Repr())
 			return &p.RandomMove(b, previousMove).Move
@@ -163,7 +170,7 @@ func (p *Player) Repr() string {
 }
 
 func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
-	const LogFile = "moveDebug.log"
+	LogFile := config.Get().DebugLogFileName
 	file, err := os.OpenFile(LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal("Cannot open file", err)
@@ -197,6 +204,13 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 	result += b.AttackableCache.PrintMetrics()
 	result += fmt.Sprintf("\n\n")
 	_, _ = fmt.Fprint(file, result)
+}
+
+/**
+ * Calls the performance logger's MarkPerformance() function.
+ */
+func (p *Player) printPerformance(b *board.Board, m *ScoredMove) {
+	p.Performance.MarkPerformance(b, m, p)
 }
 
 func (p *Player) ClearCaches() {

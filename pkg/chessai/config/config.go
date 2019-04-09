@@ -13,6 +13,12 @@ type Configuration struct {
 	CacheGetAllMoves           bool
 	CacheGetAllAttackableMoves bool
 	TranspositionTableEnabled  bool
+	LogDebug                   bool
+	DebugLogFileName           string
+	LogPerformance             bool
+	PerformanceLogFileName     string
+	LogPerformanceToExcel      bool
+	ExcelPerformanceFileName   string
 }
 
 const FilePath = "conf.json"
