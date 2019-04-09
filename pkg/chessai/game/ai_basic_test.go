@@ -19,7 +19,7 @@ func TestBoardAI(t *testing.T) {
 	rand.Seed(config.Get().TestRandSeed)
 	aiPlayerSmart := ai.NewAIPlayer(color.Black, &ai.MTDf{})
 	aiPlayerSmart.MaxSearchDepth = 100
-	aiPlayerSmart.MaxThinkTime = 5 * time.Second
+	aiPlayerSmart.MaxThinkTime = 1 * time.Second
 	aiPlayerDumb := ai.NewAIPlayer(color.White, &ai.Random{})
 	aiPlayerDumb.MaxSearchDepth = 2
 	g := NewGame(aiPlayerDumb, aiPlayerSmart)
