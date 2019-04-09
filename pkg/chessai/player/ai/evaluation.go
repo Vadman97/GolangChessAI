@@ -77,7 +77,7 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 
 	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
-	// TODO(Vadim) figure out if we can optimize, this makes very slow
+	// TODO(Vadim) figure out if we can optimize, this makes very slow #47
 	/*else if b.IsInCheckmate(p.PlayerColor, nil) {
 		eval.TotalScore = NegInf
 	} else if b.IsStalemate(p.PlayerColor, nil) || b.IsStalemate(p.PlayerColor ^ 1, nil) {
@@ -85,6 +85,8 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 	}*/
 	if b.IsInCheckmate(p.PlayerColor^1, nil) {
 		eval.TotalScore = PosInf
+	} else if b.IsInCheckmate(p.PlayerColor, nil) {
+		eval.TotalScore = NegInf
 	} else {
 		for r := location.CoordinateType(0); r < board.Width; r++ {
 			for c := location.CoordinateType(0); c < board.Height; c++ {

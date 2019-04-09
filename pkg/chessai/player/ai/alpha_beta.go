@@ -5,24 +5,49 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
+func (p *Player) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
+	standPat := p.EvaluateBoard(root).TotalScore
+	if standPat >= beta {
+		return beta
+	} else if alpha < standPat {
+		alpha = standPat
+	}
+	// until every capture has been examined
+	moves := root.GetAllMoves(currentPlayer, previousMove)
+	for _, m := range *moves {
+		// capture move
+		if !root.IsEmpty(m.End) {
+			child := root.Copy()
+			board.MakeMove(&m, child)
+			score := p.Quiesce(child, alpha, beta, currentPlayer^1, previousMove)
+
+			if score >= beta {
+				return beta
+			} else if score > alpha {
+				alpha = score
+			}
+		}
+	}
+	return alpha
+}
+
 func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
-	var h [33]byte
+	var h util.BoardHash
 	if p.TranspositionTableEnabled {
 		// transposition table lookup
 		h = root.Hash()
-		if entry, ok := p.alphaBetaTable.Read(&h); ok {
-			e := *entry
-			if e.Lower >= beta {
+		if entry, ok := p.alphaBetaTable.Read(&h, currentPlayer); ok {
+			if entry.Lower >= beta {
 				p.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
-					Move:  e.BestMove,
-					Score: e.Lower,
+					Move:  entry.BestMove,
+					Score: entry.Lower,
 				}
-			} else if e.Upper <= alpha {
+			} else if entry.Upper <= alpha {
 				p.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
-					Move:  e.BestMove,
-					Score: e.Upper,
+					Move:  entry.BestMove,
+					Score: entry.Upper,
 				}
 			}
 			if entry.Lower > alpha {
@@ -39,6 +64,8 @@ func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, 
 	if depth == 0 {
 		best = ScoredMove{
 			Score: p.EvaluateBoard(root).TotalScore,
+			// TODO(Vadim) compare quiescence with none
+			//Score: p.Quiesce(root, alpha, beta, currentPlayer, previousMove),
 		}
 	} else {
 		var maximizingPlayer = currentPlayer == p.PlayerColor
@@ -87,21 +114,21 @@ func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, 
 
 	if p.TranspositionTableEnabled {
 		if best.Score <= alpha {
-			p.alphaBetaTable.Store(&h, &util.TranspositionTableEntry{
+			p.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
 				Lower:    NegInf,
 				Upper:    best.Score,
 				BestMove: best.Move,
 			})
 		}
 		if best.Score > alpha && best.Score < beta {
-			p.alphaBetaTable.Store(&h, &util.TranspositionTableEntry{
+			p.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
 				Lower:    best.Score,
 				Upper:    best.Score,
 				BestMove: best.Move,
 			})
 		}
 		if best.Score >= beta {
-			p.alphaBetaTable.Store(&h, &util.TranspositionTableEntry{
+			p.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
 				Lower:    best.Score,
 				Upper:    PosInf,
 				BestMove: best.Move,

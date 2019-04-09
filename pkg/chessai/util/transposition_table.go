@@ -11,7 +11,7 @@ type TranspositionTableEntry struct {
 }
 
 type TranspositionTable struct {
-	entryMap          map[uint64]map[uint64]map[uint64]map[uint64]map[byte]*TranspositionTableEntry
+	entryMap          map[uint64]map[uint64]map[uint64]map[uint64]map[byte]map[byte]*TranspositionTableEntry
 	numStored         int
 	numReads, numHits int
 }
@@ -19,36 +19,40 @@ type TranspositionTable struct {
 func NewTranspositionTable() *TranspositionTable {
 	var m TranspositionTable
 	if m.entryMap == nil {
-		m.entryMap = make(map[uint64]map[uint64]map[uint64]map[uint64]map[byte]*TranspositionTableEntry)
+		m.entryMap = make(map[uint64]map[uint64]map[uint64]map[uint64]map[byte]map[byte]*TranspositionTableEntry)
 	}
 	return &m
 }
 
-func (m *TranspositionTable) Store(hash *[33]byte, entry *TranspositionTableEntry) {
+func (m *TranspositionTable) Store(hash *BoardHash, currentTurn byte, entry *TranspositionTableEntry) {
 	idx := HashToMapKey(hash)
 
 	_, ok := m.entryMap[idx[0]]
 	if !ok {
-		m.entryMap[idx[0]] = make(map[uint64]map[uint64]map[uint64]map[byte]*TranspositionTableEntry)
+		m.entryMap[idx[0]] = make(map[uint64]map[uint64]map[uint64]map[byte]map[byte]*TranspositionTableEntry)
 	}
 	_, ok = m.entryMap[idx[0]][idx[1]]
 	if !ok {
-		m.entryMap[idx[0]][idx[1]] = make(map[uint64]map[uint64]map[byte]*TranspositionTableEntry)
+		m.entryMap[idx[0]][idx[1]] = make(map[uint64]map[uint64]map[byte]map[byte]*TranspositionTableEntry)
 	}
 	_, ok = m.entryMap[idx[0]][idx[1]][idx[2]]
 	if !ok {
-		m.entryMap[idx[0]][idx[1]][idx[2]] = make(map[uint64]map[byte]*TranspositionTableEntry)
+		m.entryMap[idx[0]][idx[1]][idx[2]] = make(map[uint64]map[byte]map[byte]*TranspositionTableEntry)
 	}
 	_, ok = m.entryMap[idx[0]][idx[1]][idx[2]][idx[3]]
 	if !ok {
-		m.entryMap[idx[0]][idx[1]][idx[2]][idx[3]] = make(map[byte]*TranspositionTableEntry)
+		m.entryMap[idx[0]][idx[1]][idx[2]][idx[3]] = make(map[byte]map[byte]*TranspositionTableEntry)
+	}
+	_, ok = m.entryMap[idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]]
+	if !ok {
+		m.entryMap[idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]] = make(map[byte]*TranspositionTableEntry)
 	}
 
-	m.entryMap[idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]] = entry
+	m.entryMap[idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]][currentTurn] = entry
 	m.numStored++
 }
 
-func (m *TranspositionTable) Read(hash *[33]byte) (*TranspositionTableEntry, bool) {
+func (m *TranspositionTable) Read(hash *BoardHash, currentTurn byte) (*TranspositionTableEntry, bool) {
 	idx := HashToMapKey(hash)
 	m.numReads++
 
@@ -60,11 +64,14 @@ func (m *TranspositionTable) Read(hash *[33]byte) (*TranspositionTableEntry, boo
 			if ok {
 				m4, ok := m3[idx[3]]
 				if ok {
-					v, ok := m4[(*hash)[32]]
+					m5, ok := m4[(*hash)[32]]
 					if ok {
-						m.numHits++
+						v, ok := m5[currentTurn]
+						if ok {
+							m.numHits++
+						}
+						return v, ok
 					}
-					return v, ok
 				}
 			}
 		}

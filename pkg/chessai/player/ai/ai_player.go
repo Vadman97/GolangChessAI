@@ -85,12 +85,12 @@ type Player struct {
 func NewAIPlayer(c byte) *Player {
 	p := &Player{
 		Algorithm:                 AlgorithmAlphaBetaWithMemory,
-		TranspositionTableEnabled: true,
+		TranspositionTableEnabled: config.Get().TranspositionTableEnabled,
 		PlayerColor:               c,
 		TurnCount:                 0,
 		Opening:                   OpeningNone,
 		Metrics:                   &Metrics{},
-		Debug:                     true,
+		Debug:                     config.Get().LogDebug,
 		evaluationMap:             util.NewConcurrentBoardMap(),
 		alphaBetaTable:            util.NewTranspositionTable(),
 	}
@@ -116,7 +116,7 @@ func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove
 	}
 }
 
-func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *location.Move {
+func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *location.Move {
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
@@ -124,7 +124,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		p.Metrics = &Metrics{}
 
 		var m = &ScoredMove{
-			Score: NegInf,
+			Score: 0,
 		}
 		if p.Algorithm == AlgorithmMiniMax {
 			m = p.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
@@ -140,12 +140,17 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove) *loca
 		if p.Debug {
 			p.printMoveDebug(b, m)
 		}
+		logger.MarkPerformance(b, m, p)
+		if m.Move.Start.Equals(m.Move.End) {
+			log.Printf("%s resigns, no best move available. Picking random.\n", p.Repr())
+			return &p.RandomMove(b, previousMove).Move
+		}
 		return &m.Move
 	}
 }
 
-func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove) *board.LastMove {
-	move := board.MakeMove(p.GetBestMove(b, previousMove), b)
+func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *board.LastMove {
+	move := board.MakeMove(p.GetBestMove(b, previousMove, logger), b)
 	p.TurnCount++
 	return move
 }
@@ -159,7 +164,7 @@ func (p *Player) Repr() string {
 }
 
 func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
-	const LogFile = "moveDebug.log"
+	LogFile := config.Get().DebugLogFileName
 	file, err := os.OpenFile(LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal("Cannot open file", err)
@@ -179,6 +184,9 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 		result += fmt.Sprintf("\t\t%s\n", move.Print())
 		board.MakeMove(&move, debugBoard)
 	}
+	result += fmt.Sprintf("\nAI %s best move leads to score %d\n", p.Repr(), m.Score)
+	result += fmt.Sprintf("%s\n", p.Metrics.Print())
+	result += fmt.Sprintf("%s best move leads to score %d\n", p.Repr(), m.Score)
 	fmt.Print(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.PrintMetrics()
@@ -188,14 +196,12 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 	result += b.MoveCache.PrintMetrics()
 	result += fmt.Sprintf("Attack Move cache metrics\n")
 	result += b.AttackableCache.PrintMetrics()
-	result += fmt.Sprintf("\nAI %s best move leads to score %d\n", p.Repr(), m.Score)
-	result += fmt.Sprintf("%s\n", p.Metrics.Print())
-	result += fmt.Sprintf("%s best move leads to score %d\n", p.Repr(), m.Score)
 	result += fmt.Sprintf("\n\n")
 	_, _ = fmt.Fprint(file, result)
 }
 
 func (p *Player) ClearCaches() {
-	p.evaluationMap = util.NewConcurrentBoardMap()
-	p.alphaBetaTable = util.NewTranspositionTable()
+	// TODO(Vadim) find better way to pick when to clear, based on size #49
+	//p.evaluationMap = util.NewConcurrentBoardMap()
+	//p.alphaBetaTable = util.NewTranspositionTable()
 }
