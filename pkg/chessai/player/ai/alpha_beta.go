@@ -31,31 +31,31 @@ func (p *Player) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte,
 	return alpha
 }
 
-func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
+func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
 	var h util.BoardHash
-	if p.TranspositionTableEnabled {
+	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h = root.Hash()
-		if entry, ok := p.alphaBetaTable.Read(&h, currentPlayer); ok {
+		if entry, ok := ab.player.alphaBetaTable.Read(&h, currentPlayer); ok {
 			if entry.Lower >= beta {
-				p.Metrics.MovesPrunedTransposition++
+				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
 					Move:  entry.BestMove,
 					Score: entry.Lower,
 				}
 			} else if entry.Upper <= alpha {
-				p.Metrics.MovesPrunedTransposition++
+				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
 					Move:  entry.BestMove,
 					Score: entry.Upper,
 				}
 			}
 			if entry.Lower > alpha {
-				p.Metrics.MovesABImprovedTransposition++
+				ab.player.Metrics.MovesABImprovedTransposition++
 				alpha = entry.Lower
 			}
 			if entry.Upper < beta {
-				p.Metrics.MovesABImprovedTransposition++
+				ab.player.Metrics.MovesABImprovedTransposition++
 				beta = entry.Upper
 			}
 		}
@@ -63,12 +63,12 @@ func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, 
 	var best ScoredMove
 	if depth == 0 {
 		best = ScoredMove{
-			Score: p.EvaluateBoard(root).TotalScore,
+			Score: ab.player.EvaluateBoard(root).TotalScore,
 			// TODO(Vadim) compare quiescence with none
 			//Score: p.Quiesce(root, alpha, beta, currentPlayer, previousMove),
 		}
 	} else {
-		var maximizingPlayer = currentPlayer == p.PlayerColor
+		var maximizingPlayer = currentPlayer == ab.player.PlayerColor
 		var a, b int
 		if maximizingPlayer {
 			best.Score = NegInf
@@ -81,23 +81,26 @@ func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, 
 		for i, m := range *moves {
 			if maximizingPlayer {
 				if best.Score >= beta {
-					p.Metrics.MovesPrunedAB += int64(len(*moves) - i)
+					ab.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
 					break
 				}
 			} else {
 				if best.Score <= alpha {
-					p.Metrics.MovesPrunedAB += int64(len(*moves) - i)
+					ab.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
 					break
 				}
 			}
 			newBoard := root.Copy()
 			previousMove = board.MakeMove(&m, newBoard)
-			p.Metrics.MovesConsidered++
+			ab.player.Metrics.MovesConsidered++
 			var candidate *ScoredMove
+			if ab.abort {
+				break
+			}
 			if maximizingPlayer {
-				candidate = p.AlphaBetaWithMemory(newBoard, depth-1, a, beta, currentPlayer^1, previousMove)
+				candidate = ab.AlphaBetaWithMemory(newBoard, depth-1, a, beta, currentPlayer^1, previousMove)
 			} else {
-				candidate = p.AlphaBetaWithMemory(newBoard, depth-1, alpha, b, currentPlayer^1, previousMove)
+				candidate = ab.AlphaBetaWithMemory(newBoard, depth-1, alpha, b, currentPlayer^1, previousMove)
 			}
 			candidate.Move = m
 			candidate.MoveSequence = append(candidate.MoveSequence, m)
@@ -112,23 +115,23 @@ func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, 
 		}
 	}
 
-	if p.TranspositionTableEnabled {
+	if !ab.abort && ab.player.TranspositionTableEnabled {
 		if best.Score <= alpha {
-			p.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
+			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
 				Lower:    NegInf,
 				Upper:    best.Score,
 				BestMove: best.Move,
 			})
 		}
 		if best.Score > alpha && best.Score < beta {
-			p.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
+			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
 				Lower:    best.Score,
 				Upper:    best.Score,
 				BestMove: best.Move,
 			})
 		}
 		if best.Score >= beta {
-			p.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
+			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
 				Lower:    best.Score,
 				Upper:    PosInf,
 				BestMove: best.Move,
@@ -139,12 +142,17 @@ func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, 
 	return &best
 }
 
-type AlphaBetaWithMemory struct{}
+type AlphaBetaWithMemory struct {
+	player *Player
+	abort  bool
+}
 
 func (ab *AlphaBetaWithMemory) GetName() string {
 	return AlgorithmAlphaBetaWithMemory
 }
 
 func (ab *AlphaBetaWithMemory) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
-	return p.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
+	ab.player = p
+	ab.abort = false
+	return ab.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
 }

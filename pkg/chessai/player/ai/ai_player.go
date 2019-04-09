@@ -11,6 +11,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"time"
 )
 
 const (
@@ -77,7 +78,7 @@ type Player struct {
 	TranspositionTableEnabled bool
 	PlayerColor               byte
 	MaxSearchDepth            int
-	CurrentSearchDepth        int
+	MaxThinkTime              time.Duration
 	TurnCount                 int
 	Opening                   int
 	Metrics                   *Metrics
