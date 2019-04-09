@@ -4,5 +4,11 @@
   "UseOpenings": false,
   "CacheGetAllMoves": true,
   "CacheGetAllAttackableMoves": true,
-  "TranspositionTableEnabled": true
+  "TranspositionTableEnabled": true,
+  "LogDebug": true,
+  "DebugLogFileName": "moveDebug.log",
+  "LogPerformance": true,
+  "PerformanceLogFileName": "performance.log",
+  "LogPerformanceToExcel": true,
+  "ExcelPerformanceFileName": "./performance.xlsx"
 }

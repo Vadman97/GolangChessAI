@@ -13,15 +13,16 @@ import (
 )
 
 type Game struct {
-	CurrentBoard     *board.Board
-	CurrentTurnColor byte
-	Players          map[byte]*ai.Player
-	LastMoveTime     map[byte]time.Duration
-	TotalMoveTime    map[byte]time.Duration
-	MovesPlayed      uint
-	PreviousMove     *board.LastMove
-	GameStatus       byte
-	CacheMemoryLimit uint64
+	CurrentBoard      *board.Board
+	CurrentTurnColor  byte
+	Players           map[byte]*ai.Player
+	LastMoveTime      map[byte]time.Duration
+	TotalMoveTime     map[byte]time.Duration
+	MovesPlayed       uint
+	PreviousMove      *board.LastMove
+	GameStatus        byte
+	CacheMemoryLimit  uint64
+	PerformanceLogger *ai.PerformanceLogger
 }
 
 /**
@@ -36,7 +37,7 @@ func (g *Game) PlayTurn() bool {
 	quitTimeUpdates := make(chan bool)
 	// print think time for slow players, regardless of what's going on
 	go g.periodicUpdates(quitTimeUpdates, start)
-	g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, g.PreviousMove)
+	g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
 	// quit time updates (never prints if quick player)
 	close(quitTimeUpdates)
 	g.UpdateTime(start)
@@ -52,6 +53,10 @@ func (g *Game) PlayTurn() bool {
 		g.GameStatus = Stalemate
 	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
 		g.GameStatus = Stalemate
+	}
+
+	if g.GameStatus != Active {
+		g.PerformanceLogger.CompletePerformanceLog()
 	}
 	return g.GameStatus == Active
 }
@@ -112,6 +117,10 @@ func (g *Game) ClearCaches() {
 }
 
 func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
+	performanceLogger := ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
+		config.Get().LogPerformance,
+		config.Get().ExcelPerformanceFileName,
+		config.Get().PerformanceLogFileName)
 	g := Game{
 		CurrentBoard: &board.Board{
 			KingLocations: [color.NumColors]location.Location{
@@ -132,10 +141,11 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 			color.White: 0,
 			color.Black: 0,
 		},
-		MovesPlayed:      0,
-		PreviousMove:     nil,
-		GameStatus:       Active,
-		CacheMemoryLimit: config.Get().MemoryLimit,
+		MovesPlayed:       0,
+		PreviousMove:      nil,
+		GameStatus:        Active,
+		CacheMemoryLimit:  config.Get().MemoryLimit,
+		PerformanceLogger: performanceLogger,
 	}
 	g.CurrentBoard.ResetDefault()
 	go func() {
