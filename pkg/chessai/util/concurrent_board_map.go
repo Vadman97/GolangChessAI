@@ -18,6 +18,8 @@ type ConcurrentBoardMap struct {
 	numHits, numWrites, numQueries [NumSlices]uint64
 }
 
+type BoardHash = [33]byte
+
 func NewConcurrentBoardMap() *ConcurrentBoardMap {
 	var m ConcurrentBoardMap
 	for i := 0; i < NumSlices; i++ {
@@ -28,14 +30,14 @@ func NewConcurrentBoardMap() *ConcurrentBoardMap {
 	return &m
 }
 
-func HashToMapKey(hash *[33]byte) (idx [4]uint64) {
+func HashToMapKey(hash *BoardHash) (idx [4]uint64) {
 	for x := 0; x < 32; x += 8 {
 		idx[x/8] = binary.BigEndian.Uint64((*hash)[x : x+8])
 	}
 	return idx
 }
 
-func (m *ConcurrentBoardMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
+func (m *ConcurrentBoardMap) getLock(hash *BoardHash) (*sync.RWMutex, uint32) {
 	var s uint32
 	for i := 0; i < 28; i += 4 {
 		s += (binary.BigEndian.Uint32(hash[i:i+4]) / NumSlices) % NumSlices
@@ -45,7 +47,7 @@ func (m *ConcurrentBoardMap) getLock(hash *[33]byte) (*sync.RWMutex, uint32) {
 	return &m.locks[s], s
 }
 
-func (m *ConcurrentBoardMap) Store(hash *[33]byte, value interface{}) {
+func (m *ConcurrentBoardMap) Store(hash *BoardHash, value interface{}) {
 	idx := HashToMapKey(hash)
 
 	lock, lockIdx := m.getLock(hash)
@@ -72,7 +74,7 @@ func (m *ConcurrentBoardMap) Store(hash *[33]byte, value interface{}) {
 	m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]] = value
 }
 
-func (m *ConcurrentBoardMap) Read(hash *[33]byte) (interface{}, bool) {
+func (m *ConcurrentBoardMap) Read(hash *BoardHash) (interface{}, bool) {
 	idx := HashToMapKey(hash)
 
 	lock, lockIdx := m.getLock(hash)

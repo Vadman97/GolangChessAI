@@ -12,6 +12,7 @@ type Configuration struct {
 	UseOpenings                bool
 	CacheGetAllMoves           bool
 	CacheGetAllAttackableMoves bool
+	TranspositionTableEnabled  bool
 }
 
 const FilePath = "conf.json"
