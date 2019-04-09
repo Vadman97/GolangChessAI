@@ -5,6 +5,7 @@ const (
 	WhiteWin  = byte(iota)
 	BlackWin  = byte(iota)
 	Stalemate = byte(iota)
+	Aborted   = byte(iota)
 )
 
 var StatusStrings = [...]string{
@@ -12,4 +13,5 @@ var StatusStrings = [...]string{
 	"White Win",
 	"Black Win",
 	"Stalemate",
+	"Aborted",
 }
