@@ -41,3 +41,13 @@ func (p *Player) MiniMax(b *board.Board, depth int, currentPlayer byte, previous
 
 	return &best
 }
+
+type MiniMax struct{}
+
+func (m *MiniMax) GetName() string {
+	return AlgorithmMiniMax
+}
+
+func (m *MiniMax) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	return p.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
+}

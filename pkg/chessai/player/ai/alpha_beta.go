@@ -138,3 +138,13 @@ func (p *Player) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, 
 
 	return &best
 }
+
+type AlphaBetaWithMemory struct{}
+
+func (ab *AlphaBetaWithMemory) GetName() string {
+	return AlgorithmAlphaBetaWithMemory
+}
+
+func (ab *AlphaBetaWithMemory) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	return p.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
+}

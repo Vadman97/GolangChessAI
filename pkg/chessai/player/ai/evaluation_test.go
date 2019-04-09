@@ -71,7 +71,7 @@ func parseBoard(b *board.Board, boardRows []string) {
 }
 
 func evaluateAndCompare(t *testing.T, color byte, score int, b *board.Board) {
-	p := NewAIPlayer(color)
+	p := NewAIPlayer(color, &ai.Random{})
 	eval := p.EvaluateBoard(b)
 	fmt.Printf("Expected %d Evaluated %d\n", score, eval.TotalScore)
 	assert.Equal(t, score, eval.TotalScore)
