@@ -114,7 +114,6 @@ func (logger *PerformanceLogger) markMetricsPerformanceToExcel(p *Player) {
 	metrics := p.Metrics
 	row := strconv.Itoa(p.TurnCount + 2)
 	sheet := color.Names[p.PlayerColor]
-	fmt.Printf("I am writing for %s on turn %s\n", sheet, row)
 	logger.ExcelFile.SetCellValue(sheet, "A"+row, p.TurnCount)
 	logger.ExcelFile.SetCellValue(sheet, "B"+row, metrics.MovesConsidered)
 	logger.ExcelFile.SetCellValue(sheet, "C"+row, metrics.MovesPrunedAB+metrics.MovesPrunedTransposition)
