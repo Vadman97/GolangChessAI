@@ -44,14 +44,16 @@ func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer byte, p
 }
 
 type MiniMax struct {
-	player *Player
+	player          *Player
+	lastSearchDepth int
 }
 
 func (miniMax *MiniMax) GetName() string {
-	return fmt.Sprintf("%s,depth:%d", AlgorithmMiniMax, miniMax.player.MaxSearchDepth)
+	return fmt.Sprintf("%s,[depth:%d]", AlgorithmMiniMax, miniMax.lastSearchDepth)
 }
 
 func (miniMax *MiniMax) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	miniMax.player = p
+	miniMax.lastSearchDepth = p.MaxSearchDepth
 	return miniMax.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
 }

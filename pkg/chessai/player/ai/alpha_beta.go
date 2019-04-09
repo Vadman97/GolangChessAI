@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
@@ -143,16 +144,18 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 }
 
 type AlphaBetaWithMemory struct {
-	player *Player
-	abort  bool
+	player          *Player
+	abort           bool
+	lastSearchDepth int
 }
 
 func (ab *AlphaBetaWithMemory) GetName() string {
-	return AlgorithmAlphaBetaWithMemory
+	return fmt.Sprintf("%s,[depth:%d]", AlgorithmAlphaBetaWithMemory, ab.lastSearchDepth)
 }
 
 func (ab *AlphaBetaWithMemory) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
 	ab.abort = false
+	ab.lastSearchDepth = p.MaxSearchDepth
 	return ab.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
 }

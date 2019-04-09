@@ -80,7 +80,7 @@ type MTDf struct {
 }
 
 func (m *MTDf) GetName() string {
-	return fmt.Sprintf("%s, last [depth:%d", AlgorithmMTDf, m.lastSearchDepth)
+	return fmt.Sprintf("%s,[depth:%d]", AlgorithmMTDf, m.lastSearchDepth)
 }
 
 func (m *MTDf) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
