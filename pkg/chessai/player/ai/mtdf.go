@@ -30,6 +30,19 @@ func (m *MTDf) MTDf(root *board.Board, guess *ScoredMove, currentPlayer byte, pr
 	return guess
 }
 
+func (m *MTDf) trackThinkTime(thinking *bool, start time.Time) {
+	if m.player.MaxThinkTime != 0 {
+		for *thinking {
+			thinkTime := time.Now().Sub(start)
+			if thinkTime > m.player.MaxThinkTime {
+				m.ab.abort = true
+				fmt.Println("MTDf requesting AB hard abort, out of time!")
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+}
+
 func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *board.LastMove) *ScoredMove {
 	if guess == nil {
 		guess = &ScoredMove{
@@ -37,31 +50,24 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 		}
 	}
 	start := time.Now()
+	thinking := true
 	for m.currentSearchDepth = 1; m.currentSearchDepth <= m.player.MaxSearchDepth; m.currentSearchDepth++ {
-		thinking := true
-		if m.player.MaxThinkTime != 0 {
-			go func() {
-				for thinking {
-					thinkTime := time.Now().Sub(start)
-					if thinkTime > m.player.MaxThinkTime {
-						m.ab.abort = true
-						fmt.Println("MTDf requesting AB hard abort, out of time!")
-					}
-					time.Sleep(100 * time.Millisecond)
-				}
-			}()
-		}
+		thinking = true
+		go m.trackThinkTime(&thinking, start)
 		newGuess := m.MTDf(b, guess, m.player.PlayerColor, previousMove)
 		thinking = false
 		// MTDf returns a good move (did not abort search)
 		if !m.ab.abort {
 			guess = newGuess
+			m.lastSearchDepth = m.currentSearchDepth
 		} else {
 			// -1 due to discard of current level due to hard abort
-			fmt.Printf("MTDf hard abort! evaluated to depth %d\n", m.currentSearchDepth-1)
+			m.lastSearchDepth = m.currentSearchDepth - 1
+			fmt.Printf("MTDf hard abort! evaluated to depth %d\n", m.lastSearchDepth)
 			break
 		}
 	}
+	m.lastSearchTime = time.Now().Sub(start)
 	return guess
 }
 
@@ -69,10 +75,12 @@ type MTDf struct {
 	player             *Player
 	ab                 AlphaBetaWithMemory
 	currentSearchDepth int
+	lastSearchDepth    int
+	lastSearchTime     time.Duration
 }
 
 func (m *MTDf) GetName() string {
-	return AlgorithmMTDf
+	return fmt.Sprintf("%s, last [depth:%d", AlgorithmMTDf, m.lastSearchDepth)
 }
 
 func (m *MTDf) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {

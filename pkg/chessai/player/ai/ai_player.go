@@ -157,11 +157,8 @@ func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove, logger *
 }
 
 func (p *Player) Repr() string {
-	c := "Black"
-	if p.PlayerColor == color.White {
-		c = "White"
-	}
-	return fmt.Sprintf("AI (%s,depth:%d - %s)", p.Algorithm.GetName(), p.MaxSearchDepth, c)
+	return fmt.Sprintf("AI (%s - %s)",
+		p.Algorithm.GetName(), color.Names[p.PlayerColor])
 }
 
 func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {

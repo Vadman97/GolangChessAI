@@ -1,30 +1,31 @@
 package ai
 
 import (
+	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 )
 
-func (p *Player) MiniMaxRecurse(b *board.Board, m location.Move, depth int, currentPlayer byte,
+func (miniMax *MiniMax) MiniMaxRecurse(b *board.Board, m location.Move, depth int, currentPlayer byte,
 	previousMove *board.LastMove) *ScoredMove {
 	newBoard := b.Copy()
 	previousMove = board.MakeMove(&m, newBoard)
-	p.Metrics.MovesConsidered++
-	candidate := p.MiniMax(newBoard, depth-1, currentPlayer^1, previousMove)
+	miniMax.player.Metrics.MovesConsidered++
+	candidate := miniMax.MiniMax(newBoard, depth-1, currentPlayer^1, previousMove)
 	candidate.Move = m
 	candidate.MoveSequence = append(candidate.MoveSequence, m)
 	return candidate
 }
 
-func (p *Player) MiniMax(b *board.Board, depth int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
+func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
 	if depth == 0 {
 		return &ScoredMove{
-			Score: p.EvaluateBoard(b).TotalScore,
+			Score: miniMax.player.EvaluateBoard(b).TotalScore,
 		}
 	}
 
 	var best ScoredMove
-	if currentPlayer == p.PlayerColor {
+	if currentPlayer == miniMax.player.PlayerColor {
 		// maximizing player
 		best.Score = NegInf
 	} else {
@@ -33,8 +34,8 @@ func (p *Player) MiniMax(b *board.Board, depth int, currentPlayer byte, previous
 	}
 	moves := b.GetAllMoves(currentPlayer, previousMove)
 	for _, m := range *moves {
-		candidate := p.MiniMaxRecurse(b, m, depth, currentPlayer, previousMove)
-		if betterMove(currentPlayer == p.PlayerColor, &best, candidate) {
+		candidate := miniMax.MiniMaxRecurse(b, m, depth, currentPlayer, previousMove)
+		if betterMove(currentPlayer == miniMax.player.PlayerColor, &best, candidate) {
 			best = *candidate
 		}
 	}
@@ -42,12 +43,15 @@ func (p *Player) MiniMax(b *board.Board, depth int, currentPlayer byte, previous
 	return &best
 }
 
-type MiniMax struct{}
-
-func (m *MiniMax) GetName() string {
-	return AlgorithmMiniMax
+type MiniMax struct {
+	player *Player
 }
 
-func (m *MiniMax) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
-	return p.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
+func (miniMax *MiniMax) GetName() string {
+	return fmt.Sprintf("%s,depth:%d", AlgorithmMiniMax, miniMax.player.MaxSearchDepth)
+}
+
+func (miniMax *MiniMax) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	miniMax.player = p
+	return miniMax.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
 }
