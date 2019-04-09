@@ -24,7 +24,7 @@ type Game struct {
 	PreviousMove      *board.LastMove
 	GameStatus        byte
 	CacheMemoryLimit  uint64
-	MoveLimit         int
+	MoveLimit         int32
 	TimeLimit         time.Duration
 	PerformanceLogger *ai.PerformanceLogger
 }
@@ -173,7 +173,7 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 		PreviousMove:      nil,
 		GameStatus:        Active,
 		CacheMemoryLimit:  config.Get().MemoryLimit,
-		MoveLimit:         math.MaxInt64,
+		MoveLimit:         math.MaxInt32,
 		TimeLimit:         math.MaxInt64,
 		PerformanceLogger: performanceLogger,
 	}
