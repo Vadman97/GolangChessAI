@@ -3,7 +3,6 @@ package ai
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"log"
 	"time"
 )
 

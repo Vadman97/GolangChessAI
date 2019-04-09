@@ -14,11 +14,12 @@ import (
 
 func TestBoardAI(t *testing.T) {
 	const MovesToPlay = 100
-	const TimeToPlay = 60 * time.Minute
+	const TimeToPlay = 2 * time.Minute
 
 	rand.Seed(config.Get().TestRandSeed)
-	aiPlayerSmart := ai.NewAIPlayer(color.Black, &ai.AlphaBetaWithMemory{})
-	aiPlayerSmart.MaxSearchDepth = 4
+	aiPlayerSmart := ai.NewAIPlayer(color.Black, &ai.MTDf{})
+	aiPlayerSmart.MaxSearchDepth = 40
+	aiPlayerSmart.MaxThinkTime = 10 * time.Second
 	aiPlayerDumb := ai.NewAIPlayer(color.White, &ai.Random{})
 	aiPlayerDumb.MaxSearchDepth = 2
 	g := NewGame(aiPlayerDumb, aiPlayerSmart)
