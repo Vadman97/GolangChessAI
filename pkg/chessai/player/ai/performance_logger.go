@@ -69,10 +69,26 @@ func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, 
 /**
  * Call this function after the game is complete and no more logging is desired.
  */
-func (logger *PerformanceLogger) CompletePerformanceLog() {
+func (logger *PerformanceLogger) CompletePerformanceLog(white *Player, black *Player) {
+	logger.generateCharts(white)
+	logger.generateCharts(black)
 	err := logger.ExcelFile.SaveAs(logger.ExcelFileName)
 	if err != nil {
 		log.Fatal("Cannot save excel performance log.", err)
+	}
+}
+
+func (logger *PerformanceLogger) generateCharts(p *Player) {
+	row := strconv.Itoa(p.TurnCount + 4)
+	var chartDataString string
+	chartDataString += `{"type":"barPercentStacked","series":[`
+	chartDataString += `{"name":"` + color.Names[p.PlayerColor] + `!$D$1","categories":"","values":"` + color.Names[p.PlayerColor] + `!$D$2:$D$` + strconv.Itoa(p.TurnCount+2) + `"},`
+	chartDataString += `{"name":"` + color.Names[p.PlayerColor] + `!$A$1","categories":"","values":"` + color.Names[p.PlayerColor] + `!$E$2:$E$` + strconv.Itoa(p.TurnCount+2) + `"}`
+	chartDataString += `],"format":{"x_scale":1.0,"y_scale":1.0,"x_offset":15,"y_offset":10,"print_obj":true,"lock_aspect_ratio":false,"locked":false},"legend":{"position":"left","show_legend_key":true},"title":{"name":"Pruning Breakdown"},"plotarea":{"show_bubble_size":true,"show_cat_name":false,"show_leader_lines":false,"show_percent":true,"show_series_name":true,"show_val":true},"show_blanks_as":"zero"}`
+	fmt.Println(chartDataString)
+	err := logger.ExcelFile.AddChart(color.Names[p.PlayerColor], "B"+row, chartDataString)
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 

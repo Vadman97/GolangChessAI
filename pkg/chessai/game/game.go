@@ -56,7 +56,7 @@ func (g *Game) PlayTurn() bool {
 	}
 
 	if g.GameStatus != Active {
-		g.PerformanceLogger.CompletePerformanceLog()
+		g.PerformanceLogger.CompletePerformanceLog(g.Players[color.White], g.Players[color.Black])
 	}
 	return g.GameStatus == Active
 }
