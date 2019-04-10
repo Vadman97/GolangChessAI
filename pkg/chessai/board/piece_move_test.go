@@ -1,8 +1,7 @@
-package test
+package board
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
@@ -10,13 +9,13 @@ import (
 	"testing"
 )
 
-func buildBoardWithInitialMoves(initialMove *[]location.Move) (*board.Board, *board.LastMove) {
-	bo1 := board.Board{}
+func buildBoardWithInitialMoves(initialMove *[]location.Move) (*Board, *LastMove) {
+	bo1 := Board{}
 	bo1.ResetDefault()
-	var lastMove *board.LastMove
+	var lastMove *LastMove
 	if initialMove != nil {
 		for _, m := range *initialMove {
-			lastMove = board.MakeMove(&m, &bo1)
+			lastMove = MakeMove(&m, &bo1)
 		}
 	}
 	return &bo1, lastMove
@@ -352,7 +351,7 @@ func TestKingGetMovesCastleLeft(t *testing.T) {
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 2, len(*moves))
-		board.MakeMove(&(*moves)[1], bo1)
+		MakeMove(&(*moves)[1], bo1)
 		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 2)))
 		assert.Equal(t, piece.KingType,
 			bo1.GetPiece(location.NewLocation(0, 2)).GetPieceType(),
@@ -376,7 +375,7 @@ func TestKingGetMovesCastleRight(t *testing.T) {
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 2, len(*moves))
-		board.MakeMove(&(*moves)[1], bo1)
+		MakeMove(&(*moves)[1], bo1)
 		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 6)))
 		assert.Equal(t, piece.KingType,
 			bo1.GetPiece(location.NewLocation(0, 6)).GetPieceType(),

@@ -1,8 +1,7 @@
-package test
+package board
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -11,7 +10,7 @@ import (
 func TestBoardHashLookup(t *testing.T) {
 	const N = 100000
 	scoreMap := util.NewConcurrentBoardMap()
-	bo1 := board.Board{}
+	bo1 := Board{}
 	bo1.ResetDefault()
 	hash := bo1.Hash()
 	hits := 0
@@ -21,7 +20,7 @@ func TestBoardHashLookup(t *testing.T) {
 		v, ok := scoreMap.Read(&hash)
 		if ok {
 			hits++
-			bo2 := v.(*board.Board)
+			bo2 := v.(*Board)
 			assert.True(t, bo1.Equals(bo2))
 			assert.True(t, bo2.Equals(&bo1))
 		} else {
