@@ -1,10 +1,9 @@
-package test
+package game
 
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +23,7 @@ func TestBoardAI(t *testing.T) {
 	aiPlayerDumb := ai.NewAIPlayer(color.White)
 	aiPlayerDumb.Algorithm = ai.AlgorithmRandom
 	aiPlayerDumb.MaxSearchDepth = 2
-	g := game.NewGame(aiPlayerDumb, aiPlayerSmart)
+	g := NewGame(aiPlayerDumb, aiPlayerSmart)
 
 	fmt.Println("Before moves:")
 	fmt.Println(g.CurrentBoard.Print())
@@ -41,7 +40,7 @@ func TestBoardAI(t *testing.T) {
 		fmt.Println(g.Print())
 		util.PrintMemStats()
 		if !active {
-			fmt.Printf("Game Over! Result is: %s\n", game.StatusStrings[g.GameStatus])
+			fmt.Printf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
 			break
 		}
 	}

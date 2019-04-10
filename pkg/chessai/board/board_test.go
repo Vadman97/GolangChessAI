@@ -1,7 +1,6 @@
-package test
+package board
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
@@ -14,12 +13,12 @@ import (
 )
 
 func TestBoardMove(t *testing.T) {
-	board2 := board.Board{}
-	board2.SetPiece(util.End, &board.Rook{})
-	board2.SetPiece(util.Start, &board.Rook{})
+	board2 := Board{}
+	board2.SetPiece(util.End, &Rook{})
+	board2.SetPiece(util.Start, &Rook{})
 	startPiece := board2.GetPiece(util.Start)
 	startPiece.SetPosition(util.End)
-	board.MakeMove(&location.Move{
+	MakeMove(&location.Move{
 		Start: util.Start,
 		End:   util.End,
 	}, &board2)
@@ -29,10 +28,10 @@ func TestBoardMove(t *testing.T) {
 }
 
 func TestBoardMoveClear(t *testing.T) {
-	board2 := board.Board{}
+	board2 := Board{}
 	assert.Panics(t, func() {
 		for i := 0; i < 3; i++ {
-			board.MakeMove(&location.Move{
+			MakeMove(&location.Move{
 				Start: util.Start,
 				End:   util.End,
 			}, &board2)
@@ -41,17 +40,17 @@ func TestBoardMoveClear(t *testing.T) {
 }
 
 func TestBoardFlags(t *testing.T) {
-	board2 := board.Board{}
-	for i := 0; i < board.FlagRightRookMoved; i++ {
+	board2 := Board{}
+	for i := 0; i < FlagRightRookMoved; i++ {
 		for c := 0; c < 2; c++ {
 			assert.False(t, board2.GetFlag(byte(i), byte(c)))
 		}
 	}
-	for i := 0; i < board.FlagRightRookMoved; i++ {
+	for i := 0; i < FlagRightRookMoved; i++ {
 		for c := 0; c < 2; c++ {
 			board2.SetFlag(byte(i), byte(c), true)
 			assert.True(t, board2.GetFlag(byte(i), byte(c)))
-			for i2 := 0; i2 < board.FlagRightRookMoved; i2++ {
+			for i2 := 0; i2 < FlagRightRookMoved; i2++ {
 				for c2 := 0; c2 < 2; c2++ {
 					if i != i2 && c != c2 {
 						assert.False(t, board2.GetFlag(byte(i2), byte(c2)))
@@ -65,13 +64,13 @@ func TestBoardFlags(t *testing.T) {
 }
 
 func TestBoardSetAndCopy(t *testing.T) {
-	bo1 := board.Board{}
-	bo2 := board.Board{}
+	bo1 := Board{}
+	bo2 := Board{}
 	bo1.ResetDefault()
-	bo1.SetFlag(board.FlagCastled, color.Black, true)
-	bo1.SetFlag(board.FlagRightRookMoved, color.Black, true)
-	bo1.SetFlag(board.FlagRightRookMoved, color.White, true)
-	bo1.SetFlag(board.FlagLeftRookMoved, color.White, true)
+	bo1.SetFlag(FlagCastled, color.Black, true)
+	bo1.SetFlag(FlagRightRookMoved, color.Black, true)
+	bo1.SetFlag(FlagRightRookMoved, color.White, true)
+	bo1.SetFlag(FlagLeftRookMoved, color.White, true)
 	assert.False(t, bo1.Equals(&bo2))
 	assert.False(t, bo2.Equals(&bo1))
 	bo2 = *bo1.Copy()
@@ -80,25 +79,25 @@ func TestBoardSetAndCopy(t *testing.T) {
 }
 
 func TestBoardResetDefault(t *testing.T) {
-	bo1 := board.Board{}
-	bo2 := board.Board{}
+	bo1 := Board{}
+	bo2 := Board{}
 	bo1.ResetDefault()
 	bo2.ResetDefaultSlow()
 	assert.True(t, bo1.Equals(&bo2))
 	assert.True(t, bo2.Equals(&bo1))
-	bo2.SetFlag(board.FlagCastled, color.Black, true)
+	bo2.SetFlag(FlagCastled, color.Black, true)
 	assert.False(t, bo1.Equals(&bo2))
 	assert.False(t, bo2.Equals(&bo1))
 }
 
 func TestBoardHash(t *testing.T) {
-	bo1 := board.Board{}
-	bo2 := board.Board{}
+	bo1 := Board{}
+	bo2 := Board{}
 	bo1.ResetDefault()
-	bo1.SetFlag(board.FlagCastled, color.Black, true)
-	bo1.SetFlag(board.FlagRightRookMoved, color.Black, true)
-	bo1.SetFlag(board.FlagRightRookMoved, color.White, true)
-	bo1.SetFlag(board.FlagLeftRookMoved, color.White, true)
+	bo1.SetFlag(FlagCastled, color.Black, true)
+	bo1.SetFlag(FlagRightRookMoved, color.Black, true)
+	bo1.SetFlag(FlagRightRookMoved, color.White, true)
+	bo1.SetFlag(FlagLeftRookMoved, color.White, true)
 	assert.False(t, reflect.DeepEqual(bo1.Hash(), bo2.Hash()))
 	bo2 = *bo1.Copy()
 	assert.True(t, reflect.DeepEqual(bo1.Hash(), bo2.Hash()))
@@ -115,7 +114,7 @@ func TestBoardHashLookupParallel(t *testing.T) {
 	for tIdx := 0; tIdx < NumThreads; tIdx++ {
 		done[tIdx] = make(chan int)
 		go func(thread int) {
-			bo1 := board.Board{}
+			bo1 := Board{}
 			bo1.TestRandGen = rand.New(rand.NewSource(time.Now().UnixNano() + int64(thread)))
 			numStores := 0
 			for i := 0; i < NumOps; i++ {
