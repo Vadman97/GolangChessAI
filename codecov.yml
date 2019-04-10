@@ -10,14 +10,14 @@ coverage:
 
   status:
     project:
-      board: # board should have 90 percent cov with always increasing
-        target: 90%
+      board: # board should have 93 percent cov with always increasing
+        target: 93%
         threshold: 0%
         paths: "pkg/chessai/board"
       default: yes
     patch:
-      board: # board diff should have 95 percent cov
-        target: 95%
+      board: # board diff should have 100 percent cov
+        target: 100%
         paths: "pkg/chessai/board"
       default: false
     #        TODO(Vadim) add this when we have more tests before going public
