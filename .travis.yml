@@ -1,5 +1,17 @@
 language: go
-go: 1.12.x
-# script: go test -v test
+
+go:
+  - 1.12.x
+
+#install:
+#  - go get -v golang.org/x/lint/golint
+
+script:
+  #  - golint -set_exit_status ./...
+  - go test -coverprofile=coverage.txt -covermode=atomic ./...
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash) -t 673838c5-c100-44ca-8fde-697a1aafc025
+
 notifications:
   email: false
