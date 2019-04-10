@@ -4,11 +4,11 @@ go:
   - 1.12.x
   - tip
 
-install:
-  - go get -v golang.org/x/lint/golint
+#install:
+#  - go get -v golang.org/x/lint/golint
 
 script:
-  - golint -set_exit_status ./...
+  #  - golint -set_exit_status ./...
   - go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 after_success:
