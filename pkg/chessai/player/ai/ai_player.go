@@ -134,10 +134,6 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove, logge
 			if p.Debug {
 				p.printMoveDebug(b, scoredMove)
 			}
-			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
-				log.Printf("%s resigns, no best move available. Picking random.\n", p.Repr())
-				return &p.RandomMove(b, previousMove).Move
-			}
 			logger.MarkPerformance(b, scoredMove, p)
 			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
 				log.Printf("%s resigns, no best move available. Picking random.\n", p.Repr())
