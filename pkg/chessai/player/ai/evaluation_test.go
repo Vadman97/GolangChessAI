@@ -18,8 +18,6 @@ import (
 const boardsDirectory = "evaluation_boards"
 
 func TestBoardEvaluate(t *testing.T) {
-	// TODO(Vadim) fix test
-	t.Skip()
 	files, err := ioutil.ReadDir(boardsDirectory)
 	if err != nil {
 		log.Fatal(err)
@@ -34,7 +32,12 @@ func testBoard(t *testing.T, fileName string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	lines := strings.Split(string(fileData), "\n")
+	fileStr := strings.ReplaceAll(string(fileData), "\r", "")
+	lines := strings.Split(fileStr, "\n")
+	if strings.Contains(lines[0], "skip") {
+		log.Printf("WARNING Skipping test %s\n", fileName)
+		return
+	}
 	player, expectedScore := strings.Split(lines[0], " ")[0], strings.Split(lines[0], " ")[1]
 	playerColor := color.Black
 	if player == "White" {
