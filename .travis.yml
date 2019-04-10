@@ -2,7 +2,6 @@ language: go
 
 go:
   - 1.12.x
-  - tip
 
 #install:
 #  - go get -v golang.org/x/lint/golint
@@ -13,10 +12,6 @@ script:
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t 673838c5-c100-44ca-8fde-697a1aafc025
-
-matrix:
-  allow_failures:
-    - go: tip
 
 notifications:
   email: false
