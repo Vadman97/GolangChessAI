@@ -11,30 +11,23 @@ const (
 	NumSlices = 8
 )
 
+type BoardHash = [33]byte
+
 type ConcurrentBoardMap struct {
-	scoreMap                       [NumSlices]map[uint64]map[uint64]map[uint64]map[uint64]map[byte]interface{}
+	scoreMap                       [NumSlices]map[BoardHash]interface{}
 	locks                          [NumSlices]sync.RWMutex
 	lockUsage                      [NumSlices]uint64
 	numHits, numWrites, numQueries [NumSlices]uint64
 }
 
-type BoardHash = [33]byte
-
 func NewConcurrentBoardMap() *ConcurrentBoardMap {
 	var m ConcurrentBoardMap
 	for i := 0; i < NumSlices; i++ {
 		if m.scoreMap[i] == nil {
-			m.scoreMap[i] = make(map[uint64]map[uint64]map[uint64]map[uint64]map[byte]interface{})
+			m.scoreMap[i] = make(map[BoardHash]interface{})
 		}
 	}
 	return &m
-}
-
-func HashToMapKey(hash *BoardHash) (idx [4]uint64) {
-	for x := 0; x < 32; x += 8 {
-		idx[x/8] = binary.BigEndian.Uint64((*hash)[x : x+8])
-	}
-	return idx
 }
 
 func (m *ConcurrentBoardMap) getLock(hash *BoardHash) (*sync.RWMutex, uint32) {
@@ -48,59 +41,25 @@ func (m *ConcurrentBoardMap) getLock(hash *BoardHash) (*sync.RWMutex, uint32) {
 }
 
 func (m *ConcurrentBoardMap) Store(hash *BoardHash, value interface{}) {
-	idx := HashToMapKey(hash)
-
 	lock, lockIdx := m.getLock(hash)
 	lock.Lock()
 	defer lock.Unlock()
 
-	_, ok := m.scoreMap[lockIdx][idx[0]]
-	if !ok {
-		m.scoreMap[lockIdx][idx[0]] = make(map[uint64]map[uint64]map[uint64]map[byte]interface{})
-	}
-	_, ok = m.scoreMap[lockIdx][idx[0]][idx[1]]
-	if !ok {
-		m.scoreMap[lockIdx][idx[0]][idx[1]] = make(map[uint64]map[uint64]map[byte]interface{})
-	}
-	_, ok = m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]]
-	if !ok {
-		m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]] = make(map[uint64]map[byte]interface{})
-	}
-	_, ok = m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]]
-	if !ok {
-		m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]] = make(map[byte]interface{})
-	}
 	m.numWrites[lockIdx]++
-	m.scoreMap[lockIdx][idx[0]][idx[1]][idx[2]][idx[3]][(*hash)[32]] = value
+	m.scoreMap[lockIdx][*hash] = value
 }
 
 func (m *ConcurrentBoardMap) Read(hash *BoardHash) (interface{}, bool) {
-	idx := HashToMapKey(hash)
-
 	lock, lockIdx := m.getLock(hash)
 	lock.Lock()
 	defer lock.Unlock()
 	m.numQueries[lockIdx]++
 
-	m1, ok := m.scoreMap[lockIdx][idx[0]]
+	v, ok := m.scoreMap[lockIdx][*hash]
 	if ok {
-		m2, ok := m1[idx[1]]
-		if ok {
-			m3, ok := m2[idx[2]]
-			if ok {
-				m4, ok := m3[idx[3]]
-				if ok {
-					v, ok := m4[(*hash)[32]]
-					if ok {
-						m.numHits[lockIdx]++
-					}
-					return v, ok
-				}
-			}
-		}
+		m.numHits[lockIdx]++
 	}
-
-	return 0, false
+	return v, ok
 }
 
 func (m *ConcurrentBoardMap) PrintMetrics() (result string) {
@@ -109,7 +68,6 @@ func (m *ConcurrentBoardMap) PrintMetrics() (result string) {
 	totalReads := uint64(0)
 	totalWrites := uint64(0)
 	for i := 0; i < NumSlices; i++ {
-		//result += fmt.Sprintf("Slice #%d, Used #%d times\n", i, m.lockUsage[i])
 		totalLockUsage += m.lockUsage[i]
 		totalHits += m.numHits[i]
 		totalReads += m.numQueries[i]
