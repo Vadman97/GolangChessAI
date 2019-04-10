@@ -5,7 +5,7 @@ notifications:
   email: false
 
 script:
-  - go test github.com/Vadman97/ChessAI3/test -coverprofile=coverage.txt -covermode=atomic
+  - go test -coverprofile=coverage.txt -covermode=atomic github.com/Vadman97/ChessAI3/test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t 673838c5-c100-44ca-8fde-697a1aafc025
