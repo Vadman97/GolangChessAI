@@ -1,6 +1,7 @@
 codecov:
   notify:
     require_ci_to_pass: yes
+#  strict_yaml_branch: master # TODO(Vadim) add this when we have more tests before going public
 
 coverage:
   precision: 2
@@ -8,9 +9,23 @@ coverage:
   range: "50...100"
 
   status:
-    project: yes
-    patch: yes
-    changes: no
+    project:
+      board:
+        target: 90%
+        threshold: 0%
+        paths: "pkg/chessai/board"
+      default:
+        target: auto
+        threshold: 1% # TODO(Vadim) remove before going public
+    patch:
+      board:
+        target: 100%
+        paths: "pkg/chessai/board"
+      default: false
+    #        TODO(Vadim) add this when we have more tests before going public
+    #        target: auto
+    #        threshold: 3%
+    changes: yes
 
 parsers:
   gcov:
