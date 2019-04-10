@@ -8,6 +8,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"math"
 	"runtime"
 	"time"
 )
@@ -23,6 +24,8 @@ type Game struct {
 	PreviousMove      *board.LastMove
 	GameStatus        byte
 	CacheMemoryLimit  uint64
+	MoveLimit         int32
+	TimeLimit         time.Duration
 	PerformanceLogger *ai.PerformanceLogger
 }
 
@@ -34,32 +37,43 @@ func (g *Game) PlayTurn() bool {
 		panic("Game is not active!")
 	}
 
-	start := time.Now()
-	quitTimeUpdates := make(chan bool)
-	// print think time for slow players, regardless of what's going on
-	go g.periodicUpdates(quitTimeUpdates, start)
-	g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
-	// quit time updates (never prints if quick player)
-	close(quitTimeUpdates)
-	g.UpdateTime(start)
-	g.CurrentTurnColor ^= 1
-	g.MovesPlayed++
+	if g.MovesPlayed%2 == 0 && g.GetTotalPlayTime() > g.TimeLimit {
+		fmt.Printf("Aborting - out of time\n")
+		g.GameStatus = Aborted
+	} else {
+		fmt.Printf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor].Repr())
+		start := time.Now()
+		quitTimeUpdates := make(chan bool)
+		// print think time for slow players, regardless of what's going on
+		go g.periodicUpdates(quitTimeUpdates, start)
+		g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
+		// quit time updates (never prints if quick player)
+		close(quitTimeUpdates)
+		g.UpdateTime(start)
+		g.CurrentTurnColor ^= 1
+		g.MovesPlayed++
 
-	g.CurrentBoard.UpdateDrawCounter(g.PreviousMove)
+		g.CurrentBoard.UpdateDrawCounter(g.PreviousMove)
 
-	if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
-		if g.CurrentTurnColor == color.White {
-			g.GameStatus = BlackWin
-		} else {
-			g.GameStatus = WhiteWin
+		if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
+			if g.CurrentTurnColor == color.White {
+				g.GameStatus = BlackWin
+			} else {
+				g.GameStatus = WhiteWin
+			}
+		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
+			g.GameStatus = Stalemate
+		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
+			g.GameStatus = Stalemate
+		} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
+			// 50 Move Rule (50 moves per color)
+			g.GameStatus = Stalemate
 		}
-	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
-		g.GameStatus = Stalemate
-	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
-		g.GameStatus = Stalemate
-	} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
-		// 50 Move Rule (50 moves per color)
-		g.GameStatus = Stalemate
+		if g.GameStatus == Active {
+			fmt.Printf("Move #%d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
+		} else {
+			fmt.Printf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
+		}
 	}
 	if g.GameStatus != Active {
 		g.PerformanceLogger.CompletePerformanceLog(g.Players[color.White], g.Players[color.Black])
@@ -69,10 +83,11 @@ func (g *Game) PlayTurn() bool {
 
 func (g *Game) Print() (result string) {
 	// we just played white if we are now on black, show info for white
+	result += fmt.Sprintln(g.CurrentBoard.Print())
 	result += g.PrintThinkTime(g.CurrentTurnColor ^ 1)
 	if g.MovesPlayed%2 == 0 {
-		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed)
-		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed)
+		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
+		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
 		result += fmt.Sprintf("Average move time:\n")
 		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
 		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
@@ -122,6 +137,10 @@ func (g *Game) ClearCaches() {
 	}
 }
 
+func (g *Game) GetTotalPlayTime() time.Duration {
+	return g.TotalMoveTime[color.White] + g.TotalMoveTime[color.Black]
+}
+
 func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 	performanceLogger := ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
 		config.Get().LogPerformance,
@@ -151,6 +170,8 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 		PreviousMove:      nil,
 		GameStatus:        Active,
 		CacheMemoryLimit:  config.Get().MemoryLimit,
+		MoveLimit:         math.MaxInt32,
+		TimeLimit:         math.MaxInt64,
 		PerformanceLogger: performanceLogger,
 	}
 	g.CurrentBoard.ResetDefault()

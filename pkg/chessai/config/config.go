@@ -29,7 +29,6 @@ var cfg *Configuration
 func Get() *Configuration {
 	if cfg == nil {
 		dir := path.Join(os.Getenv("GOPATH"), "src", "github.com", "Vadman97", "ChessAI3", FilePath)
-		print(dir)
 		file, _ := os.Open(dir)
 		defer func() { _ = file.Close() }()
 		decoder := json.NewDecoder(file)

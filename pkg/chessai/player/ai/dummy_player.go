@@ -12,3 +12,13 @@ func (p *Player) RandomMove(b *board.Board, previousMove *board.LastMove) *Score
 		Move: moves[idx],
 	}
 }
+
+type Random struct{}
+
+func (m *Random) GetName() string {
+	return AlgorithmRandom
+}
+
+func (m *Random) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	return p.RandomMove(b, previousMove)
+}

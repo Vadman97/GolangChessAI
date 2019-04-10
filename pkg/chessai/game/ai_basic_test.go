@@ -17,38 +17,28 @@ func TestBoardAI(t *testing.T) {
 	const TimeToPlay = 2 * time.Minute
 
 	rand.Seed(config.Get().TestRandSeed)
-	aiPlayerSmart := ai.NewAIPlayer(color.Black)
-	aiPlayerSmart.Algorithm = ai.AlgorithmMTDF
-	aiPlayerSmart.MaxSearchDepth = 4
-	aiPlayerDumb := ai.NewAIPlayer(color.White)
-	aiPlayerDumb.Algorithm = ai.AlgorithmRandom
+	aiPlayerSmart := ai.NewAIPlayer(color.Black, &ai.MTDf{})
+	aiPlayerSmart.MaxSearchDepth = 100
+	aiPlayerSmart.MaxThinkTime = 1 * time.Second
+	aiPlayerDumb := ai.NewAIPlayer(color.White, &ai.Random{})
 	aiPlayerDumb.MaxSearchDepth = 2
 	g := NewGame(aiPlayerDumb, aiPlayerSmart)
+	g.MoveLimit = MovesToPlay
+	g.TimeLimit = TimeToPlay
 
 	fmt.Println("Before moves:")
 	fmt.Println(g.CurrentBoard.Print())
 	start := time.Now()
 	for i := 0; i < MovesToPlay; i++ {
-		if i%2 == 0 && time.Now().Sub(start) > TimeToPlay {
-			fmt.Printf("Aborting - out of time\n")
-			break
-		}
-		fmt.Printf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor].Repr())
 		active := g.PlayTurn()
-		fmt.Printf("Move %d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
-		fmt.Println(g.CurrentBoard.Print())
 		fmt.Println(g.Print())
 		util.PrintMemStats()
 		if !active {
-			fmt.Printf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
 			break
 		}
 	}
-
 	fmt.Println("After moves:")
-	fmt.Println(g.CurrentBoard.Print())
 	fmt.Println(g.Print())
-	// comment out printing inside loop for accurate timing
 	fmt.Printf("Played %d moves in %d ms.\n", g.MovesPlayed, time.Now().Sub(start)/time.Millisecond)
 
 	smartScore := aiPlayerSmart.EvaluateBoard(g.CurrentBoard).TotalScore

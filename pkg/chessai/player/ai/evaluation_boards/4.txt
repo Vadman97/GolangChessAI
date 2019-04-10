@@ -1,4 +1,4 @@
-White 1
+White 30
 B_R|B_N|B_B|B_Q|B_K|B_B|B_N|B_R
 B_P|B_P|B_P|B_P|   |B_P|B_P|B_P
    |   |   |   |   |   |   |

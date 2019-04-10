@@ -11,6 +11,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"time"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 const (
 	AlgorithmMiniMax             = "MiniMax"
 	AlgorithmAlphaBetaWithMemory = "AlphaBetaMemory"
-	AlgorithmMTDF                = "MTDF"
+	AlgorithmMTDf                = "MTDf"
 	AlgorithmRandom              = "Random"
 )
 
@@ -67,12 +68,17 @@ type ScoredMove struct {
 	Score        int
 }
 
+type Algorithm interface {
+	GetName() string
+	GetBestMove(*Player, *board.Board, *board.LastMove) *ScoredMove
+}
+
 type Player struct {
-	Algorithm                 string
+	Algorithm                 Algorithm
 	TranspositionTableEnabled bool
 	PlayerColor               byte
 	MaxSearchDepth            int
-	CurrentSearchDepth        int
+	MaxThinkTime              time.Duration
 	TurnCount                 int
 	Opening                   int
 	Metrics                   *Metrics
@@ -82,9 +88,9 @@ type Player struct {
 	Debug          bool
 }
 
-func NewAIPlayer(c byte) *Player {
+func NewAIPlayer(c byte, algorithm Algorithm) *Player {
 	p := &Player{
-		Algorithm:                 AlgorithmAlphaBetaWithMemory,
+		Algorithm:                 algorithm,
 		TranspositionTableEnabled: config.Get().TranspositionTableEnabled,
 		PlayerColor:               c,
 		TurnCount:                 0,
@@ -123,29 +129,20 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove, logge
 		// reset metrics for each move
 		p.Metrics = &Metrics{}
 
-		var m = &ScoredMove{
-			Score: 0,
-		}
-		if p.Algorithm == AlgorithmMiniMax {
-			m = p.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
-		} else if p.Algorithm == AlgorithmAlphaBetaWithMemory {
-			m = p.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
-		} else if p.Algorithm == AlgorithmMTDF {
-			m = p.IterativeMTDF(b, m, previousMove)
-		} else if p.Algorithm == AlgorithmRandom {
-			m = p.RandomMove(b, previousMove)
+		if p.Algorithm != nil {
+			scoredMove := p.Algorithm.GetBestMove(p, b, previousMove)
+			if p.Debug {
+				p.printMoveDebug(b, scoredMove)
+			}
+			logger.MarkPerformance(b, scoredMove, p)
+			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
+				log.Printf("%s resigns, no best move available. Picking random.\n", p.Repr())
+				return &p.RandomMove(b, previousMove).Move
+			}
+			return &scoredMove.Move
 		} else {
 			panic("invalid ai algorithm")
 		}
-		if p.Debug {
-			p.printMoveDebug(b, m)
-		}
-		logger.MarkPerformance(b, m, p)
-		if m.Move.Start.Equals(m.Move.End) {
-			log.Printf("%s resigns, no best move available. Picking random.\n", p.Repr())
-			return &p.RandomMove(b, previousMove).Move
-		}
-		return &m.Move
 	}
 }
 
@@ -156,11 +153,8 @@ func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove, logger *
 }
 
 func (p *Player) Repr() string {
-	c := "Black"
-	if p.PlayerColor == color.White {
-		c = "White"
-	}
-	return fmt.Sprintf("AI (%s,depth:%d - %s)", p.Algorithm, p.MaxSearchDepth, c)
+	return fmt.Sprintf("AI (%s - %s)",
+		p.Algorithm.GetName(), color.Names[p.PlayerColor])
 }
 
 func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
@@ -184,7 +178,6 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 		result += fmt.Sprintf("\t\t%s\n", move.Print())
 		board.MakeMove(&move, debugBoard)
 	}
-	result += fmt.Sprintf("\nAI %s best move leads to score %d\n", p.Repr(), m.Score)
 	result += fmt.Sprintf("%s\n", p.Metrics.Print())
 	result += fmt.Sprintf("%s best move leads to score %d\n", p.Repr(), m.Score)
 	fmt.Print(result)
