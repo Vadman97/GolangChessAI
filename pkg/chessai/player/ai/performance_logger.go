@@ -81,10 +81,17 @@ func (logger *PerformanceLogger) CompletePerformanceLog(white *Player, black *Pl
 func (logger *PerformanceLogger) generatePruningBreakdownChart(p *Player) {
 	row := strconv.Itoa(p.TurnCount + 4)
 	var chartDataString string
+	c := color.Names[p.PlayerColor]
+	series := `{"name":"%s!$%c$1", "categories":"%s!$%c$2:$%c$%d","values":"%s!$%c$2:$%c$%d"}`
 	chartDataString += `{"type":"barPercentStacked","series":[`
-	chartDataString += `{"name":"` + color.Names[p.PlayerColor] + `!$D$1","categories":"` + color.Names[p.PlayerColor] + `!$A$2:$A` + strconv.Itoa(p.TurnCount+2) + `","values":"` + color.Names[p.PlayerColor] + `!$D$2:$D$` + strconv.Itoa(p.TurnCount+2) + `"},`
-	chartDataString += `{"name":"` + color.Names[p.PlayerColor] + `!$E$1","categories":"` + color.Names[p.PlayerColor] + `!$A$2:$A` + strconv.Itoa(p.TurnCount+2) + `","values":"` + color.Names[p.PlayerColor] + `!$E$2:$E$` + strconv.Itoa(p.TurnCount+2) + `"}`
-	chartDataString += `],"format":{"x_scale":1.0,"y_scale":1.0,"x_offset":15,"y_offset":10,"print_obj":true,"lock_aspect_ratio":false,"locked":false},"legend":{"position":"left","show_legend_key":true},"title":{"name":"Pruning Breakdown"},"plotarea":{"show_bubble_size":true,"show_cat_name":false,"show_leader_lines":false,"show_percent":true,"show_series_name":false,"show_val":false},"show_blanks_as":"zero"}`
+	chartDataString += fmt.Sprintf(series, c, 'D', c, 'A', 'A', p.TurnCount+1, c, 'D', 'D', p.TurnCount+1)
+	chartDataString += ","
+	chartDataString += fmt.Sprintf(series, c, 'E', c, 'A', 'A', p.TurnCount+1, c, 'E', 'E', p.TurnCount+1)
+	chartDataString += `],"format":{"x_scale":1.0,"y_scale":1.0,"x_offset":15,"y_offset":10,"print_obj":true,`
+	chartDataString += `"lock_aspect_ratio":false,"locked":false},"legend":{"position":"left","show_legend_key":true},`
+	chartDataString += `"title":{"name":"Pruning Breakdown"},"plotarea":{"show_bubble_size":true,"show_cat_name":false,`
+	chartDataString += `"show_leader_lines":false,"show_percent":true,"show_series_name":false,"show_val":false},`
+	chartDataString += `"show_blanks_as":"zero"}`
 	fmt.Println(chartDataString)
 	err := logger.ExcelFile.AddChart(color.Names[p.PlayerColor], "B"+row, chartDataString)
 	if err != nil {
