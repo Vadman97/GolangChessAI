@@ -6,20 +6,18 @@ codecov:
 coverage:
   precision: 2
   round: down
-  range: "50...100"
+  range: "60...100"
 
   status:
     project:
-      board:
+      board: # board should have 90 percent cov with always increasing
         target: 90%
         threshold: 0%
         paths: "pkg/chessai/board"
-      default:
-        target: auto
-        threshold: 1% # TODO(Vadim) remove before going public
+      default: yes
     patch:
-      board:
-        target: 100%
+      board: # board diff should have 95 percent cov
+        target: 95%
         paths: "pkg/chessai/board"
       default: false
     #        TODO(Vadim) add this when we have more tests before going public
