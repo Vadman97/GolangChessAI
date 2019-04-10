@@ -141,6 +141,7 @@ func (b *Board) Copy() *Board {
 	newBoard.MoveCache = b.MoveCache
 	newBoard.AttackableCache = b.AttackableCache
 	newBoard.KingLocations = b.KingLocations
+	newBoard.MovesSinceNoDraw = b.MovesSinceNoDraw
 	newBoard.CacheGetAllMoves = b.CacheGetAllMoves
 	newBoard.CacheGetAllAttackableMoves = b.CacheGetAllAttackableMoves
 	return &newBoard
@@ -157,6 +158,7 @@ func (b *Board) ResetDefault() {
 		location.NewLocation(7, 4),
 		location.NewLocation(0, 4),
 	}
+	b.MovesSinceNoDraw = 0
 	b.CacheGetAllMoves = config.Get().CacheGetAllMoves
 	b.CacheGetAllAttackableMoves = config.Get().CacheGetAllAttackableMoves
 }

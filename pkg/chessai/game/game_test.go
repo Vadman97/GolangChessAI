@@ -18,31 +18,32 @@ func performFiftyDrawMoves(bIn *board.Board) *board.Board {
 	b := bIn
 	if b == nil {
 		b = &board.Board{}
+		b.ResetDefault()
 	}
-	b.ResetDefault()
+
 	for i := 0; i < 25; i++ {
 		// Black Knight
 		simulateGameMove(&location.Move{
-			Start: location.NewLocation(7, 6),
-			End: location.NewLocation(6, 5),
+			Start: location.NewLocation(0, 6),
+			End: location.NewLocation(2, 5),
 		}, b)
 
 		// White Knight
 		simulateGameMove(&location.Move{
-			Start: location.NewLocation(0, 6),
-			End: location.NewLocation(1, 5),
+			Start: location.NewLocation(7, 6),
+			End: location.NewLocation(5, 5),
 		}, b)
 
 		// Undo Black Knight
 		simulateGameMove(&location.Move{
-			Start: location.NewLocation(6, 5),
-			End: location.NewLocation(7, 6),
+			Start: location.NewLocation(2, 5),
+			End: location.NewLocation(0, 6),
 		}, b)
 
 		// Undo White Knight
 		simulateGameMove(&location.Move{
-			Start: location.NewLocation(1, 5),
-			End: location.NewLocation(0, 6),
+			Start: location.NewLocation(5, 5),
+			End: location.NewLocation(7, 6),
 		}, b)
 	}
 
@@ -67,6 +68,7 @@ func TestFiftyMoveDrawResetByPawnMove(t *testing.T) {
 
 func TestFiftyMoveDrawResetByCapture(t *testing.T) {
 	b := &board.Board{}
+	b.ResetDefault()
 
 	// Initialize two pawns in a capture position
 	simulateGameMove(&location.Move{

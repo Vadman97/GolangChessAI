@@ -36,7 +36,11 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		pieceMoved := b.GetPiece(end)
 		pieceMoved.Move(m, b)
 
-		return &(LastMove{Piece: &pieceMoved, Move: m, IsCapture: pieceCaptured != nil})
+		return &(LastMove{
+			Piece: &pieceMoved,
+			Move: m,
+			IsCapture: pieceCaptured != nil,
+		})
 	}
 }
 
