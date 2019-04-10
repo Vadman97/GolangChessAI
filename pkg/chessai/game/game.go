@@ -137,11 +137,8 @@ func (g *Game) ClearCaches() {
 	}
 }
 
-func (g *Game) GetTotalPlayTime() (result time.Duration) {
-	for c := color.White; c < color.NumColors; c++ {
-		result += g.TotalMoveTime[c]
-	}
-	return
+func (g *Game) GetTotalPlayTime() time.Duration {
+	return g.TotalMoveTime[color.White] + g.TotalMoveTime[color.Black]
 }
 
 func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
