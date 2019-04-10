@@ -11,7 +11,7 @@ coverage:
   status:
     project:
       board:
-        target: 100%
+        target: 90%
         threshold: 0%
         paths: "pkg/chessai/board"
       default: true
@@ -19,9 +19,10 @@ coverage:
       board:
         target: 100%
         paths: "pkg/chessai/board"
-      default:
-        target: auto
-        threshold: 3%
+      default: false
+    #        TODO(Vadim) add this when we have more tests before going public
+    #        target: auto
+    #        threshold: 3%
     changes: yes
 
 parsers:
