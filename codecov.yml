@@ -1,16 +1,29 @@
 codecov:
   notify:
     require_ci_to_pass: yes
+#  strict_yaml_branch: master # TODO(Vadim) add this when we have more tests before going public
 
 coverage:
   precision: 2
   round: down
-  range: "50...100"
+  range: "60...100"
 
   status:
-    project: yes
-    patch: yes
-    changes: no
+    project:
+      board: # board should have 93 percent cov with always increasing
+        target: 93%
+        threshold: 0%
+        paths: "pkg/chessai/board"
+      default: yes
+    patch:
+      board: # board diff should have 100 percent cov
+        target: 100%
+        paths: "pkg/chessai/board"
+      default: false
+    #        TODO(Vadim) add this when we have more tests before going public
+    #        target: auto
+    #        threshold: 3%
+    changes: yes
 
 parsers:
   gcov:

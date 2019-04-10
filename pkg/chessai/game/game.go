@@ -19,6 +19,7 @@ type Game struct {
 	LastMoveTime      map[byte]time.Duration
 	TotalMoveTime     map[byte]time.Duration
 	MovesPlayed       uint
+
 	PreviousMove      *board.LastMove
 	GameStatus        byte
 	CacheMemoryLimit  uint64
@@ -43,6 +44,9 @@ func (g *Game) PlayTurn() bool {
 	g.UpdateTime(start)
 	g.CurrentTurnColor ^= 1
 	g.MovesPlayed++
+
+	g.CurrentBoard.UpdateDrawCounter(g.PreviousMove)
+
 	if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
 		if g.CurrentTurnColor == color.White {
 			g.GameStatus = BlackWin
@@ -52,6 +56,9 @@ func (g *Game) PlayTurn() bool {
 	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
 		g.GameStatus = Stalemate
 	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
+		g.GameStatus = Stalemate
+	} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
+		// 50 Move Rule (50 moves per color)
 		g.GameStatus = Stalemate
 	}
 	if g.GameStatus != Active {

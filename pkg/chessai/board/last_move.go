@@ -7,4 +7,5 @@ import (
 type LastMove struct {
 	Piece *Piece
 	Move  *location.Move
+	IsCapture bool
 }

@@ -31,10 +31,16 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		// piece holds information about its location for convenience
 		// game tree stores as compressed game board -> have way to hash compressed game board fast
 		// location stored in board coordinates but can be expanded to piece objects
+		pieceCaptured := b.GetPiece(end)
 		b.move(m)
 		pieceMoved := b.GetPiece(end)
 		pieceMoved.Move(m, b)
-		return &(LastMove{Piece: &pieceMoved, Move: m})
+
+		return &(LastMove{
+			Piece: &pieceMoved,
+			Move: m,
+			IsCapture: pieceCaptured != nil,
+		})
 	}
 }
 

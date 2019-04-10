@@ -87,6 +87,9 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 		eval.TotalScore = PosInf
 	} else if b.IsInCheckmate(p.PlayerColor, nil) {
 		eval.TotalScore = NegInf
+	} else if b.MovesSinceNoDraw == 100 {
+		// TODO(Alex) This value may change, but AI right now prevents draws
+		eval.TotalScore = 0
 	} else {
 		for r := location.CoordinateType(0); r < board.Width; r++ {
 			for c := location.CoordinateType(0); c < board.Height; c++ {
