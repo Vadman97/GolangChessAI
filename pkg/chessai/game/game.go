@@ -55,7 +55,6 @@ func (g *Game) PlayTurn() bool {
 		g.GameStatus = Stalemate
 	}
 	if g.GameStatus != Active {
-		fmt.Println("GAME OVER CALLING PERFORMANCE LOG COMPLETE")
 		g.PerformanceLogger.CompletePerformanceLog(g.Players[color.White], g.Players[color.Black])
 	}
 	return g.GameStatus == Active

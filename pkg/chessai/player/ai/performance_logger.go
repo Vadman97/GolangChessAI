@@ -92,7 +92,6 @@ func (logger *PerformanceLogger) generatePruningBreakdownChart(p *Player) {
 	chartDataString += `"title":{"name":"Pruning Breakdown"},"plotarea":{"show_bubble_size":true,"show_cat_name":false,`
 	chartDataString += `"show_leader_lines":false,"show_percent":true,"show_series_name":false,"show_val":false},`
 	chartDataString += `"show_blanks_as":"zero"}`
-	fmt.Println(chartDataString)
 	err := logger.ExcelFile.AddChart(color.Names[p.PlayerColor], "B"+row, chartDataString)
 	if err != nil {
 		fmt.Println(err)
