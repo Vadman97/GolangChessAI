@@ -1,4 +1,4 @@
-package test
+package ai
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
@@ -72,7 +71,7 @@ func parseBoard(b *board.Board, boardRows []string) {
 }
 
 func evaluateAndCompare(t *testing.T, color byte, score int, b *board.Board) {
-	p := ai.NewAIPlayer(color)
+	p := NewAIPlayer(color)
 	eval := p.EvaluateBoard(b)
 	fmt.Printf("Expected %d Evaluated %d\n", score, eval.TotalScore)
 	assert.Equal(t, score, eval.TotalScore)
