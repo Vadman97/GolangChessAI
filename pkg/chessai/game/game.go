@@ -45,7 +45,7 @@ func (g *Game) PlayTurn() bool {
 	g.CurrentTurnColor ^= 1
 	g.MovesPlayed++
 
-	g.CurrentBoard.UpdateDrawCondition(g.PreviousMove)
+	g.CurrentBoard.UpdateDrawCounter(g.PreviousMove)
 
 	if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
 		if g.CurrentTurnColor == color.White {

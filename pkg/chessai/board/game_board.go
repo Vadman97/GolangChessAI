@@ -466,7 +466,7 @@ func (b *Board) IsStalemate(c byte, previousMove *LastMove) bool {
 /**
  * Checks if the board is reaching a draw based on the previous move (pawn movement, piece capture)
  */
-func (b *Board) UpdateDrawCondition(previousMove *LastMove) {
+func (b *Board) UpdateDrawCounter(previousMove *LastMove) {
 	lastMovedPiece := *previousMove.Piece
 	if lastMovedPiece.GetPieceType() == piece.PawnType || previousMove.IsCapture {
 		b.MovesSinceNoDraw = 0
