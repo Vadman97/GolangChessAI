@@ -14,12 +14,12 @@ import (
 )
 
 type Game struct {
-	CurrentBoard      *board.Board
-	CurrentTurnColor  byte
-	Players           map[byte]*ai.Player
-	LastMoveTime      map[byte]time.Duration
-	TotalMoveTime     map[byte]time.Duration
-	MovesPlayed       uint
+	CurrentBoard     *board.Board
+	CurrentTurnColor byte
+	Players          map[byte]*ai.Player
+	LastMoveTime     map[byte]time.Duration
+	TotalMoveTime    map[byte]time.Duration
+	MovesPlayed      uint
 
 	PreviousMove      *board.LastMove
 	GameStatus        byte
@@ -27,6 +27,22 @@ type Game struct {
 	MoveLimit         int32
 	TimeLimit         time.Duration
 	PerformanceLogger *ai.PerformanceLogger
+}
+
+type Outcome struct {
+	Win [color.NumColors]bool
+	Tie bool
+}
+
+func (g *Game) GetGameOutcome() (outcome Outcome) {
+	if g.GameStatus == WhiteWin {
+		outcome.Win[color.White] = true
+	} else if g.GameStatus == BlackWin {
+		outcome.Win[color.Black] = true
+	} else if g.GameStatus == Stalemate {
+		outcome.Tie = true
+	}
+	return
 }
 
 /**

@@ -2,17 +2,13 @@ package competition
 
 import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
 	"math"
 )
 
 type Elo = int
 
-type GameOutcome struct {
-	Win [color.NumColors]bool
-	Tie bool
-}
-
-func CalculateRatings(elos [color.NumColors]Elo, outcome GameOutcome) (newElos [color.NumColors]Elo) {
+func CalculateRatings(elos [color.NumColors]Elo, outcome game.Outcome) (newElos [color.NumColors]Elo) {
 	var transformed [color.NumColors]float64
 	var expScores [color.NumColors]float64
 	var outcomeScores [color.NumColors]float64
