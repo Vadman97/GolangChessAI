@@ -161,6 +161,25 @@ func (g *Game) GetTotalPlayTime() time.Duration {
 	return g.TotalMoveTime[color.White] + g.TotalMoveTime[color.Black]
 }
 
+func (g *Game) memoryThread() {
+	for g.GameStatus == Active {
+		if util.GetMemoryUsed() > g.CacheMemoryLimit {
+			g.printer <- fmt.Sprintf("Clearing caches\n")
+			g.ClearCaches()
+			runtime.GC()
+			g.printer <- fmt.Sprintf("Cleared!\n")
+			util.PrintMemStats()
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func (g *Game) printThread() {
+	for g.GameStatus == Active {
+		util.PrintPrinter(g.printer, g.PrintInfo)
+	}
+}
+
 func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 	performanceLogger := ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
 		config.Get().LogPerformance,
@@ -192,30 +211,7 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 		printer:           make(chan string, 100000),
 	}
 	g.CurrentBoard.ResetDefault()
-	go func() {
-		for g.GameStatus == Active {
-			if util.GetMemoryUsed() > g.CacheMemoryLimit {
-				g.printer <- fmt.Sprintf("Clearing caches\n")
-				g.ClearCaches()
-				runtime.GC()
-				g.printer <- fmt.Sprintf("Cleared!\n")
-				util.PrintMemStats()
-			}
-			time.Sleep(1 * time.Second)
-		}
-	}()
-	go func() {
-		for g.GameStatus == Active {
-			for len(g.printer) > 0 {
-				select {
-				case str := <-g.printer:
-					if g.PrintInfo {
-						fmt.Print(str)
-					}
-				}
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-	}()
+	go g.memoryThread()
+	go g.printThread()
 	return &g
 }

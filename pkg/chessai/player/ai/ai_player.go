@@ -87,6 +87,7 @@ type Player struct {
 	PrintInfo      bool
 	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
+	printer        chan string
 }
 
 func NewAIPlayer(c byte, algorithm Algorithm) *Player {
@@ -101,6 +102,7 @@ func NewAIPlayer(c byte, algorithm Algorithm) *Player {
 		PrintInfo:                 config.Get().PrintPlayerInfo,
 		evaluationMap:             util.NewConcurrentBoardMap(),
 		alphaBetaTable:            util.NewTranspositionTable(),
+		printer:                   make(chan string, 1000000),
 	}
 	if config.Get().UseOpenings {
 		p.Opening = rand.Intn(len(OpeningMoves[c]))
@@ -128,6 +130,9 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove, logge
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
+		thinking := make(chan bool)
+		go p.printThread(thinking)
+		defer close(thinking)
 		// reset metrics for each move
 		p.Metrics = &Metrics{}
 
@@ -138,7 +143,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove, logge
 			}
 			logger.MarkPerformance(b, scoredMove, p)
 			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
-				log.Printf("%s resigns, no best move available. Picking random.\n", p.Repr())
+				p.printer <- fmt.Sprintf("%s resigns, no best move available. Picking random.\n", p.Repr())
 				return &p.RandomMove(b, previousMove).Move
 			}
 			return &scoredMove.Move
@@ -182,7 +187,7 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 	}
 	result += fmt.Sprintf("%s\n", p.Metrics.Print())
 	result += fmt.Sprintf("%s best move leads to score %d\n", p.Repr(), m.Score)
-	fmt.Print(result)
+	p.printer <- fmt.Sprint(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.PrintMetrics()
 	result += fmt.Sprintf("Transposition table metrics\n")
@@ -199,4 +204,15 @@ func (p *Player) ClearCaches() {
 	// TODO(Vadim) find better way to pick when to clear, based on size #49
 	//p.evaluationMap = util.NewConcurrentBoardMap()
 	//p.alphaBetaTable = util.NewTranspositionTable()
+}
+
+func (p *Player) printThread(stop chan bool) {
+	for {
+		select {
+		case <-stop:
+			return
+		default:
+			util.PrintPrinter(p.printer, p.PrintInfo)
+		}
+	}
 }

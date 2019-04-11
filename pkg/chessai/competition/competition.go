@@ -30,8 +30,6 @@ func NewCompetition() (c *Competition) {
 		},
 		elos: [2]Elo{StartingElo, StartingElo},
 	}
-	c.players[color.White].PrintInfo = false
-	c.players[color.Black].PrintInfo = false
 	return
 }
 
@@ -44,11 +42,12 @@ func (c *Competition) RunCompetition() {
 		// randomize color of players each game
 		c.randomizePlayers()
 		g := game.NewGame(c.players[c.whiteIndex], c.players[c.blackIndex])
-		g.PrintInfo = false
+		c.disablePrinting(g)
 		active := true
 		for active {
 			active = g.PlayTurn()
 		}
+		fmt.Println(g.Print())
 		g.ClearCaches()
 		outcome := c.derandomizeGameOutcome(g.GetGameOutcome())
 		c.elos = CalculateRatings(c.elos, outcome)
@@ -57,7 +56,7 @@ func (c *Competition) RunCompetition() {
 }
 
 func (c *Competition) Print() (result string) {
-	result += fmt.Sprintf("\n\n\n=== Game %d ===\n", c.gameNumber)
+	result += fmt.Sprintf("\n=== Game %d ===\n", c.gameNumber)
 	result += fmt.Sprintf("\tWhite Elo: %d\n", c.elos[color.White])
 	result += fmt.Sprintf("\tBlack Elo: %d\n", c.elos[color.Black])
 	result += fmt.Sprintf("\tWW:%d,BW:%d,T:%d\n", c.wins[color.White], c.wins[color.Black], c.ties)
@@ -92,4 +91,10 @@ func (c *Competition) randomizePlayers() {
 func (c *Competition) derandomizeGameOutcome(out game.Outcome) game.Outcome {
 	out.Win[color.White], out.Win[color.Black] = out.Win[c.whiteIndex], out.Win[c.blackIndex]
 	return out
+}
+
+func (c *Competition) disablePrinting(g *game.Game) {
+	g.PrintInfo = false
+	c.players[color.White].PrintInfo = false
+	c.players[color.Black].PrintInfo = false
 }

@@ -19,7 +19,8 @@ func TestCompetition(t *testing.T) {
 	comp.players[color.White].Algorithm = &ai.MTDf{}
 	comp.players[color.White].MaxSearchDepth = 512
 	comp.players[color.White].MaxThinkTime = 1 * time.Second
-	comp.players[color.Black].Algorithm = &ai.Random{}
+	comp.players[color.Black].Algorithm = &ai.MiniMax{}
+	comp.players[color.Black].MaxSearchDepth = 2
 	// default opponent random
 	comp.RunCompetition()
 }
