@@ -35,7 +35,7 @@ func TestRook_IsLeftRook(t *testing.T) {
 	assert.False(t, rook.IsLeftRook())
 	rook.SetPosition(location.NewLocation(5, 0))
 	assert.True(t, rook.IsLeftRook())
-	rook.SetPosition(location.NewLocation(5, Width))
+	rook.SetPosition(location.NewLocation(5, Width-1))
 	assert.False(t, rook.IsLeftRook())
 }
 
@@ -46,6 +46,6 @@ func TestRook_IsRightRook(t *testing.T) {
 	assert.False(t, rook.IsLeftRook())
 	rook.SetPosition(location.NewLocation(5, 0))
 	assert.False(t, rook.IsLeftRook())
-	rook.SetPosition(location.NewLocation(5, Width))
+	rook.SetPosition(location.NewLocation(5, Width-1))
 	assert.True(t, rook.IsLeftRook())
 }
