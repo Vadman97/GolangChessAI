@@ -10,9 +10,6 @@ import (
 	"time"
 )
 
-const NumberOfGames = 100
-const StartingElo = Elo(1200)
-
 type Competition struct {
 	wins                   [color.NumColors]int
 	ties                   int
@@ -24,6 +21,7 @@ type Competition struct {
 }
 
 func NewCompetition() (c *Competition) {
+	var StartingElo = Elo(config.Get().StartingElo)
 	c = &Competition{
 		players: [2]*ai.Player{
 			ai.NewAIPlayer(color.White, nil),
@@ -38,7 +36,7 @@ func NewCompetition() (c *Competition) {
 
 func (c *Competition) RunCompetition() {
 	c.competitionRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-	for c.gameNumber = 1; c.gameNumber <= NumberOfGames; c.gameNumber++ {
+	for c.gameNumber = 1; c.gameNumber <= config.Get().NumberOfCompetitionGames; c.gameNumber++ {
 		fmt.Printf(c.Print())
 		// randomize color of players each game
 		c.randomizePlayers()

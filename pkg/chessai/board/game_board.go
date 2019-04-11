@@ -284,11 +284,22 @@ func (b *Board) RandomizeIllegal() {
 	b.flags = byte(b.TestRandGen.Uint32())
 }
 
+/**
+ * Check if color has at least one legal move, optimized
+ */
+func (b *Board) HasLegalMove(color byte, previousMove *LastMove) bool {
+	return len(*b.getAllMovesCached(color, previousMove, true)) > 0
+}
+
+func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move {
+	return b.getAllMovesCached(color, previousMove, false)
+}
+
 /*
  *	Only this is cached and not GetAllAttackableMoves for now because this calls GetAllAttackableMoves
  *	May need to cache that one too when we use it for CheckMate / Tie evaluation
  */
-func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move {
+func (b *Board) getAllMovesCached(color byte, previousMove *LastMove, onlyFirstMove bool) *[]location.Move {
 	entry := &MoveCacheEntry{
 		moves: make(map[byte]interface{}),
 	}
@@ -298,15 +309,21 @@ func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move
 			entry = cacheEntry.(*MoveCacheEntry)
 			// we've gotten the other color but not the one we want
 			if entry.moves[color] == nil {
-				entry.moves[color] = b.getAllMoves(color)
-				b.MoveCache.Store(&h, entry)
+				entry.moves[color] = b.getAllMoves(color, onlyFirstMove)
+				// store only if we grabbing all moves
+				if !onlyFirstMove {
+					b.MoveCache.Store(&h, entry)
+				}
 			}
 		} else {
-			entry.moves[color] = b.getAllMoves(color)
-			b.MoveCache.Store(&h, entry)
+			entry.moves[color] = b.getAllMoves(color, onlyFirstMove)
+			// store only if we grabbing all moves
+			if !onlyFirstMove {
+				b.MoveCache.Store(&h, entry)
+			}
 		}
 	} else {
-		entry.moves[color] = b.getAllMoves(color)
+		entry.moves[color] = b.getAllMoves(color, onlyFirstMove)
 	}
 	if previousMove != nil {
 		enPassantMoves := b.GetEnPassantMoves(color, previousMove)
@@ -316,7 +333,11 @@ func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move
 	return entry.moves[color].(*[]location.Move)
 }
 
-func (b *Board) getAllMoves(c byte) *[]location.Move {
+/**
+ * Get moves for all pieces of color c.
+ * If onlyFirstMove is set, will only return first move
+ */
+func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	for row := 0; row < Height; row++ {
 		// this is just a speedup - if the whole row is empty don't look at pieces
@@ -458,16 +479,14 @@ func (b *Board) willMoveLeaveKingInCheck(c byte, m location.Move) bool {
  * Checks if the king of color c is in checkmate.
  */
 func (b *Board) IsInCheckmate(c byte, previousMove *LastMove) bool {
-	moves := b.GetAllMoves(c, previousMove)
-	return (len(*moves) == 0) && b.IsKingInCheck(c)
+	return !b.HasLegalMove(c, previousMove) && b.IsKingInCheck(c)
 }
 
 /**
  * Checks if the board is in a stalemate based on color c not having any moves and its king is also not in check.
  */
 func (b *Board) IsStalemate(c byte, previousMove *LastMove) bool {
-	moves := b.GetAllMoves(c, previousMove)
-	return (len(*moves) == 0) && !b.IsKingInCheck(c)
+	return !b.HasLegalMove(c, previousMove) && !b.IsKingInCheck(c)
 }
 
 /**

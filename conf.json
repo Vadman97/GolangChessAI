@@ -11,5 +11,7 @@
   "PerformanceLogFileName": "performance.log",
   "LogPerformanceToExcel": true,
   "ExcelPerformanceFileName": "./performance.xlsx",
-  "PrintPlayerInfo": true
+  "PrintPlayerInfo": true,
+  "NumberOfCompetitionGames": 100,
+  "StartingElo": 1200
 }
