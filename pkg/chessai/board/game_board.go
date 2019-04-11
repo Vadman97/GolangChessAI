@@ -514,9 +514,7 @@ func (b *Board) LoadBoardFromText(boardRows []string) {
 				d := strings.Split(pStr, "_")
 				cChar, pChar := rune(d[0][0]), rune(d[1][0])
 				p = PieceFromType(piece.NameToType[pChar])
-				if p == nil {
-					panic("piece should not be nil - invalid template")
-				} else if p.GetPieceType() == piece.KingType {
+				if p.GetPieceType() == piece.KingType {
 					b.KingLocations[ColorFromChar(cChar)] = l
 				}
 				p.SetColor(ColorFromChar(cChar))
