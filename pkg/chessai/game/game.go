@@ -112,6 +112,7 @@ func (g *Game) Print() (result string) {
 		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
 		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
 	}
+	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
 	result += fmt.Sprintf("Game state: %s", StatusStrings[g.GameStatus])
 	return
 }

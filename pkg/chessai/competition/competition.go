@@ -3,6 +3,7 @@ package competition
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"math/rand"
@@ -97,4 +98,18 @@ func (c *Competition) disablePrinting(g *game.Game) {
 	g.PrintInfo = false
 	c.players[color.White].PrintInfo = false
 	c.players[color.Black].PrintInfo = false
+}
+
+func RunAICompetition() {
+	// TODO(Vadim) output this to file and keep history of AI performance
+	// TODO(Vadim) load ai from file
+	rand.Seed(config.Get().TestRandSeed)
+	comp := NewCompetition()
+	comp.players[color.White].Algorithm = &ai.MTDf{}
+	comp.players[color.White].MaxSearchDepth = 512
+	comp.players[color.White].MaxThinkTime = 1 * time.Second
+	comp.players[color.Black].Algorithm = &ai.MiniMax{}
+	comp.players[color.Black].MaxSearchDepth = 1
+	// default opponent random
+	comp.RunCompetition()
 }

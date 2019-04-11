@@ -1,7 +1,6 @@
 package board
 
 import (
-	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
@@ -155,16 +154,37 @@ func TestBoardColorFromChar(t *testing.T) {
 
 const boardsDirectory = "board_test"
 
-func TestBoard_IsInCheckmate(t *testing.T) {
+func TestBoard_IsInCheckmateBlack(t *testing.T) {
 	b := Board{}
 	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "black_is_in_checkmate.txt"))
 	b.LoadBoardFromText(lines)
-	fmt.Printf(b.Print())
 	assert.False(t, b.IsInCheckmate(color.White, nil))
 	assert.True(t, b.IsInCheckmate(color.Black, nil))
 }
 
-// TODO(Alex) Stalemate, Checkmate Tests
+func TestBoard_IsInCheckmateWhite(t *testing.T) {
+	b := Board{}
+	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "white_is_in_checkmate.txt"))
+	b.LoadBoardFromText(lines)
+	assert.True(t, b.IsInCheckmate(color.White, nil))
+	assert.False(t, b.IsInCheckmate(color.Black, nil))
+}
+
+func TestBoard_IsStalemateBlack(t *testing.T) {
+	b := Board{}
+	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "black_is_stalemate.txt"))
+	b.LoadBoardFromText(lines)
+	assert.False(t, b.IsStalemate(color.White, nil))
+	assert.True(t, b.IsStalemate(color.Black, nil))
+}
+
+func TestBoard_IsStalemateWhite(t *testing.T) {
+	b := Board{}
+	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "white_is_stalemate.txt"))
+	b.LoadBoardFromText(lines)
+	assert.True(t, b.IsStalemate(color.White, nil))
+	assert.False(t, b.IsStalemate(color.Black, nil))
+}
 
 func simulateGameMove(move *location.Move, b *Board) {
 	lastMove := MakeMove(move, b)
