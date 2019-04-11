@@ -28,7 +28,7 @@ func TestBoardAI(t *testing.T) {
 
 	for i := 0; i < MovesToPlay; i++ {
 		active := g.PlayTurn()
-		util.PrintMemStats()
+		fmt.Printf(util.GetMemStatString())
 		if !active {
 			break
 		}

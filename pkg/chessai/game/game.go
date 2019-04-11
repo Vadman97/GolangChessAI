@@ -113,6 +113,7 @@ func (g *Game) Print() (result string) {
 		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
 	}
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
+	result += fmt.Sprintf("Total game turns: %d\n", g.MovesPlayed/2)
 	result += fmt.Sprintf("Game state: %s", StatusStrings[g.GameStatus])
 	return
 }
@@ -137,7 +138,7 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 			g.UpdateTime(start)
 			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor))
 			g.printer <- fmt.Sprintf("\t%s\n\t", g.Players[g.CurrentTurnColor].Metrics.Print())
-			util.PrintMemStats()
+			g.printer <- util.GetMemStatString()
 			g.printer <- fmt.Sprintln()
 			// TODO(Vadim) decide if any other player things to print here
 		}
@@ -169,7 +170,7 @@ func (g *Game) memoryThread() {
 			g.ClearCaches()
 			runtime.GC()
 			g.printer <- fmt.Sprintf("Cleared!\n")
-			util.PrintMemStats()
+			g.printer <- util.GetMemStatString()
 		}
 		time.Sleep(1 * time.Second)
 	}

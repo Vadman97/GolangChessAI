@@ -35,11 +35,14 @@ func (r *Pawn) GetPosition() location.Location {
 	return r.Location
 }
 
-func (r *Pawn) GetMoves(board *Board) *[]location.Move {
+func (r *Pawn) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 
-	moves = append(moves, *r.getCaptureMoves(board)...)
-	moves = append(moves, *r.getForwardMoves(board)...)
+	moves = append(moves, *r.getCaptureMoves(board, onlyFirstMove)...)
+	if onlyFirstMove && len(moves) > 0 {
+		return &moves
+	}
+	moves = append(moves, *r.getForwardMoves(board, onlyFirstMove)...)
 	return &moves
 }
 
@@ -89,7 +92,7 @@ func (r *Pawn) getAttackLocations(board *Board) *[]location.Location {
 /**
  * Determines possible capture moves (diagonal ahead with a piece there).
  */
-func (r *Pawn) getCaptureMoves(board *Board) *[]location.Move {
+func (r *Pawn) getCaptureMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	locations := r.getAttackLocations(board)
 	for _, loc := range *locations {
@@ -100,9 +103,15 @@ func (r *Pawn) getCaptureMoves(board *Board) *[]location.Move {
 					for _, promotedType := range piece.PawnPromotionOptions {
 						loc = loc.CreatePawnPromotion(promotedType)
 						moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+						if onlyFirstMove {
+							return &moves
+						}
 					}
 				} else {
 					moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+					if onlyFirstMove {
+						return &moves
+					}
 				}
 			}
 		}
@@ -113,7 +122,7 @@ func (r *Pawn) getCaptureMoves(board *Board) *[]location.Move {
 /**
  * Determine forward moves.
  */
-func (r *Pawn) getForwardMoves(board *Board) *[]location.Move {
+func (r *Pawn) getForwardMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	forwardThresh := 1
 	if !r.hasMoved() {
@@ -129,9 +138,15 @@ func (r *Pawn) getForwardMoves(board *Board) *[]location.Move {
 					for _, promotedType := range piece.PawnPromotionOptions {
 						l = l.CreatePawnPromotion(promotedType)
 						moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
+						if onlyFirstMove {
+							return &moves
+						}
 					}
 				} else {
 					moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
+					if onlyFirstMove {
+						return &moves
+					}
 				}
 			} else {
 				return &moves

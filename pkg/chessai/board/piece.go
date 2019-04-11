@@ -12,7 +12,7 @@ type Piece interface {
 	SetColor(byte)
 	GetPosition() location.Location
 	SetPosition(location.Location)
-	GetMoves(*Board) *[]location.Move
+	GetMoves(board *Board, onlyFirstMove bool) *[]location.Move
 	GetAttackableMoves(*Board) AttackableBoard
 	GetPieceType() byte
 	Move(m *location.Move, b *Board)
@@ -37,8 +37,8 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		pieceMoved.Move(m, b)
 
 		return &(LastMove{
-			Piece: &pieceMoved,
-			Move: m,
+			Piece:     &pieceMoved,
+			Move:      m,
 			IsCapture: pieceCaptured != nil,
 		})
 	}

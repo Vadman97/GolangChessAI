@@ -6,6 +6,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"math/rand"
 	"time"
 )
@@ -47,6 +48,8 @@ func (c *Competition) RunCompetition() {
 		active := true
 		for active {
 			active = g.PlayTurn()
+			fmt.Printf("Moves made: %d, total game duration: %s, memory: %s",
+				g.MovesPlayed, g.GetTotalPlayTime(), util.GetMemStatString())
 		}
 		fmt.Println(g.Print())
 		g.ClearCaches()
@@ -58,9 +61,9 @@ func (c *Competition) RunCompetition() {
 
 func (c *Competition) Print() (result string) {
 	result += fmt.Sprintf("\n=== Game %d ===\n", c.gameNumber)
-	result += fmt.Sprintf("\tWhite Elo: %d\n", c.elos[color.White])
-	result += fmt.Sprintf("\tBlack Elo: %d\n", c.elos[color.Black])
-	result += fmt.Sprintf("\tWW:%d,BW:%d,T:%d\n", c.wins[color.White], c.wins[color.Black], c.ties)
+	result += fmt.Sprintf("White Elo: %d\n", c.elos[color.White])
+	result += fmt.Sprintf("Black Elo: %d\n", c.elos[color.Black])
+	result += fmt.Sprintf("WW:%d,BW:%d,T:%d\n\n", c.wins[color.White], c.wins[color.Black], c.ties)
 	return result
 }
 

@@ -111,7 +111,7 @@ func (p *Player) evaluateBoardCached(b *board.Board) *Evaluation {
 			for c := location.CoordinateType(0); c < board.Width; c++ {
 				if p := b.GetPiece(location.NewLocation(r, c)); p != nil {
 					eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
-					eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b)))
+					eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b, false)))
 					aMoves := p.GetAttackableMoves(b)
 					if aMoves != nil {
 						eval.NumAttacks[p.GetColor()] += uint16(len(*aMoves))

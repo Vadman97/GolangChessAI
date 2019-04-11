@@ -38,27 +38,33 @@ func (r *King) GetPosition() location.Location {
 /**
  * Gets all possible moves for the King.
  */
-func (r *King) GetMoves(board *Board) *[]location.Move {
+func (r *King) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
-	moves = append(moves, *r.GetNormalMoves(board)...)
-	moves = append(moves, *r.GetCastleMoves(board)...)
+	moves = append(moves, *r.GetNormalMoves(board, onlyFirstMove)...)
+	if onlyFirstMove && len(moves) > 0 {
+		return &moves
+	}
+	moves = append(moves, *r.GetCastleMoves(board, onlyFirstMove)...)
 	return &moves
 }
 
 /*
  * Determines possible "normal" moves for a king (move in any direction a distance of one).
  */
-func (r *King) GetNormalMoves(board *Board) *[]location.Move {
+func (r *King) GetNormalMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	for i := int8(-1); i <= 1; i++ {
 		for j := int8(-1); j <= 1; j++ {
 			if i != 0 || j != 0 {
 				l := r.GetPosition()
-				l, inBounds := l.AddRelative(location.RelativeLocation{i, j})
+				l, inBounds := l.AddRelative(location.RelativeLocation{Row: i, Col: j})
 				if inBounds {
 					pieceOnLocation := board.GetPiece(l)
 					if (pieceOnLocation == nil) || (pieceOnLocation.GetColor() != r.Color) {
-						moves = append(moves, location.Move{r.GetPosition(), l})
+						moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
+						if onlyFirstMove {
+							return &moves
+						}
 					}
 				}
 			}
@@ -70,7 +76,7 @@ func (r *King) GetNormalMoves(board *Board) *[]location.Move {
 /**
  * Determines if the king is able to left castle or right castle.
  */
-func (r *King) GetCastleMoves(board *Board) *[]location.Move {
+func (r *King) GetCastleMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	if !board.GetFlag(FlagCastled, r.GetColor()) && !board.GetFlag(FlagKingMoved, r.GetColor()) {
 		right, left := r.GetPosition(), r.GetPosition()
@@ -81,12 +87,19 @@ func (r *King) GetCastleMoves(board *Board) *[]location.Move {
 			left, lin = left.AddRelative(location.LeftMove)
 			rightIn, leftIn = rightIn || rin, leftIn || lin
 		}
-		rightM, leftM := location.Move{r.GetPosition(), right}, location.Move{r.GetPosition(), left}
+		rightM, leftM := location.Move{Start: r.GetPosition(), End: right},
+			location.Move{Start: r.GetPosition(), End: left}
 		if rightIn && r.canCastle(&rightM, board) && !board.GetFlag(FlagRightRookMoved, r.GetColor()) {
 			moves = append(moves, rightM)
+			if onlyFirstMove {
+				return &moves
+			}
 		}
 		if leftIn && r.canCastle(&leftM, board) && !board.GetFlag(FlagLeftRookMoved, r.GetColor()) {
 			moves = append(moves, leftM)
+			if onlyFirstMove {
+				return &moves
+			}
 		}
 	}
 	return &moves
@@ -101,7 +114,7 @@ func (r *King) GetAttackableMoves(board *Board) AttackableBoard {
 		for j := int8(-1); j <= 1; j++ {
 			if i != 0 || j != 0 {
 				loc := r.GetPosition()
-				loc, inBounds := loc.AddRelative(location.RelativeLocation{i, j})
+				loc, inBounds := loc.AddRelative(location.RelativeLocation{Row: i, Col: j})
 				if inBounds {
 					SetLocationAttackable(attackableBoard, loc)
 				}

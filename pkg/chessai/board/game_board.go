@@ -349,10 +349,13 @@ func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
 			if !b.IsEmpty(l) {
 				p := b.GetPiece(l)
 				if p.GetColor() == c {
-					additionalMoves := *p.GetMoves(b)
+					additionalMoves := *p.GetMoves(b, onlyFirstMove)
 					for _, nextMove := range additionalMoves {
 						if !b.willMoveLeaveKingInCheck(c, nextMove) {
 							moves = append(moves, nextMove)
+							if onlyFirstMove {
+								return &moves
+							}
 						}
 					}
 				}
