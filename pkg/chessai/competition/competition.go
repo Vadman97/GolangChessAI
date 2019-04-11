@@ -22,8 +22,8 @@ type Competition struct {
 func NewCompetition() *Competition {
 	return &Competition{
 		players: [2]*ai.Player{
-			ai.NewAIPlayer(color.White),
-			ai.NewAIPlayer(color.Black),
+			ai.NewAIPlayer(color.White, &ai.Random{}),
+			ai.NewAIPlayer(color.Black, &ai.Random{}),
 		},
 		elos: [2]Elo{StartingElo, StartingElo},
 	}
@@ -34,6 +34,7 @@ func NewCompetition() *Competition {
 func (c *Competition) RunCompetition() {
 	for c.gameNumber = 1; c.gameNumber <= NumberOfGames; c.gameNumber++ {
 		fmt.Printf(c.Print())
+		// TODO(Vadim) randomize color of players each game
 		g := game.NewGame(c.players[color.White], c.players[color.Black])
 		active := true
 		for active {
