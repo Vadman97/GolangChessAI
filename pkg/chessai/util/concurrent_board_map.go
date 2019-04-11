@@ -63,20 +63,53 @@ func (m *ConcurrentBoardMap) Read(hash *BoardHash) (interface{}, bool) {
 }
 
 func (m *ConcurrentBoardMap) PrintMetrics() (result string) {
-	totalLockUsage := uint64(0)
-	totalHits := uint64(0)
-	totalReads := uint64(0)
-	totalWrites := uint64(0)
-	for i := 0; i < NumSlices; i++ {
-		totalLockUsage += m.lockUsage[i]
-		totalHits += m.numHits[i]
-		totalReads += m.numQueries[i]
-		totalWrites += m.numWrites[i]
-	}
+	totalLockUsage := m.GetTotalLockUsage()
+	totalHits := m.GetTotalHits()
+	totalReads := m.GetTotalReads()
+	totalWrites := m.GetTotalWrites()
 	result += fmt.Sprintf("\tTotal entries in map %d. Reads %d. Writes %d\n", totalWrites, totalReads, totalWrites)
-	result += fmt.Sprintf("\tHit ratio %f%% (%d/%d)\n", 100.0*float64(totalHits)/float64(totalReads),
-		totalHits, totalReads)
-	result += fmt.Sprintf("\tRead ratio %f%%\n", 100.0*float64(totalReads)/float64(totalReads+totalWrites))
+	result += fmt.Sprintf("\tHit ratio %f%% (%d/%d)\n", m.GetHitRatio(), totalHits, totalReads)
+	result += fmt.Sprintf("\tRead ratio %f%%\n", m.GetReadRatio())
 	result += fmt.Sprintf("\tLock usages in map %d\n", totalLockUsage)
 	return
+}
+
+func (m *ConcurrentBoardMap) GetTotalLockUsage() uint64 {
+	var totalLockUsage uint64 = 0
+	for i := 0; i < NumSlices; i++ {
+		totalLockUsage += m.lockUsage[i]
+	}
+	return totalLockUsage
+}
+
+func (m *ConcurrentBoardMap) GetTotalHits() uint64 {
+	var totalHits uint64 = 0
+	for i := 0; i < NumSlices; i++ {
+		totalHits += m.numHits[i]
+	}
+	return totalHits
+}
+
+func (m *ConcurrentBoardMap) GetTotalReads() uint64 {
+	var totalReads uint64 = 0
+	for i := 0; i < NumSlices; i++ {
+		totalReads += m.numQueries[i]
+	}
+	return totalReads
+}
+
+func (m *ConcurrentBoardMap) GetTotalWrites() uint64 {
+	var totalWrites uint64 = 0
+	for i := 0; i < NumSlices; i++ {
+		totalWrites += m.numWrites[i]
+	}
+	return totalWrites
+}
+
+func (m *ConcurrentBoardMap) GetHitRatio() float64 {
+	return 100.0 * float64(m.GetTotalHits()) / float64(m.GetTotalReads())
+}
+
+func (m *ConcurrentBoardMap) GetReadRatio() float64 {
+	return 100.0 * float64(m.GetTotalReads()) / float64(m.GetTotalReads()+m.GetTotalWrites())
 }

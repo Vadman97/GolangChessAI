@@ -7,7 +7,6 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"log"
 	"os"
-	"strconv"
 )
 
 type PerformanceLogger struct {
@@ -17,6 +16,10 @@ type PerformanceLogger struct {
 	LogFileName   string
 	ExcelFile     *excelize.File
 }
+
+var startingColPruning byte = 'A'
+var startingColMoveCache byte = 'K'
+var startingColAttackableCache byte = 'T'
 
 /**
  * Creates a new PerformanceLogger.
@@ -45,17 +48,23 @@ func (logger *PerformanceLogger) setupExcelFile() {
 	}
 }
 
+/**
+ * Sets up all excel table row headings.
+ */
 func (logger *PerformanceLogger) setupExcelRowHeadings(sheet string) {
 	logger.setupExcelRowHeadingsForTable(sheet,
 		"Pruning Statistics",
 		[]string{"Turn", "Considered", "Pruned", "Pruned AB", "Pruned Trans", "AB Improved Trans"},
-		'A')
-	logger.setupExcelRowHeadingsForTable(sheet,
-		"Move Cache Statistics",
-		[]string{"Turn", "Entries", "Reads", "Writes", "Hit Ratio", "Read Ratio", "Locks used"},
-		'K')
+		startingColPruning)
+	cacheHeadings := []string{"Turn", "Entries", "Reads", "Locks used", "Writes", "Hit Ratio", "Read Ratio"}
+	logger.setupExcelRowHeadingsForTable(sheet, "Move Cache Statistics", cacheHeadings, startingColMoveCache)
+	logger.setupExcelRowHeadingsForTable(sheet, "Attackable Cache Statistics", cacheHeadings,
+		startingColAttackableCache)
 }
 
+/**
+ * Creates row headings for a logging table.
+ */
 func (logger *PerformanceLogger) setupExcelRowHeadingsForTable(sheet string, tableHeading string,
 	columnHeadings []string, startColumn byte) {
 	excel := logger.ExcelFile
@@ -82,36 +91,89 @@ func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, 
 }
 
 /**
- * Call this function after the game is complete and no more logging is desired.
+ * Call this function after the game is complete and no more logging is desired. It will generate all charts and save
+ * the excel file.
  */
 func (logger *PerformanceLogger) CompletePerformanceLog(white *Player, black *Player) {
-	logger.generatePruningBreakdownChart(white)
-	logger.generatePruningBreakdownChart(black)
+	logger.generateChartsForPlayer(white)
+	logger.generateChartsForPlayer(black)
 	err := logger.ExcelFile.SaveAs(logger.ExcelFileName)
 	if err != nil {
 		log.Fatal("Cannot save excel performance log.", err)
 	}
 }
 
+/**
+ * Generates all charts for one player.
+ */
+func (logger *PerformanceLogger) generateChartsForPlayer(p *Player) {
+	logger.generatePruningBreakdownChart(p)
+	logger.generateCacheCharts(p, "Move", startingColMoveCache)
+	logger.generateCacheCharts(p, "Attackable", startingColAttackableCache)
+}
+
+/**
+ * Generates pruning breakdown - AB vs Transposition.
+ */
 func (logger *PerformanceLogger) generatePruningBreakdownChart(p *Player) {
-	row := strconv.Itoa(p.TurnCount + 5)
-	var chartDataString string
-	c := color.Names[p.PlayerColor]
+	logger.generateChart("barPercentStacked", "Pruning Breakdown", p, startingColPruning,
+		p.TurnCount+4, []byte{startingColPruning + byte(3), startingColPruning + byte(4)})
+}
+
+/**
+ * Generates two charts for a cache.
+ * Chart 1 - "Utilization" - Hit and Read ratios
+ * Chart 2 - "Size" - Entries, Reads, Writes, and Lock Usage
+ */
+func (logger *PerformanceLogger) generateCacheCharts(p *Player, cacheName string, startingCol byte) {
+	logger.generateChart("scatter", cacheName+" Cache Utilization", p, startingCol, p.TurnCount+4,
+		[]byte{startingColMoveCache + byte(5), startingColMoveCache + byte(6)},
+	)
+	logger.generateChart("scatter", cacheName+" Cache Size", p, startingCol, p.TurnCount+24,
+		[]byte{
+			startingColMoveCache + byte(1),
+			startingColMoveCache + byte(2),
+			startingColMoveCache + byte(3),
+			startingColMoveCache + byte(4),
+		})
+}
+
+/**
+ * Generates a chart.
+ */
+func (logger *PerformanceLogger) generateChart(chartType string, chartTitle string, p *Player, tableStartCol byte,
+	chartRow int, seriesCols []byte) {
+	chartCell := fmt.Sprintf("%c%d", tableStartCol, chartRow)
+	sheet := color.Names[p.PlayerColor]
 	lastTurnRow := p.TurnCount + 2
-	series := `{"name":"%s!$%c$1", "categories":"%s!$%c$2:$%c$%d","values":"%s!$%c$2:$%c$%d"}`
-	chartDataString += `{"type":"barPercentStacked","series":[`
-	chartDataString += fmt.Sprintf(series, c, 'D', c, 'A', 'A', lastTurnRow, c, 'D', 'D', lastTurnRow)
-	chartDataString += ","
-	chartDataString += fmt.Sprintf(series, c, 'E', c, 'A', 'A', lastTurnRow, c, 'E', 'E', lastTurnRow)
-	chartDataString += `],"format":{"x_scale":1.0,"y_scale":1.0,"x_offset":15,"y_offset":10,"print_obj":true,`
-	chartDataString += `"lock_aspect_ratio":false,"locked":false},"legend":{"position":"left","show_legend_key":true},`
-	chartDataString += `"title":{"name":"Pruning Breakdown"},"plotarea":{"show_bubble_size":true,"show_cat_name":false,`
-	chartDataString += `"show_leader_lines":false,"show_percent":true,"show_series_name":false,"show_val":false},`
-	chartDataString += `"show_blanks_as":"zero"}`
-	err := logger.ExcelFile.AddChart(color.Names[p.PlayerColor], "B"+row, chartDataString)
-	if err != nil {
-		fmt.Println(err)
+	var chartData string
+	chartData += fmt.Sprintf(`{"type":"%s","series":[`, chartType)
+	for index, element := range seriesCols {
+		chartData += logger.generateSeriesString(sheet, lastTurnRow, element, tableStartCol)
+		if index+1 != len(seriesCols) {
+			chartData += `,`
+		}
 	}
+	chartData += `],"format":{"x_scale":1.0,"y_scale":1.0,"x_offset":15,"y_offset":10,"print_obj":true,`
+	chartData += `"lock_aspect_ratio":false,"locked":false},"legend":{"position":"top","show_legend_key":true},`
+	chartData += fmt.Sprintf(`"title":{"name":"%s"},`, chartTitle)
+	chartData += `"plotarea":{"show_bubble_size":true,"show_cat_name":false,`
+	chartData += `"show_leader_lines":false,"show_percent":false,"show_series_name":false,"show_val":false},`
+	chartData += `"show_blanks_as":"zero"}`
+	err := logger.ExcelFile.AddChart(color.Names[p.PlayerColor], chartCell, chartData)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+/**
+ * Generates a series string for a chart.
+ */
+func (logger *PerformanceLogger) generateSeriesString(sheet string, lastTurnRow int, seriesCol byte,
+	categoriesCol byte) string {
+	series := `{"name":"%s!$%c$2", "categories":"%s!$%c$3:$%c$%d","values":"%s!$%c$3:$%c$%d"}`
+	return fmt.Sprintf(series, sheet, seriesCol, sheet, categoriesCol, categoriesCol, lastTurnRow, sheet, seriesCol,
+		seriesCol, lastTurnRow)
 }
 
 /**
@@ -138,21 +200,44 @@ func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredM
 }
 
 /**
- * Performs logging to .xlsx file for a graphical representation.
+ * Performs logging to .xlsx file to build various tables.
  */
 func (logger *PerformanceLogger) markPerformanceToExcel(b *board.Board, m *ScoredMove, p *Player) {
-	metrics := p.Metrics
 	logger.markMetricsToExcelTable(p,
 		[]interface{}{
 			p.TurnCount,
-			metrics.MovesConsidered,
-			metrics.MovesPrunedAB + metrics.MovesPrunedTransposition,
-			metrics.MovesPrunedAB,
-			metrics.MovesPrunedTransposition,
-			metrics.MovesABImprovedTransposition,
-		}, 'A')
+			p.Metrics.MovesConsidered,
+			p.Metrics.MovesPrunedAB + p.Metrics.MovesPrunedTransposition,
+			p.Metrics.MovesPrunedAB,
+			p.Metrics.MovesPrunedTransposition,
+			p.Metrics.MovesABImprovedTransposition,
+		}, startingColPruning)
+	logger.markMetricsToExcelTable(p,
+		[]interface{}{
+			p.TurnCount,
+			b.MoveCache.GetTotalWrites(),
+			b.MoveCache.GetTotalReads(),
+			b.MoveCache.GetTotalWrites(),
+			b.MoveCache.GetTotalLockUsage(),
+			b.MoveCache.GetHitRatio(),
+			b.MoveCache.GetReadRatio(),
+		}, startingColMoveCache)
+	fmt.Println("Marking the attackable cache...")
+	logger.markMetricsToExcelTable(p,
+		[]interface{}{
+			p.TurnCount,
+			b.AttackableCache.GetTotalWrites(),
+			b.AttackableCache.GetTotalReads(),
+			b.AttackableCache.GetTotalWrites(),
+			b.AttackableCache.GetTotalLockUsage(),
+			b.AttackableCache.GetHitRatio(),
+			b.AttackableCache.GetReadRatio(),
+		}, startingColAttackableCache)
 }
 
+/**
+ * Prints one turn of metrics.
+ */
 func (logger *PerformanceLogger) markMetricsToExcelTable(p *Player, values []interface{}, startColumn byte) {
 	row := p.TurnCount + 3
 	sheet := color.Names[p.PlayerColor]
@@ -160,5 +245,6 @@ func (logger *PerformanceLogger) markMetricsToExcelTable(p *Player, values []int
 	for index, value := range values {
 		cell := fmt.Sprintf("%c%d", startColumn+byte(index), row)
 		excel.SetCellValue(sheet, cell, value)
+		fmt.Println(fmt.Sprintf("%s should have a value of %f", cell, value))
 	}
 }
