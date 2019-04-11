@@ -61,10 +61,11 @@ const (
 	PieceAdvanceWeight    = 50
 	PieceNumMovesWeight   = 10
 	PieceNumAttacksWeight = 10
-	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
-	RookDisplacedWeight   = -1 * PieceValueWeight // neg 1 pawn
-	KingCastledWeight     = 3 * PieceValueWeight  // three pawn
-	KingCheckedWeight     = 1 * PieceValueWeight  // one pawn
+	KingDisplacedWeight   = -2 * PieceValueWeight   // neg 2 pawns
+	RookDisplacedWeight   = -1 * PieceValueWeight   // neg 1 pawn
+	KingCastledWeight     = 3 * PieceValueWeight    // three pawn
+	KingCheckedWeight     = 1 * PieceValueWeight    // one pawn
+	Weight50Rule          = -PieceValueWeight / 100 // neg 1 pawn if we do nothing in 50 moves
 )
 
 const (
@@ -73,6 +74,19 @@ const (
 )
 
 func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
+	eval := NewEvaluation()
+	// first see if we have calculations we cannot cache
+	if b.MovesSinceNoDraw == 100 {
+		// Alex: This value may change, but AI right now prevents draws
+		eval.TotalScore = 0
+	} else {
+		eval = p.evaluateBoardCached(b)
+	}
+	eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw
+	return eval
+}
+
+func (p *Player) evaluateBoardCached(b *board.Board) *Evaluation {
 	hash := b.Hash()
 	if p.evaluationMap != nil {
 		if score, ok := p.evaluationMap.Read(&hash); ok {
@@ -84,18 +98,13 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 
 	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
-	// TODO(Vadim) figure out if we can optimize, this makes very slow #47
-	/*else if b.IsInCheckmate(p.PlayerColor, nil) {
-		eval.TotalScore = NegInf
-	} else if b.IsStalemate(p.PlayerColor, nil) || b.IsStalemate(p.PlayerColor ^ 1, nil) {
-		eval.TotalScore = 0
-	}*/
 	if b.IsInCheckmate(p.PlayerColor^1, nil) {
 		eval.TotalScore = PosInf
 	} else if b.IsInCheckmate(p.PlayerColor, nil) {
 		eval.TotalScore = NegInf
-	} else if b.MovesSinceNoDraw == 100 {
-		// TODO(Alex) This value may change, but AI right now prevents draws
+	} else if b.IsInCheckmate(p.PlayerColor, nil) {
+		eval.TotalScore = NegInf
+	} else if b.IsStalemate(p.PlayerColor, nil) || b.IsStalemate(p.PlayerColor^1, nil) {
 		eval.TotalScore = 0
 	} else {
 		for r := location.CoordinateType(0); r < board.Height; r++ {
