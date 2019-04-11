@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
@@ -28,14 +27,8 @@ func TestBoardEvaluate(t *testing.T) {
 }
 
 func testBoard(t *testing.T, fileName string) {
-	fileData, err := ioutil.ReadFile(path.Join(boardsDirectory, fileName))
-	if err != nil {
-		log.Fatal(err)
-	}
-	fileStr := strings.ReplaceAll(string(fileData), "\r", "")
-	lines := strings.Split(fileStr, "\n")
-	if strings.Contains(lines[0], "skip") {
-		log.Printf("WARNING Skipping test %s\n", fileName)
+	lines, skip := util.LoadBoardFile(path.Join(boardsDirectory, fileName))
+	if skip {
 		return
 	}
 	player, expectedScore := strings.Split(lines[0], " ")[0], strings.Split(lines[0], " ")[1]
@@ -48,29 +41,8 @@ func testBoard(t *testing.T, fileName string) {
 		log.Fatal(err)
 	}
 	myBoard := board.Board{}
-	parseBoard(&myBoard, lines[1:])
+	myBoard.LoadBoardFromText(lines[1:])
 	evaluateAndCompare(t, playerColor, int(score), &myBoard)
-}
-
-func parseBoard(b *board.Board, boardRows []string) {
-	for r := location.CoordinateType(0); r < board.Height; r++ {
-		pieces := strings.Split(boardRows[r], "|")
-		for c, pStr := range pieces {
-			l := location.NewLocation(r, location.CoordinateType(c))
-			var p board.Piece
-			if pStr != "   " && len(pStr) == 3 {
-				d := strings.Split(pStr, "_")
-				cChar, pChar := rune(d[0][0]), rune(d[1][0])
-				p = board.PieceFromType(piece.NameToType[pChar])
-				if p == nil {
-					panic("piece should not be nil - invalid template")
-				}
-				p.SetColor(board.ColorFromChar(cChar))
-				p.SetPosition(l)
-			}
-			b.SetPiece(l, p)
-		}
-	}
 }
 
 func evaluateAndCompare(t *testing.T, color byte, score int, b *board.Board) {

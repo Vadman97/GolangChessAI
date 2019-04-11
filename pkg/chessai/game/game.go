@@ -5,7 +5,6 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"math"
@@ -27,6 +26,8 @@ type Game struct {
 	MoveLimit         int32
 	TimeLimit         time.Duration
 	PerformanceLogger *ai.PerformanceLogger
+	PrintInfo         bool
+	printer           chan string
 }
 
 type Outcome struct {
@@ -54,10 +55,10 @@ func (g *Game) PlayTurn() bool {
 	}
 
 	if g.MovesPlayed%2 == 0 && g.GetTotalPlayTime() > g.TimeLimit {
-		fmt.Printf("Aborting - out of time\n")
+		g.printer <- fmt.Sprintf("Aborting - out of time\n")
 		g.GameStatus = Aborted
 	} else {
-		fmt.Printf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor].Repr())
+		g.printer <- fmt.Sprintf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor].Repr())
 		start := time.Now()
 		quitTimeUpdates := make(chan bool)
 		// print think time for slow players, regardless of what's going on
@@ -71,29 +72,32 @@ func (g *Game) PlayTurn() bool {
 
 		g.CurrentBoard.UpdateDrawCounter(g.PreviousMove)
 
-		if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
-			if g.CurrentTurnColor == color.White {
-				g.GameStatus = BlackWin
-			} else {
-				g.GameStatus = WhiteWin
+		for c := color.White; c < color.NumColors; c++ {
+			if g.CurrentBoard.IsInCheckmate(c, g.PreviousMove) {
+				if c == color.White {
+					g.GameStatus = BlackWin
+				} else {
+					g.GameStatus = WhiteWin
+				}
+			} else if g.CurrentBoard.IsStalemate(c, g.PreviousMove) {
+				g.GameStatus = Stalemate
 			}
-		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
-			g.GameStatus = Stalemate
-		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
-			g.GameStatus = Stalemate
-		} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
+		}
+		if g.GameStatus == Active && g.CurrentBoard.MovesSinceNoDraw >= 100 {
 			// 50 Move Rule (50 moves per color)
 			g.GameStatus = Stalemate
 		}
+
 		if g.GameStatus == Active {
-			fmt.Printf("Move #%d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
+			g.printer <- fmt.Sprintf("Move #%d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
 		} else {
-			fmt.Printf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
+			g.printer <- fmt.Sprintf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
 		}
 	}
 	if g.GameStatus != Active {
 		g.PerformanceLogger.CompletePerformanceLog(g.Players[color.White], g.Players[color.Black])
 	}
+	g.printer <- fmt.Sprintln(g.Print())
 	return g.GameStatus == Active
 }
 
@@ -130,10 +134,10 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 			return
 		default:
 			g.UpdateTime(start)
-			fmt.Printf("%s", g.PrintThinkTime(g.CurrentTurnColor))
-			fmt.Printf("\t%s\n\t", g.Players[g.CurrentTurnColor].Metrics.Print())
+			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor))
+			g.printer <- fmt.Sprintf("\t%s\n\t", g.Players[g.CurrentTurnColor].Metrics.Print())
 			util.PrintMemStats()
-			fmt.Println()
+			g.printer <- fmt.Sprintln()
 			// TODO(Vadim) decide if any other player things to print here
 		}
 		time.Sleep(30 * time.Second)
@@ -163,12 +167,7 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 		config.Get().ExcelPerformanceFileName,
 		config.Get().PerformanceLogFileName)
 	g := Game{
-		CurrentBoard: &board.Board{
-			KingLocations: [color.NumColors]location.Location{
-				location.NewLocation(7, 4),
-				location.NewLocation(0, 4),
-			},
-		},
+		CurrentBoard:     &board.Board{},
 		CurrentTurnColor: color.White,
 		Players: map[byte]*ai.Player{
 			color.White: whitePlayer,
@@ -189,18 +188,33 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 		MoveLimit:         math.MaxInt32,
 		TimeLimit:         math.MaxInt64,
 		PerformanceLogger: performanceLogger,
+		PrintInfo:         true,
+		printer:           make(chan string, 100000),
 	}
 	g.CurrentBoard.ResetDefault()
 	go func() {
 		for g.GameStatus == Active {
 			if util.GetMemoryUsed() > g.CacheMemoryLimit {
-				fmt.Printf("Clearing caches\n")
+				g.printer <- fmt.Sprintf("Clearing caches\n")
 				g.ClearCaches()
 				runtime.GC()
-				fmt.Printf("Cleared!\n")
+				g.printer <- fmt.Sprintf("Cleared!\n")
 				util.PrintMemStats()
 			}
 			time.Sleep(1 * time.Second)
+		}
+	}()
+	go func() {
+		for g.GameStatus == Active {
+			for len(g.printer) > 0 {
+				select {
+				case str := <-g.printer:
+					if g.PrintInfo {
+						fmt.Print(str)
+					}
+				}
+			}
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	return &g

@@ -83,9 +83,10 @@ type Player struct {
 	Opening                   int
 	Metrics                   *Metrics
 
+	Debug          bool
+	PrintInfo      bool
 	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
-	Debug          bool
 }
 
 func NewAIPlayer(c byte, algorithm Algorithm) *Player {
@@ -97,6 +98,7 @@ func NewAIPlayer(c byte, algorithm Algorithm) *Player {
 		Opening:                   OpeningNone,
 		Metrics:                   &Metrics{},
 		Debug:                     config.Get().LogDebug,
+		PrintInfo:                 config.Get().PrintPlayerInfo,
 		evaluationMap:             util.NewConcurrentBoardMap(),
 		alphaBetaTable:            util.NewTranspositionTable(),
 	}

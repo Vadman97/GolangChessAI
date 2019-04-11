@@ -9,6 +9,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -161,6 +162,10 @@ func (b *Board) ResetDefault() {
 	b.MovesSinceNoDraw = 0
 	b.CacheGetAllMoves = config.Get().CacheGetAllMoves
 	b.CacheGetAllAttackableMoves = config.Get().CacheGetAllAttackableMoves
+	b.KingLocations = [color.NumColors]location.Location{
+		location.NewLocation(7, 4),
+		location.NewLocation(0, 4),
+	}
 }
 
 func (b *Board) ResetDefaultSlow() {
@@ -474,6 +479,32 @@ func (b *Board) UpdateDrawCounter(previousMove *LastMove) {
 		b.MovesSinceNoDraw = 0
 	} else {
 		b.MovesSinceNoDraw++
+	}
+}
+
+/**
+ * Load board from text for tests
+ */
+func (b *Board) LoadBoardFromText(boardRows []string) {
+	for r := location.CoordinateType(0); r < Height; r++ {
+		pieces := strings.Split(boardRows[r], "|")
+		for c, pStr := range pieces {
+			l := location.NewLocation(r, location.CoordinateType(c))
+			var p Piece
+			if pStr != "   " && len(pStr) == 3 {
+				d := strings.Split(pStr, "_")
+				cChar, pChar := rune(d[0][0]), rune(d[1][0])
+				p = PieceFromType(piece.NameToType[pChar])
+				if p == nil {
+					panic("piece should not be nil - invalid template")
+				} else if p.GetPieceType() == piece.KingType {
+					b.KingLocations[ColorFromChar(cChar)] = l
+				}
+				p.SetColor(ColorFromChar(cChar))
+				p.SetPosition(l)
+			}
+			b.SetPiece(l, p)
+		}
 	}
 }
 

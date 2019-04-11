@@ -10,5 +10,6 @@
   "LogPerformance": true,
   "PerformanceLogFileName": "performance.log",
   "LogPerformanceToExcel": true,
-  "ExcelPerformanceFileName": "./performance.xlsx"
+  "ExcelPerformanceFileName": "./performance.xlsx",
+  "PrintPlayerInfo": true
 }

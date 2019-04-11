@@ -1,12 +1,14 @@
 package board
 
 import (
+	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"math/rand"
+	"path"
 	"reflect"
 	"testing"
 	"time"
@@ -149,6 +151,17 @@ func TestBoardColorFromChar(t *testing.T) {
 	assert.Equal(t, color.Black, ColorFromChar('B'))
 	assert.Equal(t, color.White, ColorFromChar('W'))
 	assert.Equal(t, byte(0xFF), ColorFromChar('a'))
+}
+
+const boardsDirectory = "board_test"
+
+func TestBoard_IsInCheckmate(t *testing.T) {
+	b := Board{}
+	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "black_is_in_checkmate.txt"))
+	b.LoadBoardFromText(lines)
+	fmt.Printf(b.Print())
+	assert.False(t, b.IsInCheckmate(color.White, nil))
+	assert.True(t, b.IsInCheckmate(color.Black, nil))
 }
 
 // TODO(Alex) Stalemate, Checkmate Tests
