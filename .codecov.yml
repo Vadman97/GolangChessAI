@@ -17,9 +17,7 @@ coverage:
         target: 90%
         threshold: 0%
         paths: "pkg/chessai/board"
-      default:
-        target: auto
-        threshold: -3%
+      default: false  # TODO(Vadim) add this when we have more tests before going public
     patch:
       board:
         target: 100%
