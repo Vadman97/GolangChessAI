@@ -46,12 +46,27 @@ func (logger *PerformanceLogger) setupExcelFile() {
 }
 
 func (logger *PerformanceLogger) setupExcelRowHeadings(sheet string) {
-	logger.ExcelFile.SetCellValue(sheet, "A1", "Turn")
-	logger.ExcelFile.SetCellValue(sheet, "B1", "Considered")
-	logger.ExcelFile.SetCellValue(sheet, "C1", "Pruned")
-	logger.ExcelFile.SetCellValue(sheet, "D1", "Pruned AB")
-	logger.ExcelFile.SetCellValue(sheet, "E1", "Pruned Trans")
-	logger.ExcelFile.SetCellValue(sheet, "F1", "AB Improved Trans")
+	logger.setupExcelRowHeadingsForTable(sheet,
+		"Pruning Statistics",
+		[]string{"Turn", "Considered", "Pruned", "Pruned AB", "Pruned Trans", "AB Improved Trans"},
+		'A')
+	logger.setupExcelRowHeadingsForTable(sheet,
+		"Move Cache Statistics",
+		[]string{"Turn", "Entries", "Reads", "Writes", "Hit Ratio", "Read Ratio", "Locks used"},
+		'K')
+}
+
+func (logger *PerformanceLogger) setupExcelRowHeadingsForTable(sheet string, tableHeading string,
+	columnHeadings []string, startColumn byte) {
+	excel := logger.ExcelFile
+	for index, heading := range columnHeadings {
+		cell := fmt.Sprintf("%c%d", startColumn+byte(index), 2)
+		excel.SetCellValue(sheet, cell, heading)
+	}
+	firstCell := fmt.Sprintf("%c%d", startColumn, 1)
+	lastCell := fmt.Sprintf("%c%d", startColumn+byte(len(columnHeadings))-1, 1)
+	excel.MergeCell(sheet, firstCell, lastCell)
+	excel.SetCellValue(sheet, firstCell, tableHeading)
 }
 
 /**
@@ -79,14 +94,15 @@ func (logger *PerformanceLogger) CompletePerformanceLog(white *Player, black *Pl
 }
 
 func (logger *PerformanceLogger) generatePruningBreakdownChart(p *Player) {
-	row := strconv.Itoa(p.TurnCount + 4)
+	row := strconv.Itoa(p.TurnCount + 5)
 	var chartDataString string
 	c := color.Names[p.PlayerColor]
+	lastTurnRow := p.TurnCount + 2
 	series := `{"name":"%s!$%c$1", "categories":"%s!$%c$2:$%c$%d","values":"%s!$%c$2:$%c$%d"}`
 	chartDataString += `{"type":"barPercentStacked","series":[`
-	chartDataString += fmt.Sprintf(series, c, 'D', c, 'A', 'A', p.TurnCount+1, c, 'D', 'D', p.TurnCount+1)
+	chartDataString += fmt.Sprintf(series, c, 'D', c, 'A', 'A', lastTurnRow, c, 'D', 'D', lastTurnRow)
 	chartDataString += ","
-	chartDataString += fmt.Sprintf(series, c, 'E', c, 'A', 'A', p.TurnCount+1, c, 'E', 'E', p.TurnCount+1)
+	chartDataString += fmt.Sprintf(series, c, 'E', c, 'A', 'A', lastTurnRow, c, 'E', 'E', lastTurnRow)
 	chartDataString += `],"format":{"x_scale":1.0,"y_scale":1.0,"x_offset":15,"y_offset":10,"print_obj":true,`
 	chartDataString += `"lock_aspect_ratio":false,"locked":false},"legend":{"position":"left","show_legend_key":true},`
 	chartDataString += `"title":{"name":"Pruning Breakdown"},"plotarea":{"show_bubble_size":true,"show_cat_name":false,`
@@ -118,7 +134,6 @@ func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredM
 	result += b.MoveCache.PrintMetrics()
 	result += fmt.Sprintf("Attack Move cache metrics\n")
 	result += b.AttackableCache.PrintMetrics()
-	result += "A" + string(p.TurnCount+1)
 	_, _ = fmt.Fprint(file, result)
 }
 
@@ -126,20 +141,24 @@ func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredM
  * Performs logging to .xlsx file for a graphical representation.
  */
 func (logger *PerformanceLogger) markPerformanceToExcel(b *board.Board, m *ScoredMove, p *Player) {
-	logger.markMetricsPerformanceToExcel(p)
+	metrics := p.Metrics
+	logger.markMetricsToExcelTable(p,
+		[]interface{}{
+			p.TurnCount,
+			metrics.MovesConsidered,
+			metrics.MovesPrunedAB + metrics.MovesPrunedTransposition,
+			metrics.MovesPrunedAB,
+			metrics.MovesPrunedTransposition,
+			metrics.MovesABImprovedTransposition,
+		}, 'A')
 }
 
-/**
- * Writes metrics data to excel.
- */
-func (logger *PerformanceLogger) markMetricsPerformanceToExcel(p *Player) {
-	metrics := p.Metrics
-	row := strconv.Itoa(p.TurnCount + 2)
+func (logger *PerformanceLogger) markMetricsToExcelTable(p *Player, values []interface{}, startColumn byte) {
+	row := p.TurnCount + 3
 	sheet := color.Names[p.PlayerColor]
-	logger.ExcelFile.SetCellValue(sheet, "A"+row, p.TurnCount)
-	logger.ExcelFile.SetCellValue(sheet, "B"+row, metrics.MovesConsidered)
-	logger.ExcelFile.SetCellValue(sheet, "C"+row, metrics.MovesPrunedAB+metrics.MovesPrunedTransposition)
-	logger.ExcelFile.SetCellValue(sheet, "D"+row, metrics.MovesPrunedAB)
-	logger.ExcelFile.SetCellValue(sheet, "E"+row, metrics.MovesPrunedTransposition)
-	logger.ExcelFile.SetCellValue(sheet, "F"+row, metrics.MovesABImprovedTransposition)
+	excel := logger.ExcelFile
+	for index, value := range values {
+		cell := fmt.Sprintf("%c%d", startColumn+byte(index), row)
+		excel.SetCellValue(sheet, cell, value)
+	}
 }
