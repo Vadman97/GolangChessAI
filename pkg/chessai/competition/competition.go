@@ -61,9 +61,9 @@ func (c *Competition) RunCompetition() {
 
 func (c *Competition) Print() (result string) {
 	result += fmt.Sprintf("\n=== Game %d ===\n", c.gameNumber)
-	result += fmt.Sprintf("White Elo: %d\n", c.elos[color.White])
-	result += fmt.Sprintf("Black Elo: %d\n", c.elos[color.Black])
-	result += fmt.Sprintf("WW:%d,BW:%d,T:%d\n\n", c.wins[color.White], c.wins[color.Black], c.ties)
+	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.White].Repr(), c.elos[color.White])
+	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.Black].Repr(), c.elos[color.Black])
+	result += fmt.Sprintf("White Wins:Black Wins:Ties\t%d:%d:%d\n\n", c.wins[color.White], c.wins[color.Black], c.ties)
 	return result
 }
 

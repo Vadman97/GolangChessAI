@@ -72,18 +72,17 @@ func (g *Game) PlayTurn() bool {
 
 		g.CurrentBoard.UpdateDrawCounter(g.PreviousMove)
 
-		for c := color.White; c < color.NumColors; c++ {
-			if g.CurrentBoard.IsInCheckmate(c, g.PreviousMove) {
-				if c == color.White {
-					g.GameStatus = BlackWin
-				} else {
-					g.GameStatus = WhiteWin
-				}
-			} else if g.CurrentBoard.IsStalemate(c, g.PreviousMove) {
-				g.GameStatus = Stalemate
+		if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
+			if g.CurrentTurnColor == color.White {
+				g.GameStatus = BlackWin
+			} else {
+				g.GameStatus = WhiteWin
 			}
-		}
-		if g.GameStatus == Active && g.CurrentBoard.MovesSinceNoDraw >= 100 {
+		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
+			g.GameStatus = Stalemate
+		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
+			g.GameStatus = Stalemate
+		} else if g.GameStatus == Active && g.CurrentBoard.MovesSinceNoDraw >= 100 {
 			// 50 Move Rule (50 moves per color)
 			g.GameStatus = Stalemate
 		}
@@ -105,13 +104,11 @@ func (g *Game) Print() (result string) {
 	// we just played white if we are now on black, show info for white
 	result += fmt.Sprintln(g.CurrentBoard.Print())
 	result += g.PrintThinkTime(g.CurrentTurnColor ^ 1)
-	if g.MovesPlayed%2 == 0 {
-		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
-		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
-		result += fmt.Sprintf("Average move time:\n")
-		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
-		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
-	}
+	whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
+	blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
+	result += fmt.Sprintf("Average move time:\n")
+	result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
+	result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
 	result += fmt.Sprintf("Total game turns: %d\n", g.MovesPlayed/2)
 	result += fmt.Sprintf("Game state: %s", StatusStrings[g.GameStatus])
