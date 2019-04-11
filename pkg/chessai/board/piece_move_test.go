@@ -199,6 +199,11 @@ func TestPawnGetMovesPromoteWhite(t *testing.T) {
 			assert.Equal(t, piece.PawnPromotionOptions[i], promotedType)
 		}
 	}
+	moves = bo1.GetPiece(location.NewLocation(6, 3)).GetMoves(bo1, true)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		assert.Equal(t, 1, len(*moves))
+	}
 }
 
 func TestGetMovesEnPassantSingleOpportunity(t *testing.T) {
@@ -350,7 +355,12 @@ func TestKingGetMovesCastleLeft(t *testing.T) {
 		Start: location.NewLocation(0, 1),
 		End:   location.NewLocation(3, 1),
 	}})
-	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, false)
+	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, true)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		assert.Equal(t, 1, len(*moves))
+	}
+	moves = bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, false)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 2, len(*moves))
@@ -374,7 +384,12 @@ func TestKingGetMovesCastleRight(t *testing.T) {
 		Start: location.NewLocation(0, 6),
 		End:   location.NewLocation(3, 6),
 	}})
-	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, false)
+	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, true)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		assert.Equal(t, 1, len(*moves))
+	}
+	moves = bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, false)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 2, len(*moves))

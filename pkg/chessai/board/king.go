@@ -91,15 +91,9 @@ func (r *King) GetCastleMoves(board *Board, onlyFirstMove bool) *[]location.Move
 			location.Move{Start: r.GetPosition(), End: left}
 		if rightIn && r.canCastle(&rightM, board) && !board.GetFlag(FlagRightRookMoved, r.GetColor()) {
 			moves = append(moves, rightM)
-			if onlyFirstMove {
-				return &moves
-			}
 		}
 		if leftIn && r.canCastle(&leftM, board) && !board.GetFlag(FlagLeftRookMoved, r.GetColor()) {
 			moves = append(moves, leftM)
-			if onlyFirstMove {
-				return &moves
-			}
 		}
 	}
 	return &moves
