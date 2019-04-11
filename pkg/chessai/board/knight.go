@@ -64,13 +64,16 @@ func (r *Knight) getNextLocations(board *Board) *[]location.Location {
 /**
  * Calculates all valid moves that a knight can make.
  */
-func (r *Knight) GetMoves(board *Board) *[]location.Move {
+func (r *Knight) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	locations := r.getNextLocations(board)
 	for _, loc := range *locations {
 		pieceOnLocation := board.GetPiece(loc)
 		if pieceOnLocation == nil || pieceOnLocation.GetColor() != r.Color {
 			moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+			if onlyFirstMove {
+				return &moves
+			}
 		}
 	}
 	return &moves

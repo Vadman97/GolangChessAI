@@ -39,7 +39,7 @@ func (r *Rook) GetPosition() location.Location {
 /**
  * Gets all valid next moves for this rook.
  */
-func (r *Rook) GetMoves(board *Board) *[]location.Move {
+func (r *Rook) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	for i := 0; i < 4; i++ {
 		l := r.GetPosition()
@@ -60,6 +60,9 @@ func (r *Rook) GetMoves(board *Board) *[]location.Move {
 			validMove, checkNext := CheckLocationForPiece(r.GetColor(), l, board)
 			if validMove {
 				moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
+				if onlyFirstMove {
+					return &moves
+				}
 			}
 			if !checkNext {
 				break

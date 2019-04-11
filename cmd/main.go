@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/competition"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -11,6 +12,12 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "competition" {
+		comp := competition.NewCompetition()
+		comp.RunAICompetition()
+		return
+	}
+
 	// Setup HTTP Routes
 	r := mux.NewRouter()
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))

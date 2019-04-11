@@ -20,6 +20,9 @@ type Configuration struct {
 	PerformanceLogFileName     string
 	LogPerformanceToExcel      bool
 	ExcelPerformanceFileName   string
+	PrintPlayerInfo            bool
+	NumberOfCompetitionGames   int
+	StartingElo                int
 }
 
 const FilePath = "conf.json"

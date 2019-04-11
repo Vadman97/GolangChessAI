@@ -28,14 +28,17 @@ func testPieceGetMoves(t *testing.T, l location.Location, initialMove *[]locatio
 	} else if l.GetRow() == 7 {
 		assert.Equal(t, color.White, bo1.GetPiece(l).GetColor())
 	}
-	fmt.Println(bo1.Print())
-	moves := bo1.GetPiece(l).GetMoves(bo1)
-	for _, m := range *moves {
-		fmt.Println(m.Print())
-	}
+	moves := bo1.GetPiece(l).GetMoves(bo1, false)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, expectedMoves, len(*moves))
+	}
+	moves = bo1.GetPiece(l).GetMoves(bo1, true)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		if expectedMoves > 0 {
+			assert.Equal(t, 1, len(*moves))
+		}
 	}
 }
 
@@ -185,7 +188,7 @@ func TestPawnGetMovesPromoteWhite(t *testing.T) {
 		End:   location.NewLocation(6, 3),
 	}})
 	fmt.Println(bo1.Print())
-	moves := bo1.GetPiece(location.NewLocation(6, 3)).GetMoves(bo1)
+	moves := bo1.GetPiece(location.NewLocation(6, 3)).GetMoves(bo1, false)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, len(piece.PawnPromotionOptions), len(*moves))
@@ -195,6 +198,11 @@ func TestPawnGetMovesPromoteWhite(t *testing.T) {
 			assert.True(t, promotion)
 			assert.Equal(t, piece.PawnPromotionOptions[i], promotedType)
 		}
+	}
+	moves = bo1.GetPiece(location.NewLocation(6, 3)).GetMoves(bo1, true)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		assert.Equal(t, 1, len(*moves))
 	}
 }
 
@@ -347,7 +355,12 @@ func TestKingGetMovesCastleLeft(t *testing.T) {
 		Start: location.NewLocation(0, 1),
 		End:   location.NewLocation(3, 1),
 	}})
-	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1)
+	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, true)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		assert.Equal(t, 1, len(*moves))
+	}
+	moves = bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, false)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 2, len(*moves))
@@ -371,7 +384,12 @@ func TestKingGetMovesCastleRight(t *testing.T) {
 		Start: location.NewLocation(0, 6),
 		End:   location.NewLocation(3, 6),
 	}})
-	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1)
+	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, true)
+	assert.NotNil(t, moves)
+	if moves != nil {
+		assert.Equal(t, 1, len(*moves))
+	}
+	moves = bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, false)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 2, len(*moves))

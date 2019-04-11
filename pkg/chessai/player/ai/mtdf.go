@@ -40,7 +40,7 @@ func (m *MTDf) trackThinkTime(stop chan bool, start time.Time) {
 				thinkTime := time.Now().Sub(start)
 				if thinkTime > m.player.MaxThinkTime {
 					m.ab.abort = true
-					fmt.Println("MTDf requesting AB hard abort, out of time!")
+					m.player.printer <- fmt.Sprintf("MTDf requesting AB hard abort, out of time!")
 				}
 			}
 			time.Sleep(100 * time.Millisecond)
@@ -67,7 +67,7 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 		} else {
 			// -1 due to discard of current level due to hard abort
 			m.lastSearchDepth = m.currentSearchDepth - 1
-			fmt.Printf("MTDf hard abort! evaluated to depth %d\n", m.lastSearchDepth)
+			m.player.printer <- fmt.Sprintf("MTDf hard abort! evaluated to depth %d\n", m.lastSearchDepth)
 			break
 		}
 	}

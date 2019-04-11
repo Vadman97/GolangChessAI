@@ -37,7 +37,7 @@ func (r *Queen) GetPosition() location.Location {
 /**
  * Calculates all valid moves for this queen.
  */
-func (r *Queen) GetMoves(board *Board) *[]location.Move {
+func (r *Queen) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	for i := 0; i < 8; i++ {
 		loc := r.GetPosition()
@@ -66,6 +66,9 @@ func (r *Queen) GetMoves(board *Board) *[]location.Move {
 			validMove, checkNext := CheckLocationForPiece(r.GetColor(), loc, board)
 			if validMove {
 				moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+				if onlyFirstMove {
+					return &moves
+				}
 			}
 			if !checkNext {
 				break

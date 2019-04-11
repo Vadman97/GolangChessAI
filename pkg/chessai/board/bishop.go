@@ -34,7 +34,7 @@ func (r *Bishop) GetPosition() location.Location {
 	return r.Location
 }
 
-func (r *Bishop) GetMoves(board *Board) *[]location.Move {
+func (r *Bishop) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	for i := 0; i < 4; i++ {
 		loc := r.GetPosition()
@@ -55,6 +55,9 @@ func (r *Bishop) GetMoves(board *Board) *[]location.Move {
 			validMove, checkNext := CheckLocationForPiece(r.GetColor(), loc, board)
 			if validMove {
 				moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+				if onlyFirstMove {
+					return &moves
+				}
 			}
 			if !checkNext {
 				break

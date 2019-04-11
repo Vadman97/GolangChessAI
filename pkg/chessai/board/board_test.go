@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"log"
 	"math/rand"
+	"path"
 	"reflect"
 	"testing"
 	"time"
@@ -151,7 +152,39 @@ func TestBoardColorFromChar(t *testing.T) {
 	assert.Equal(t, byte(0xFF), ColorFromChar('a'))
 }
 
-// TODO(Alex) Stalemate, Checkmate Tests
+const boardsDirectory = "board_test"
+
+func TestBoard_IsInCheckmateBlack(t *testing.T) {
+	b := Board{}
+	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "black_is_in_checkmate.txt"))
+	b.LoadBoardFromText(lines)
+	assert.False(t, b.IsInCheckmate(color.White, nil))
+	assert.True(t, b.IsInCheckmate(color.Black, nil))
+}
+
+func TestBoard_IsInCheckmateWhite(t *testing.T) {
+	b := Board{}
+	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "white_is_in_checkmate.txt"))
+	b.LoadBoardFromText(lines)
+	assert.True(t, b.IsInCheckmate(color.White, nil))
+	assert.False(t, b.IsInCheckmate(color.Black, nil))
+}
+
+func TestBoard_IsStalemateBlack(t *testing.T) {
+	b := Board{}
+	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "black_is_stalemate.txt"))
+	b.LoadBoardFromText(lines)
+	assert.False(t, b.IsStalemate(color.White, nil))
+	assert.True(t, b.IsStalemate(color.Black, nil))
+}
+
+func TestBoard_IsStalemateWhite(t *testing.T) {
+	b := Board{}
+	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "white_is_stalemate.txt"))
+	b.LoadBoardFromText(lines)
+	assert.True(t, b.IsStalemate(color.White, nil))
+	assert.False(t, b.IsStalemate(color.Black, nil))
+}
 
 func simulateGameMove(move *location.Move, b *Board) {
 	lastMove := MakeMove(move, b)
