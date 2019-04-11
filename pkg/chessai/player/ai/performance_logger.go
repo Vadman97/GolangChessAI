@@ -222,7 +222,6 @@ func (logger *PerformanceLogger) markPerformanceToExcel(b *board.Board, m *Score
 			b.MoveCache.GetHitRatio(),
 			b.MoveCache.GetReadRatio(),
 		}, startingColMoveCache)
-	fmt.Println("Marking the attackable cache...")
 	logger.markMetricsToExcelTable(p,
 		[]interface{}{
 			p.TurnCount,
@@ -245,6 +244,5 @@ func (logger *PerformanceLogger) markMetricsToExcelTable(p *Player, values []int
 	for index, value := range values {
 		cell := fmt.Sprintf("%c%d", startColumn+byte(index), row)
 		excel.SetCellValue(sheet, cell, value)
-		fmt.Println(fmt.Sprintf("%s should have a value of %f", cell, value))
 	}
 }
