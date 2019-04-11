@@ -43,9 +43,9 @@ func TestRook_IsRightRook(t *testing.T) {
 	rook := PieceFromType(piece.RookType).(*Rook)
 	rook.SetColor(color.Black)
 	rook.SetPosition(location.NewLocation(5, 5))
-	assert.False(t, rook.IsLeftRook())
+	assert.False(t, rook.IsRightRook())
 	rook.SetPosition(location.NewLocation(5, 0))
-	assert.False(t, rook.IsLeftRook())
+	assert.False(t, rook.IsRightRook())
 	rook.SetPosition(location.NewLocation(5, Width-1))
-	assert.True(t, rook.IsLeftRook())
+	assert.True(t, rook.IsRightRook())
 }
