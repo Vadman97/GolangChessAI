@@ -63,8 +63,7 @@ func (c *Competition) Print() (result string) {
 	result += fmt.Sprintf("\n=== Game %d ===\n", c.gameNumber)
 	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.White].Repr(), c.elos[color.White])
 	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.Black].Repr(), c.elos[color.Black])
-	result += fmt.Sprintf("[%s]_W:%d,[%s]_W:%d,T:%d\n\n",
-		c.players[color.White].Repr(), c.wins[color.White], c.players[color.Black].Repr(), c.wins[color.Black], c.ties)
+	result += fmt.Sprintf("White Wins:Black Wins:Ties\t%d:%d:%d\n\n", c.wins[color.White], c.wins[color.Black], c.ties)
 	return result
 }
 
@@ -110,8 +109,8 @@ func (c *Competition) RunAICompetition() {
 	rand.Seed(config.Get().TestRandSeed)
 	c.players[color.White].Algorithm = &ai.MTDf{}
 	c.players[color.White].MaxSearchDepth = 512
-	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
+	c.players[color.White].MaxThinkTime = 15000 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.MiniMax{}
-	c.players[color.Black].MaxSearchDepth = 1
+	c.players[color.Black].MaxSearchDepth = 4
 	c.RunCompetition()
 }
