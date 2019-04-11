@@ -11,6 +11,7 @@ import (
 )
 
 type Competition struct {
+	NumberOfGames          int
 	wins                   [color.NumColors]int
 	ties                   int
 	players                [color.NumColors]*ai.Player
@@ -23,6 +24,7 @@ type Competition struct {
 func NewCompetition() (c *Competition) {
 	var StartingElo = Elo(config.Get().StartingElo)
 	c = &Competition{
+		NumberOfGames: config.Get().NumberOfCompetitionGames,
 		players: [2]*ai.Player{
 			ai.NewAIPlayer(color.White, nil),
 			ai.NewAIPlayer(color.Black, nil),
@@ -36,7 +38,7 @@ func NewCompetition() (c *Competition) {
 
 func (c *Competition) RunCompetition() {
 	c.competitionRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-	for c.gameNumber = 1; c.gameNumber <= config.Get().NumberOfCompetitionGames; c.gameNumber++ {
+	for c.gameNumber = 1; c.gameNumber <= c.NumberOfGames; c.gameNumber++ {
 		fmt.Printf(c.Print())
 		// randomize color of players each game
 		c.randomizePlayers()
@@ -98,16 +100,14 @@ func (c *Competition) disablePrinting(g *game.Game) {
 	c.players[color.Black].PrintInfo = false
 }
 
-func RunAICompetition() {
+func (c *Competition) RunAICompetition() {
 	// TODO(Vadim) output this to file and keep history of AI performance
 	// TODO(Vadim) load ai from file
 	rand.Seed(config.Get().TestRandSeed)
-	comp := NewCompetition()
-	comp.players[color.White].Algorithm = &ai.MTDf{}
-	comp.players[color.White].MaxSearchDepth = 512
-	comp.players[color.White].MaxThinkTime = 1 * time.Second
-	comp.players[color.Black].Algorithm = &ai.MiniMax{}
-	comp.players[color.Black].MaxSearchDepth = 1
-	// default opponent random
-	comp.RunCompetition()
+	c.players[color.White].Algorithm = &ai.MTDf{}
+	c.players[color.White].MaxSearchDepth = 512
+	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
+	c.players[color.Black].Algorithm = &ai.MiniMax{}
+	c.players[color.Black].MaxSearchDepth = 1
+	c.RunCompetition()
 }

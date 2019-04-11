@@ -13,7 +13,8 @@ import (
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "competition" {
-		competition.RunAICompetition()
+		comp := competition.NewCompetition()
+		comp.RunAICompetition()
 		return
 	}
 
