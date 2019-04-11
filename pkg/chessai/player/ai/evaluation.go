@@ -102,8 +102,6 @@ func (p *Player) evaluateBoardCached(b *board.Board) *Evaluation {
 		eval.TotalScore = PosInf
 	} else if b.IsInCheckmate(p.PlayerColor, nil) {
 		eval.TotalScore = NegInf
-	} else if b.IsInCheckmate(p.PlayerColor, nil) {
-		eval.TotalScore = NegInf
 	} else if b.IsStalemate(p.PlayerColor, nil) || b.IsStalemate(p.PlayerColor^1, nil) {
 		eval.TotalScore = 0
 	} else {
