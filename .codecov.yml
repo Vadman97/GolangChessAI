@@ -17,7 +17,9 @@ coverage:
         target: 90%
         threshold: 0%
         paths: "pkg/chessai/board"
-      default: yes
+      default:
+        target: auto
+        threshold: 3%
     patch:
       board:
         target: 100%
