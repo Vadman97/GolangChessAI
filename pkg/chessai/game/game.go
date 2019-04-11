@@ -40,7 +40,7 @@ func (g *Game) GetGameOutcome() (outcome Outcome) {
 		outcome.Win[color.White] = true
 	} else if g.GameStatus == BlackWin {
 		outcome.Win[color.Black] = true
-	} else if g.GameStatus == Stalemate {
+	} else if g.GameStatus == RegularStalemate || g.GameStatus == FiftyMoveStalemate || g.GameStatus == RepeatedActionThreeTimeStalemate {
 		outcome.Tie = true
 	}
 	return
@@ -80,12 +80,12 @@ func (g *Game) PlayTurn() bool {
 					g.GameStatus = WhiteWin
 				}
 			} else if g.CurrentBoard.IsStalemate(c, g.PreviousMove) {
-				g.GameStatus = Stalemate
+				g.GameStatus = RegularStalemate
 			}
 		}
 		if g.GameStatus == Active && g.CurrentBoard.MovesSinceNoDraw >= 100 {
 			// 50 Move Rule (50 moves per color)
-			g.GameStatus = Stalemate
+			g.GameStatus = FiftyMoveStalemate
 		}
 
 		if g.GameStatus == Active {
