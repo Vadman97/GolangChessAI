@@ -202,8 +202,8 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 
 func (p *Player) ClearCaches() {
 	// TODO(Vadim) find better way to pick when to clear, based on size #49
-	//p.evaluationMap = util.NewConcurrentBoardMap()
-	//p.alphaBetaTable = util.NewTranspositionTable()
+	p.evaluationMap = util.NewConcurrentBoardMap()
+	p.alphaBetaTable = util.NewTranspositionTable()
 }
 
 func (p *Player) printThread(stop chan bool) {
