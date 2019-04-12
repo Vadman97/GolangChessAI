@@ -4,7 +4,6 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
-	"log"
 )
 
 type Rook struct {
@@ -124,8 +123,6 @@ func (r *Rook) IsStartingRow() bool {
 		return r.Location.GetRow() == 0
 	} else if r.Color == color.White {
 		return r.Location.GetRow() == 7
-	} else {
-		log.Fatal("Invalid Color")
 	}
 	return false
 }
