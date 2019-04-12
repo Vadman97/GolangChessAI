@@ -491,9 +491,7 @@ func (b *Board) willMoveLeaveKingInCheck(c byte, m location.Move) bool {
  * Checks if the king of color c is in checkmate.
  */
 func (b *Board) IsInCheckmate(c byte, previousMove *LastMove) bool {
-	cannotMove := !b.HasLegalMove(c, previousMove)
-	isChecked := b.IsKingInCheck(c)
-	return cannotMove && isChecked
+	return !b.HasLegalMove(c, previousMove) && b.IsKingInCheck(c)
 }
 
 /**
