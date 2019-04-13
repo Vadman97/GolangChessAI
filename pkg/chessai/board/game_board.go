@@ -353,6 +353,9 @@ func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
 					for _, nextMove := range additionalMoves {
 						if !b.willMoveLeaveKingInCheck(c, nextMove) {
 							moves = append(moves, nextMove)
+							if onlyFirstMove {
+								return &moves
+							}
 						}
 					}
 					// the first move left the king in check, must try more moves (extra optimization not possible)
