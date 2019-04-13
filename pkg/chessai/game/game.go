@@ -40,7 +40,7 @@ func (g *Game) GetGameOutcome() (outcome Outcome) {
 		outcome.Win[color.White] = true
 	} else if g.GameStatus == BlackWin {
 		outcome.Win[color.Black] = true
-	} else if g.GameStatus == RegularDraw || g.GameStatus == FiftyMoveDraw || g.GameStatus == RepeatedActionThreeTimeDraw {
+	} else if g.GameStatus == Stalemate || g.GameStatus == FiftyMoveDraw || g.GameStatus == RepeatedActionThreeTimeDraw {
 		outcome.Tie = true
 	}
 	return
@@ -71,17 +71,19 @@ func (g *Game) PlayTurn() bool {
 		g.MovesPlayed++
 
 		g.CurrentBoard.UpdateDrawCounter(g.PreviousMove)
-		if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
-			if g.CurrentTurnColor == color.White {
-				g.GameStatus = BlackWin
-			} else {
-				g.GameStatus = WhiteWin
+
+		for c := color.White; c < color.NumColors; c++ {
+			if g.CurrentBoard.IsInCheckmate(c, g.PreviousMove) {
+				if c == color.White {
+					g.GameStatus = BlackWin
+				} else {
+					g.GameStatus = WhiteWin
+				}
+			} else if g.CurrentBoard.IsStalemate(c, g.PreviousMove) {
+				g.GameStatus = Stalemate
 			}
-		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
-			g.GameStatus = RegularDraw
-		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
-			g.GameStatus = RegularDraw
-		} else if g.GameStatus == Active && g.CurrentBoard.MovesSinceNoDraw >= 100 {
+		}
+		if g.GameStatus == Active && g.CurrentBoard.MovesSinceNoDraw >= 100 {
 			// 50 Move Rule (50 moves per color)
 			g.GameStatus = FiftyMoveDraw
 		}
@@ -103,11 +105,13 @@ func (g *Game) Print() (result string) {
 	// we just played white if we are now on black, show info for white
 	result += fmt.Sprintln(g.CurrentBoard.Print())
 	result += g.PrintThinkTime(g.CurrentTurnColor ^ 1)
-	whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
-	blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
-	result += fmt.Sprintf("Average move time:\n")
-	result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
-	result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
+	if g.MovesPlayed%2 == 0 {
+		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
+		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
+		result += fmt.Sprintf("Average move time:\n")
+		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
+		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
+	}
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
 	result += fmt.Sprintf("Total game turns: %d\n", g.MovesPlayed/2)
 	result += fmt.Sprintf("Game state: %s", StatusStrings[g.GameStatus])
