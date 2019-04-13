@@ -8,7 +8,7 @@ import (
 )
 
 func BenchmarkEvaluate(b *testing.B) {
-	p := ai.Player{}
+	p := ai.AIPlayer{}
 	bo1 := board.Board{}
 	bo1.ResetDefault()
 	var eval *ai.Evaluation
@@ -24,7 +24,7 @@ func BenchmarkEvaluate(b *testing.B) {
 func BenchmarkEvaluateParallel(b *testing.B) {
 	b.SetParallelism(8)
 	b.RunParallel(func(pb *testing.PB) {
-		p := ai.Player{}
+		p := ai.AIPlayer{}
 		bo1 := board.Board{}
 		bo1.ResetDefault()
 		for pb.Next() {

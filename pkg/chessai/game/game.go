@@ -13,13 +13,12 @@ import (
 )
 
 type Game struct {
-	CurrentBoard     *board.Board
-	CurrentTurnColor byte
-	Players          map[byte]*ai.Player
-	LastMoveTime     map[byte]time.Duration
-	TotalMoveTime    map[byte]time.Duration
-	MovesPlayed      uint
-
+	CurrentBoard      *board.Board
+	CurrentTurnColor  byte
+	Players           map[byte]*ai.AIPlayer // TODO(Alex) change it to player.Player
+	LastMoveTime      map[byte]time.Duration
+	TotalMoveTime     map[byte]time.Duration
+	MovesPlayed       uint
 	PreviousMove      *board.LastMove
 	GameStatus        byte
 	CacheMemoryLimit  uint64
@@ -58,12 +57,16 @@ func (g *Game) PlayTurn() bool {
 		g.printer <- fmt.Sprintf("Aborting - out of time\n")
 		g.GameStatus = Aborted
 	} else {
-		g.printer <- fmt.Sprintf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor].Repr())
+		g.printer <- fmt.Sprintf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor])
 		start := time.Now()
 		quitTimeUpdates := make(chan bool)
 		// print think time for slow players, regardless of what's going on
 		go g.periodicUpdates(quitTimeUpdates, start)
-		g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
+
+		// TODO(Alex) allow games to work for humans & AI
+		bestMove := g.Players[g.CurrentTurnColor].GetBestMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
+		g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, bestMove)
+
 		// quit time updates (never prints if quick player)
 		close(quitTimeUpdates)
 		g.UpdateTime(start)
@@ -120,9 +123,9 @@ func (g *Game) Print() (result string) {
 
 func (g *Game) PrintThinkTime(c byte) (result string) {
 	if c == color.White {
-		result += fmt.Sprintf("White %s thought for %s\n", g.Players[color.White].Repr(), g.LastMoveTime[color.White])
+		result += fmt.Sprintf("White %s thought for %s\n", g.Players[color.White], g.LastMoveTime[color.White])
 	} else {
-		result += fmt.Sprintf("Black %s thought for %s\n", g.Players[color.Black].Repr(), g.LastMoveTime[color.Black])
+		result += fmt.Sprintf("Black %s thought for %s\n", g.Players[color.Black], g.LastMoveTime[color.Black])
 	}
 	return
 }
@@ -182,7 +185,7 @@ func (g *Game) printThread() {
 	}
 }
 
-func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
+func NewGame(whitePlayer, blackPlayer *ai.AIPlayer) *Game {
 	performanceLogger := ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
 		config.Get().LogPerformance,
 		config.Get().ExcelPerformanceFileName,
@@ -190,7 +193,7 @@ func NewGame(whitePlayer, blackPlayer *ai.Player) *Game {
 	g := Game{
 		CurrentBoard:     &board.Board{},
 		CurrentTurnColor: color.White,
-		Players: map[byte]*ai.Player{
+		Players: map[byte]*ai.AIPlayer{
 			color.White: whitePlayer,
 			color.Black: blackPlayer,
 		},
