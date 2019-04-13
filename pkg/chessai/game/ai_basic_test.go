@@ -35,7 +35,7 @@ func TestBoardAI(t *testing.T) {
 	}
 	smartScore := aiPlayerSmart.EvaluateBoard(g.CurrentBoard).TotalScore
 	dumbScore := aiPlayerDumb.EvaluateBoard(g.CurrentBoard).TotalScore
-	fmt.Printf("Good AI %s Evaluation %d.\n", aiPlayerSmart.Repr(), smartScore)
-	fmt.Printf("Bad AI %s Evaluation %d.\n", aiPlayerDumb.Repr(), dumbScore)
+	fmt.Printf("Good AI %s Evaluation %d.\n", aiPlayerSmart, smartScore)
+	fmt.Printf("Bad AI %s Evaluation %d.\n", aiPlayerDumb, dumbScore)
 	assert.True(t, smartScore > dumbScore)
 }

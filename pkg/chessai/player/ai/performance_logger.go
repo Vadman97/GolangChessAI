@@ -81,7 +81,7 @@ func (logger *PerformanceLogger) setupExcelRowHeadingsForTable(sheet string, tab
 /**
  * Performs logging as desired.
  */
-func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, p *Player) {
+func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, p *AIPlayer) {
 	if logger.MakeLog {
 		logger.markPerformanceToLog(b, m, p)
 	}
@@ -94,7 +94,7 @@ func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, 
  * Call this function after the game is complete and no more logging is desired. It will generate all charts and save
  * the excel file.
  */
-func (logger *PerformanceLogger) CompletePerformanceLog(white *Player, black *Player) {
+func (logger *PerformanceLogger) CompletePerformanceLog(white *AIPlayer, black *AIPlayer) {
 	logger.generateChartsForPlayer(white)
 	logger.generateChartsForPlayer(black)
 	err := logger.ExcelFile.SaveAs(logger.ExcelFileName)
@@ -106,7 +106,7 @@ func (logger *PerformanceLogger) CompletePerformanceLog(white *Player, black *Pl
 /**
  * Generates all charts for one player.
  */
-func (logger *PerformanceLogger) generateChartsForPlayer(p *Player) {
+func (logger *PerformanceLogger) generateChartsForPlayer(p *AIPlayer) {
 	logger.generatePruningBreakdownChart(p)
 	logger.generateCacheCharts(p, "Move", startingColMoveCache)
 	logger.generateCacheCharts(p, "Attackable", startingColAttackableCache)
@@ -115,7 +115,7 @@ func (logger *PerformanceLogger) generateChartsForPlayer(p *Player) {
 /**
  * Generates pruning breakdown - AB vs Transposition.
  */
-func (logger *PerformanceLogger) generatePruningBreakdownChart(p *Player) {
+func (logger *PerformanceLogger) generatePruningBreakdownChart(p *AIPlayer) {
 	logger.generateChart("barPercentStacked", "Pruning Breakdown", p, startingColPruning,
 		p.TurnCount+4, []byte{startingColPruning + byte(3), startingColPruning + byte(4)})
 }
@@ -125,7 +125,7 @@ func (logger *PerformanceLogger) generatePruningBreakdownChart(p *Player) {
  * Chart 1 - "Utilization" - Hit and Read ratios
  * Chart 2 - "Size" - Entries, Reads, Writes, and Lock Usage
  */
-func (logger *PerformanceLogger) generateCacheCharts(p *Player, cacheName string, startingCol byte) {
+func (logger *PerformanceLogger) generateCacheCharts(p *AIPlayer, cacheName string, startingCol byte) {
 	logger.generateChart("scatter", cacheName+" Cache Utilization", p, startingCol, p.TurnCount+4,
 		[]byte{startingColMoveCache + byte(5), startingColMoveCache + byte(6)},
 	)
@@ -141,7 +141,7 @@ func (logger *PerformanceLogger) generateCacheCharts(p *Player, cacheName string
 /**
  * Generates a chart.
  */
-func (logger *PerformanceLogger) generateChart(chartType string, chartTitle string, p *Player, tableStartCol byte,
+func (logger *PerformanceLogger) generateChart(chartType string, chartTitle string, p *AIPlayer, tableStartCol byte,
 	chartRow int, seriesCols []byte) {
 	chartCell := fmt.Sprintf("%c%d", tableStartCol, chartRow)
 	sheet := color.Names[p.PlayerColor]
@@ -179,7 +179,7 @@ func (logger *PerformanceLogger) generateSeriesString(sheet string, lastTurnRow 
 /**
  * Performs simple logging to log file.
  */
-func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredMove, p *Player) {
+func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredMove, p *AIPlayer) {
 	file, err := os.OpenFile(logger.LogFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal("Cannot write/open/append/create performance log.", err)
@@ -202,7 +202,7 @@ func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredM
 /**
  * Performs logging to .xlsx file to build various tables.
  */
-func (logger *PerformanceLogger) markPerformanceToExcel(b *board.Board, m *ScoredMove, p *Player) {
+func (logger *PerformanceLogger) markPerformanceToExcel(b *board.Board, m *ScoredMove, p *AIPlayer) {
 	logger.markMetricsToExcelTable(p,
 		[]interface{}{
 			p.TurnCount,
@@ -237,7 +237,7 @@ func (logger *PerformanceLogger) markPerformanceToExcel(b *board.Board, m *Score
 /**
  * Prints one turn of metrics.
  */
-func (logger *PerformanceLogger) markMetricsToExcelTable(p *Player, values []interface{}, startColumn byte) {
+func (logger *PerformanceLogger) markMetricsToExcelTable(p *AIPlayer, values []interface{}, startColumn byte) {
 	row := p.TurnCount + 3
 	sheet := color.Names[p.PlayerColor]
 	excel := logger.ExcelFile

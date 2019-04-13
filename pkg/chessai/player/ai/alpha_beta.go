@@ -6,7 +6,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
-func (p *Player) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
+func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
 	standPat := p.EvaluateBoard(root).TotalScore
 	if standPat >= beta {
 		return beta
@@ -144,7 +144,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 }
 
 type AlphaBetaWithMemory struct {
-	player          *Player
+	player          *AIPlayer
 	abort           bool
 	lastSearchDepth int
 }
@@ -153,7 +153,7 @@ func (ab *AlphaBetaWithMemory) GetName() string {
 	return fmt.Sprintf("%s,[depth:%d]", AlgorithmAlphaBetaWithMemory, ab.lastSearchDepth)
 }
 
-func (ab *AlphaBetaWithMemory) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
+func (ab *AlphaBetaWithMemory) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
 	ab.abort = false
 	ab.lastSearchDepth = p.MaxSearchDepth

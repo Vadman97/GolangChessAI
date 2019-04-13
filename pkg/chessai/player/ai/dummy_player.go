@@ -5,7 +5,7 @@ import (
 	"math/rand"
 )
 
-func (p *Player) RandomMove(b *board.Board, previousMove *board.LastMove) *ScoredMove {
+func (p *AIPlayer) RandomMove(b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	moves := *b.GetAllMoves(p.PlayerColor, previousMove)
 	idx := rand.Intn(len(moves))
 	return &ScoredMove{
@@ -19,6 +19,6 @@ func (m *Random) GetName() string {
 	return AlgorithmRandom
 }
 
-func (m *Random) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
+func (m *Random) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	return p.RandomMove(b, previousMove)
 }

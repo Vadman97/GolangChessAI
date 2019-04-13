@@ -15,7 +15,7 @@ type Competition struct {
 	NumberOfGames          int
 	wins                   [color.NumColors]int
 	ties                   int
-	players                [color.NumColors]*ai.Player
+	players                [color.NumColors]*ai.AIPlayer
 	elos                   [color.NumColors]Elo
 	gameNumber             int
 	whiteIndex, blackIndex int
@@ -26,7 +26,7 @@ func NewCompetition() (c *Competition) {
 	var StartingElo = Elo(config.Get().StartingElo)
 	c = &Competition{
 		NumberOfGames: config.Get().NumberOfCompetitionGames,
-		players: [2]*ai.Player{
+		players: [2]*ai.AIPlayer{
 			ai.NewAIPlayer(color.White, nil),
 			ai.NewAIPlayer(color.Black, nil),
 		},
@@ -61,8 +61,8 @@ func (c *Competition) RunCompetition() {
 
 func (c *Competition) Print() (result string) {
 	result += fmt.Sprintf("\n=== Game %d ===\n", c.gameNumber)
-	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.White].Repr(), c.elos[color.White])
-	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.Black].Repr(), c.elos[color.Black])
+	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.White], c.elos[color.White])
+	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.Black], c.elos[color.Black])
 	result += fmt.Sprintf("White Wins:Black Wins:Ties\t%d:%d:%d\n\n", c.wins[color.White], c.wins[color.Black], c.ties)
 	return result
 }
