@@ -70,10 +70,10 @@ type ScoredMove struct {
 
 type Algorithm interface {
 	GetName() string
-	GetBestMove(*Player, *board.Board, *board.LastMove) *ScoredMove
+	GetBestMove(*AIPlayer, *board.Board, *board.LastMove) *ScoredMove
 }
 
-type Player struct {
+type AIPlayer struct {
 	Algorithm                 Algorithm
 	TranspositionTableEnabled bool
 	PlayerColor               byte
@@ -90,8 +90,8 @@ type Player struct {
 	printer        chan string
 }
 
-func NewAIPlayer(c byte, algorithm Algorithm) *Player {
-	p := &Player{
+func NewAIPlayer(c byte, algorithm Algorithm) *AIPlayer {
+	p := &AIPlayer{
 		Algorithm:                 algorithm,
 		TranspositionTableEnabled: config.Get().TranspositionTableEnabled,
 		PlayerColor:               c,
@@ -126,7 +126,7 @@ func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove
 	}
 }
 
-func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *location.Move {
+func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *location.Move {
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 	} else {
@@ -143,7 +143,7 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove, logge
 			}
 			logger.MarkPerformance(b, scoredMove, p)
 			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
-				p.printer <- fmt.Sprintf("%s resigns, no best move available. Picking random.\n", p.Repr())
+				p.printer <- fmt.Sprintf("%s resigns, no best move available. Picking random.\n", p)
 				return &p.RandomMove(b, previousMove).Move
 			}
 			return &scoredMove.Move
@@ -153,18 +153,18 @@ func (p *Player) GetBestMove(b *board.Board, previousMove *board.LastMove, logge
 	}
 }
 
-func (p *Player) MakeMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *board.LastMove {
-	move := board.MakeMove(p.GetBestMove(b, previousMove, logger), b)
+func (p *AIPlayer) MakeMove(b *board.Board, move *location.Move) *board.LastMove {
+	lastMove := board.MakeMove(move, b)
 	p.TurnCount++
-	return move
+	return lastMove
 }
 
-func (p *Player) Repr() string {
+func (p *AIPlayer) String() string {
 	return fmt.Sprintf("AI (%s - %s)",
 		p.Algorithm.GetName(), color.Names[p.PlayerColor])
 }
 
-func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
+func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 	LogFile := config.Get().DebugLogFileName
 	file, err := os.OpenFile(LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -186,7 +186,7 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 		board.MakeMove(&move, debugBoard)
 	}
 	result += fmt.Sprintf("%s\n", p.Metrics.Print())
-	result += fmt.Sprintf("%s best move leads to score %d\n", p.Repr(), m.Score)
+	result += fmt.Sprintf("%s best move leads to score %d\n", p, m.Score)
 	p.printer <- fmt.Sprint(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.PrintMetrics()
@@ -200,13 +200,13 @@ func (p *Player) printMoveDebug(b *board.Board, m *ScoredMove) {
 	_, _ = fmt.Fprint(file, result)
 }
 
-func (p *Player) ClearCaches() {
+func (p *AIPlayer) ClearCaches() {
 	// TODO(Vadim) find better way to pick when to clear, based on size #49
 	p.evaluationMap = util.NewConcurrentBoardMap()
 	p.alphaBetaTable = util.NewTranspositionTable()
 }
 
-func (p *Player) printThread(stop chan bool) {
+func (p *AIPlayer) printThread(stop chan bool) {
 	for {
 		select {
 		case <-stop:

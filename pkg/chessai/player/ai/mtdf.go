@@ -76,7 +76,7 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 }
 
 type MTDf struct {
-	player             *Player
+	player             *AIPlayer
 	ab                 AlphaBetaWithMemory
 	currentSearchDepth int
 	lastSearchDepth    int
@@ -87,7 +87,7 @@ func (m *MTDf) GetName() string {
 	return fmt.Sprintf("%s,[D:%d;T:%s]", AlgorithmMTDf, m.lastSearchDepth, m.lastSearchTime)
 }
 
-func (m *MTDf) GetBestMove(p *Player, b *board.Board, previousMove *board.LastMove) *ScoredMove {
+func (m *MTDf) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	m.player = p
 	m.ab = AlphaBetaWithMemory{player: p}
 	return m.IterativeMTDf(b, nil, previousMove)

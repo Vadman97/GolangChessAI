@@ -73,7 +73,7 @@ const (
 	PawnAdvancedWeight  = 1
 )
 
-func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
+func (p *AIPlayer) EvaluateBoard(b *board.Board) *Evaluation {
 	eval := NewEvaluation()
 	// first see if we have calculations we cannot cache
 	if b.MovesSinceNoDraw == 100 {
@@ -86,7 +86,7 @@ func (p *Player) EvaluateBoard(b *board.Board) *Evaluation {
 	return eval
 }
 
-func (p *Player) evaluateBoardCached(b *board.Board) *Evaluation {
+func (p *AIPlayer) evaluateBoardCached(b *board.Board) *Evaluation {
 	hash := b.Hash()
 	if p.evaluationMap != nil {
 		if score, ok := p.evaluationMap.Read(&hash); ok {
