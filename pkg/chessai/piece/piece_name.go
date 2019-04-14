@@ -29,3 +29,12 @@ var NameToType = map[rune]byte{
 	KingChar:   KingType,
 	PawnChar:   PawnType,
 }
+
+var TypeToName = map[byte]string {
+	RookType: string(RookChar),
+	KnightType: string(KnightChar),
+	BishopType: string(BishopChar),
+	QueenType: string(QueenChar),
+	KingType: string(KingChar),
+	PawnType: string(PawnChar),
+}

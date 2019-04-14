@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Vadman97/ChessAI3/pkg/api"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/competition"
 	"github.com/gorilla/mux"
 	"log"
@@ -21,9 +22,21 @@ func main() {
 	// Setup HTTP Routes
 	r := mux.NewRouter()
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))
-	// api := r.PathPrefix("/api").Subrouter()
 
 	r.HandleFunc("/", HomeHandler)
+
+	gameApiRouter := r.PathPrefix("/api/game").Subrouter()
+	gameApiRouter.
+		Path("/").
+		Methods("GET").
+		HandlerFunc(api.GetGameStateHandler)
+
+	gameApiRouter.
+		Path("/").
+		Methods("POST").
+		Queries("command", "{command}").
+		HandlerFunc(api.PostGameCommandHandler)
+
 
 	// Start HTTP Server
 	port := os.Getenv("PORT")
