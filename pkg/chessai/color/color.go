@@ -1,8 +1,10 @@
 package color
 
+type Color = byte
+
 const (
-	White     = byte(iota)
-	Black     = byte(iota)
+	White     = Color(iota)
+	Black     = Color(iota)
 	WhiteChar = 'W'
 	BlackChar = 'B'
 	NumColors = 2
