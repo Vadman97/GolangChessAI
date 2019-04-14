@@ -16,6 +16,7 @@ type Game struct {
 	CurrentBoard      *board.Board
 	CurrentTurnColor  byte
 	Players           map[byte]*ai.AIPlayer // TODO(Alex) change it to player.Player
+	CurrentMoveTime   map[byte]time.Duration
 	LastMoveTime      map[byte]time.Duration
 	TotalMoveTime     map[byte]time.Duration
 	MovesPlayed       uint
@@ -75,18 +76,19 @@ func (g *Game) PlayTurn() bool {
 
 		g.CurrentBoard.UpdateDrawCounter(g.PreviousMove)
 
-		for c := color.White; c < color.NumColors; c++ {
-			if g.CurrentBoard.IsInCheckmate(c, g.PreviousMove) {
-				if c == color.White {
-					g.GameStatus = BlackWin
-				} else {
-					g.GameStatus = WhiteWin
-				}
-			} else if g.CurrentBoard.IsStalemate(c, g.PreviousMove) {
-				g.GameStatus = Stalemate
+		// check that the next player is not in checkmate
+		// priority goes to win, then stalemate, then fifty move draw
+		if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
+			if g.CurrentTurnColor == color.White {
+				g.GameStatus = BlackWin
+			} else {
+				g.GameStatus = WhiteWin
 			}
-		}
-		if g.GameStatus == Active && g.CurrentBoard.MovesSinceNoDraw >= 100 {
+		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
+			g.GameStatus = Stalemate
+		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
+			g.GameStatus = Stalemate
+		} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
 			// 50 Move Rule (50 moves per color)
 			g.GameStatus = FiftyMoveDraw
 		}
@@ -107,8 +109,8 @@ func (g *Game) PlayTurn() bool {
 func (g *Game) Print() (result string) {
 	// we just played white if we are now on black, show info for white
 	result += fmt.Sprintln(g.CurrentBoard.Print())
-	result += g.PrintThinkTime(g.CurrentTurnColor ^ 1)
-	if g.MovesPlayed%2 == 0 {
+	result += g.PrintThinkTime(g.CurrentTurnColor^1, g.LastMoveTime)
+	if g.MovesPlayed%2 == 0 || g.GameStatus != Active {
 		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
 		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
 		result += fmt.Sprintf("Average move time:\n")
@@ -121,11 +123,11 @@ func (g *Game) Print() (result string) {
 	return
 }
 
-func (g *Game) PrintThinkTime(c byte) (result string) {
+func (g *Game) PrintThinkTime(c byte, moveTime map[byte]time.Duration) (result string) {
 	if c == color.White {
-		result += fmt.Sprintf("White %s thought for %s\n", g.Players[color.White], g.LastMoveTime[color.White])
+		result += fmt.Sprintf("White %s thought for %s\n", g.Players[color.White], moveTime[color.White])
 	} else {
-		result += fmt.Sprintf("Black %s thought for %s\n", g.Players[color.Black], g.LastMoveTime[color.Black])
+		result += fmt.Sprintf("Black %s thought for %s\n", g.Players[color.Black], moveTime[color.Black])
 	}
 	return
 }
@@ -138,8 +140,8 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 		case <-stop:
 			return
 		default:
-			g.UpdateTime(start)
-			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor))
+			g.CurrentMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
+			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor, g.CurrentMoveTime))
 			g.printer <- fmt.Sprintf("\t%s\n\t", g.Players[g.CurrentTurnColor].Metrics.Print())
 			g.printer <- util.GetMemStatString()
 			g.printer <- fmt.Sprintln()
