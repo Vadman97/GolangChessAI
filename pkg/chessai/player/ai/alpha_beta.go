@@ -6,7 +6,6 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
-// TODO(Vadim) use quiescence when evaluation is fixed to make side to move relative
 func (ab *AlphaBetaWithMemory) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
 	standPat := ab.player.EvaluateBoard(root, currentPlayer).TotalScore
 	if standPat >= beta {
@@ -65,9 +64,9 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	var best ScoredMove
 	if depth == 0 {
 		best = ScoredMove{
-			//Score: ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore,
+			Score: ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore,
 			// TODO(Vadim) compare quiescence with none
-			Score: ab.Quiesce(root, alpha, beta, currentPlayer, previousMove),
+			//Score: ab.Quiesce(root, alpha, beta, ab.player.PlayerColor, previousMove),
 		}
 	} else {
 		var maximizingPlayer = currentPlayer == ab.player.PlayerColor
@@ -100,11 +99,10 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 				break
 			}
 			if maximizingPlayer {
-				candidate = ab.AlphaBetaWithMemory(newBoard, depth-1, -beta, -a, currentPlayer^1, previousMove)
+				candidate = ab.AlphaBetaWithMemory(newBoard, depth-1, a, beta, currentPlayer^1, previousMove)
 			} else {
-				candidate = ab.AlphaBetaWithMemory(newBoard, depth-1, -b, -alpha, currentPlayer^1, previousMove)
+				candidate = ab.AlphaBetaWithMemory(newBoard, depth-1, alpha, b, currentPlayer^1, previousMove)
 			}
-			candidate.Score = -candidate.Score
 			candidate.Move = m
 			candidate.MoveSequence = append(candidate.MoveSequence, m)
 			if betterMove(maximizingPlayer, &best, candidate) {

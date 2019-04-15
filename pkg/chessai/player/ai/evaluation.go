@@ -77,6 +77,7 @@ type EvaluationPair struct {
 	Evaluations [color.NumColors]*Evaluation
 }
 
+// TODO(Vadim) make this a static function, share evaluation cache, keep track of hit rate per color
 func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
 	// first see if we have calculations we cannot cache
