@@ -47,7 +47,7 @@ func testBoard(t *testing.T, fileName string) {
 
 func evaluateAndCompare(t *testing.T, color byte, score int, b *board.Board) {
 	p := NewAIPlayer(color, &Random{})
-	eval := p.EvaluateBoard(b)
+	eval := p.EvaluateBoard(b, color)
 	fmt.Printf("Expected %d Evaluated %d\n", score, eval.TotalScore)
 	assert.Equal(t, score, eval.TotalScore)
 }

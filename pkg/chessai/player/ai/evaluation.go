@@ -98,7 +98,7 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	hash := b.Hash()
 	if p.evaluationMap != nil {
 		if value, ok := p.evaluationMap.Read(&hash); ok {
-			entry := value.(EvaluationPair)
+			entry := value.(*EvaluationPair)
 			if entry.Evaluations[whoMoves] != nil {
 				return &Evaluation{
 					TotalScore: entry.Evaluations[whoMoves].TotalScore,
@@ -118,24 +118,24 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	} else {
 		for r := location.CoordinateType(0); r < board.Height; r++ {
 			for c := location.CoordinateType(0); c < board.Width; c++ {
-				if p := b.GetPiece(location.NewLocation(r, c)); p != nil {
-					eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
-					eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b, false)))
-					aMoves := p.GetAttackableMoves(b)
+				if piece2 := b.GetPiece(location.NewLocation(r, c)); piece2 != nil {
+					eval.PieceCounts[piece2.GetColor()][piece2.GetPieceType()]++
+					eval.NumMoves[piece2.GetColor()] += uint16(len(*piece2.GetMoves(b, false)))
+					aMoves := piece2.GetAttackableMoves(b)
 					if aMoves != nil {
-						eval.NumAttacks[p.GetColor()] += uint16(len(*aMoves))
+						eval.NumAttacks[piece2.GetColor()] += uint16(len(*aMoves))
 					}
 
-					if p.GetPieceType() == piece.PawnType {
-						eval.PawnColumns[p.GetColor()][c]++
-						eval.PawnRows[p.GetColor()][r]++
-						if r != board.StartRow[p.GetColor()]["Pawn"] {
-							eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
+					if piece2.GetPieceType() == piece.PawnType {
+						eval.PawnColumns[piece2.GetColor()][c]++
+						eval.PawnRows[piece2.GetColor()][r]++
+						if r != board.StartRow[piece2.GetColor()]["Pawn"] {
+							eval.PieceAdvanced[piece2.GetColor()][piece2.GetPieceType()]++
 						}
 						// do not give bonus for advancing king
-					} else if p.GetPieceType() != piece.KingType {
-						if r != board.StartRow[p.GetColor()]["Piece"] {
-							eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
+					} else if piece2.GetPieceType() != piece.KingType {
+						if r != board.StartRow[piece2.GetColor()]["Piece"] {
+							eval.PieceAdvanced[piece2.GetColor()][piece2.GetPieceType()]++
 						}
 					}
 				}
