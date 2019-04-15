@@ -52,11 +52,14 @@ func (r *Bishop) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 			if !inBounds {
 				break
 			}
-			validMove, checkNext := CheckLocationForPiece(r.GetColor(), loc, board)
+			validMove, checkNext := CheckLocationForPiece(r.Color, loc, board)
 			if validMove {
-				moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
-				if onlyFirstMove {
-					return &moves
+				possibleMove := location.Move{Start: r.GetPosition(), End: loc}
+				if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
+					moves = append(moves, possibleMove)
+					if onlyFirstMove {
+						return &moves
+					}
 				}
 			}
 			if !checkNext {

@@ -61,9 +61,12 @@ func (r *King) GetNormalMoves(board *Board, onlyFirstMove bool) *[]location.Move
 				if inBounds {
 					pieceOnLocation := board.GetPiece(l)
 					if (pieceOnLocation == nil) || (pieceOnLocation.GetColor() != r.Color) {
-						moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
-						if onlyFirstMove {
-							return &moves
+						possibleMove := location.Move{Start: r.GetPosition(), End: l}
+						if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
+							moves = append(moves, possibleMove)
+							if onlyFirstMove {
+								return &moves
+							}
 						}
 					}
 				}
@@ -90,10 +93,20 @@ func (r *King) GetCastleMoves(board *Board, onlyFirstMove bool) *[]location.Move
 		rightM, leftM := location.Move{Start: r.GetPosition(), End: right},
 			location.Move{Start: r.GetPosition(), End: left}
 		if rightIn && r.canCastle(&rightM, board) && !board.GetFlag(FlagRightRookMoved, r.GetColor()) {
-			moves = append(moves, rightM)
+			if !board.willMoveLeaveKingInCheck(r.Color, rightM) {
+				moves = append(moves, rightM)
+				if onlyFirstMove {
+					return &moves
+				}
+			}
 		}
 		if leftIn && r.canCastle(&leftM, board) && !board.GetFlag(FlagLeftRookMoved, r.GetColor()) {
-			moves = append(moves, leftM)
+			if !board.willMoveLeaveKingInCheck(r.Color, leftM) {
+				moves = append(moves, leftM)
+				if onlyFirstMove {
+					return &moves
+				}
+			}
 		}
 	}
 	return &moves
