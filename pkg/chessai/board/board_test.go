@@ -154,6 +154,14 @@ func TestBoardColorFromChar(t *testing.T) {
 
 const boardsDirectory = "board_test"
 
+func TestBoard_IsNotInCheckmateBlack(t *testing.T) {
+	b := Board{}
+	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "black_not_in_checkmate.txt"))
+	b.LoadBoardFromText(lines)
+	assert.False(t, b.IsInCheckmate(color.White, nil))
+	assert.False(t, b.IsInCheckmate(color.Black, nil))
+}
+
 func TestBoard_IsInCheckmateBlack(t *testing.T) {
 	b := Board{}
 	lines, _ := util.LoadBoardFile(path.Join(boardsDirectory, "black_is_in_checkmate.txt"))

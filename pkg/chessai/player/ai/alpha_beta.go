@@ -6,8 +6,9 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
-func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
-	standPat := p.EvaluateBoard(root).TotalScore
+// TODO(Vadim) use quiescence when evaluation is fixed to make side to move relative
+func (ab *AlphaBetaWithMemory) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
+	standPat := ab.player.EvaluateBoard(root).TotalScore
 	if standPat >= beta {
 		return beta
 	} else if alpha < standPat {
@@ -20,7 +21,7 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 		if !root.IsEmpty(m.End) {
 			child := root.Copy()
 			board.MakeMove(&m, child)
-			score := p.Quiesce(child, alpha, beta, currentPlayer^1, previousMove)
+			score := -ab.Quiesce(child, -beta, -alpha, currentPlayer^1, previousMove)
 
 			if score >= beta {
 				return beta
@@ -66,7 +67,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		best = ScoredMove{
 			Score: ab.player.EvaluateBoard(root).TotalScore,
 			// TODO(Vadim) compare quiescence with none
-			//Score: p.Quiesce(root, alpha, beta, currentPlayer, previousMove),
+			//Score: ab.Quiesce(root, alpha, beta, whoMoves, currentPlayer, previousMove),
 		}
 	} else {
 		var maximizingPlayer = currentPlayer == ab.player.PlayerColor
