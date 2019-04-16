@@ -12,6 +12,9 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 	// until every capture has been examined
 	moves := root.GetAllMoves(currentPlayer, previousMove)
 	for _, m := range *moves {
+		if p.abort {
+			break
+		}
 		// capture move
 		if !root.IsEmpty(m.End) {
 			child := root.Copy()
