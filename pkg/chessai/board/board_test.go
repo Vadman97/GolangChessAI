@@ -203,8 +203,7 @@ func TestBoard_IsStalemateWhite(t *testing.T) {
 }
 
 func simulateGameMove(move *location.Move, b *Board) {
-	lastMove := MakeMove(move, b)
-	b.UpdateDrawCounter(lastMove)
+	MakeMove(move, b)
 }
 
 func performFiftyDrawMoves(bIn *Board) *Board {
