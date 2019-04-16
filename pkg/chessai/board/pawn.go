@@ -102,15 +102,21 @@ func (r *Pawn) getCaptureMoves(board *Board, onlyFirstMove bool) *[]location.Mov
 				if r.canPromote(loc) {
 					for _, promotedType := range piece.PawnPromotionOptions {
 						loc = loc.CreatePawnPromotion(promotedType)
+						possibleMove := location.Move{Start: r.GetPosition(), End: loc}
+						if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
+							moves = append(moves, possibleMove)
+							if onlyFirstMove {
+								return &moves
+							}
+						}
+					}
+				} else {
+					possibleMove := location.Move{Start: r.GetPosition(), End: loc}
+					if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
 						moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
 						if onlyFirstMove {
 							return &moves
 						}
-					}
-				} else {
-					moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
-					if onlyFirstMove {
-						return &moves
 					}
 				}
 			}
@@ -137,15 +143,21 @@ func (r *Pawn) getForwardMoves(board *Board, onlyFirstMove bool) *[]location.Mov
 				if r.canPromote(l) {
 					for _, promotedType := range piece.PawnPromotionOptions {
 						l = l.CreatePawnPromotion(promotedType)
-						moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
-						if onlyFirstMove {
-							return &moves
+						possibleMove := location.Move{Start: r.GetPosition(), End: l}
+						if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
+							moves = append(moves, possibleMove)
+							if onlyFirstMove {
+								return &moves
+							}
 						}
 					}
 				} else {
-					moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
-					if onlyFirstMove {
-						return &moves
+					possibleMove := location.Move{Start: r.GetPosition(), End: l}
+					if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
+						moves = append(moves, possibleMove)
+						if onlyFirstMove {
+							return &moves
+						}
 					}
 				}
 			} else {

@@ -56,11 +56,14 @@ func (r *Rook) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 			if !inBounds {
 				break
 			}
-			validMove, checkNext := CheckLocationForPiece(r.GetColor(), l, board)
+			validMove, checkNext := CheckLocationForPiece(r.Color, l, board)
 			if validMove {
-				moves = append(moves, location.Move{Start: r.GetPosition(), End: l})
-				if onlyFirstMove {
-					return &moves
+				possibleMove := location.Move{Start: r.GetPosition(), End: l}
+				if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
+					moves = append(moves, possibleMove)
+					if onlyFirstMove {
+						return &moves
+					}
 				}
 			}
 			if !checkNext {

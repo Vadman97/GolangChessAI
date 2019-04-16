@@ -326,7 +326,7 @@ func (b *Board) getAllMovesCached(color byte, previousMove *LastMove, onlyFirstM
 		entry.moves[color] = b.getAllMoves(color, onlyFirstMove)
 	}
 	if previousMove != nil {
-		enPassantMoves := b.GetEnPassantMoves(color, previousMove)
+		enPassantMoves := b.getEnPassantMoves(color, previousMove)
 		allMoves := append(*(entry.moves[color].(*[]location.Move)), *enPassantMoves...)
 		return &allMoves
 	}
@@ -351,23 +351,9 @@ func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
 				if p.GetColor() == c {
 					additionalMoves := *p.GetMoves(b, onlyFirstMove)
 					for _, nextMove := range additionalMoves {
-						if !b.willMoveLeaveKingInCheck(c, nextMove) {
-							moves = append(moves, nextMove)
-							if onlyFirstMove {
-								return &moves
-							}
-						}
-					}
-					// the first move left the king in check, must try more moves (extra optimization not possible)
-					if onlyFirstMove && len(moves) == 0 {
-						// we get all the moves from the king to try but still break on first legal
-						additionalMoves := *p.GetMoves(b, false)
-						for _, nextMove := range additionalMoves {
-							if !b.willMoveLeaveKingInCheck(c, nextMove) {
-								// still just grab the first move
-								moves = append(moves, nextMove)
-								return &moves
-							}
+						moves = append(moves, nextMove)
+						if onlyFirstMove {
+							return &moves
 						}
 					}
 				}
@@ -380,7 +366,7 @@ func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
 /**
  * Determines possible en passant moves based on color, board, and last move.
  */
-func (b *Board) GetEnPassantMoves(c byte, previousMove *LastMove) *[]location.Move {
+func (b *Board) getEnPassantMoves(c byte, previousMove *LastMove) *[]location.Move {
 	if previousMove == nil {
 		return nil
 	}
