@@ -82,7 +82,8 @@ type evaluationPair struct {
 func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
 	// first see if we have calculations we cannot cache
-	if b.MovesSinceNoDraw == 100 {
+	if b.MovesSinceNoDraw >= 100 {
+		// Vadim: >= instead of == because AI simulation will go beyond 100, it will know no win is possible
 		// Alex: This value may change, but AI right now prevents draws
 		eval.TotalScore = 0
 	} else {

@@ -38,13 +38,13 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		// transposition table lookup
 		h = root.Hash()
 		if entry, ok := ab.player.alphaBetaTable.Read(&h, currentPlayer); ok {
-			if entry.Lower >= beta {
+			if entry.Lower > NegInf && entry.Lower >= beta {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
 					Score: entry.Lower,
 					Move:  entry.BestMove,
 				}
-			} else if entry.Upper <= alpha {
+			} else if entry.Upper < PosInf && entry.Upper <= alpha {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
 					Score: entry.Upper,

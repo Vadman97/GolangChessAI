@@ -1,4 +1,4 @@
-Black -41
+Black -51
    |B_R|B_B|   |B_K|B_B|B_N|B_R
 B_P|B_P|B_P|   |   |B_P|B_P|B_P
    |   |B_N|   |   |B_Q|   |
