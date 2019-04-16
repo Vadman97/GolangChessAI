@@ -41,14 +41,6 @@ func testPieceGetMoves(t *testing.T, l location.Location, initialMove *[]locatio
 	}
 }
 
-func testEnPassantGetMoves(t *testing.T, initialMove *[]location.Move, expectedMoves int) {
-	bo1, lastMove := buildBoardWithInitialMoves(initialMove)
-	c := (*lastMove.Piece).GetColor()
-	c ^= 1
-	moves := bo1.GetEnPassantMoves(c, lastMove)
-	assert.Equal(t, expectedMoves, len(*moves))
-}
-
 func TestBishopGetMovesStart(t *testing.T) {
 	testPieceGetMoves(t, location.NewLocation(7, 2), nil, 0)
 }
@@ -213,69 +205,6 @@ func TestGetMovesEnPassantSingleOpportunity(t *testing.T) {
 		{
 			Start: location.NewLocation(1, 4),
 			End:   location.NewLocation(3, 4),
-		},
-	}, 1)
-}
-
-func TestGetMovesEnPassantDoubleOpportunity(t *testing.T) {
-	testEnPassantGetMoves(t, &[]location.Move{
-		{
-			Start: location.NewLocation(6, 3),
-			End:   location.NewLocation(3, 3),
-		},
-		{
-			Start: location.NewLocation(6, 5),
-			End:   location.NewLocation(3, 5),
-		},
-		{
-			Start: location.NewLocation(1, 4),
-			End:   location.NewLocation(3, 4),
-		},
-	}, 2)
-}
-
-func TestGetMovesEnPassantSameColor(t *testing.T) {
-	testEnPassantGetMoves(t, &[]location.Move{
-		{
-			Start: location.NewLocation(1, 4),
-			End:   location.NewLocation(3, 4),
-		},
-		{
-			Start: location.NewLocation(1, 2),
-			End:   location.NewLocation(3, 2),
-		},
-		{
-			Start: location.NewLocation(1, 3),
-			End:   location.NewLocation(3, 3),
-		},
-	}, 0)
-}
-
-func TestGetMovesEnPassantMissedOpportunity(t *testing.T) {
-	testEnPassantGetMoves(t, &[]location.Move{
-		{
-			Start: location.NewLocation(6, 3),
-			End:   location.NewLocation(3, 3),
-		},
-		{
-			Start: location.NewLocation(1, 4),
-			End:   location.NewLocation(3, 4),
-		},
-		{
-			Start: location.NewLocation(6, 5),
-			End:   location.NewLocation(3, 5),
-		},
-	}, 0)
-}
-
-func TestGetMovesBlackEnPassant(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(4, 2), &[]location.Move{
-		{
-			Start: location.NewLocation(1, 2),
-			End:   location.NewLocation(4, 2),
-		}, {
-			Start: location.NewLocation(6, 1),
-			End:   location.NewLocation(4, 1),
 		},
 	}, 1)
 }
