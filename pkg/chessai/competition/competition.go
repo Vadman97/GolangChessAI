@@ -109,9 +109,9 @@ func (c *Competition) RunAICompetition() {
 	rand.Seed(config.Get().TestRandSeed)
 	c.players[color.White].Algorithm = &ai.NegaScout{}
 	c.players[color.White].MaxSearchDepth = 128
-	c.players[color.White].MaxThinkTime = 15000 * time.Millisecond
+	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.MiniMax{}
-	c.players[color.Black].MaxThinkTime = 15000 * time.Millisecond
+	c.players[color.Black].MaxThinkTime = 100 * time.Millisecond
 	c.players[color.Black].MaxSearchDepth = 128
 	c.RunCompetition()
 }
