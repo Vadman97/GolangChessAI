@@ -69,6 +69,11 @@ type ScoredMove struct {
 	Score        int
 }
 
+func (s ScoredMove) NegScore() ScoredMove {
+	s.Score = -s.Score
+	return s
+}
+
 type Algorithm interface {
 	GetName() string
 	GetBestMove(*AIPlayer, *board.Board, *board.LastMove) *ScoredMove

@@ -18,33 +18,26 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 			Score: n.player.EvaluateBoard(root, currentPlayer).TotalScore,
 		}
 	} else {
-		t := ScoredMove{}
 		b := beta
 		moves := root.GetAllMoves(currentPlayer, previousMove)
 		for i, m := range *moves {
 			if n.abort {
-				break
+				return alpha
 			}
 			newBoard := root.Copy()
 			previousMove = board.MakeMove(&m, newBoard)
 			n.player.Metrics.MovesConsidered++
-			newAlpha, newBeta := b, alpha
-			newAlpha.Score, newBeta.Score = -newAlpha.Score, -newBeta.Score
-			t = n.NegaScout(newBoard, depth-1, newAlpha, newBeta, currentPlayer^1, previousMove)
-			t.Score = -t.Score
+			newAlpha, newBeta := b.NegScore(), alpha.NegScore()
+			t := n.NegaScout(newBoard, depth-1, newAlpha, newBeta, currentPlayer^1, previousMove).NegScore()
 
 			if t.Score > alpha.Score && t.Score < beta.Score && i > 0 {
 				// re-search
-				newAlpha, newBeta := beta, alpha
-				newAlpha.Score, newBeta.Score = -newAlpha.Score, -newBeta.Score
-				t = n.NegaScout(newBoard, depth-1, newAlpha, newBeta, currentPlayer^1, previousMove)
-				t.Score = -t.Score
+				newAlpha, newBeta := beta.NegScore(), alpha.NegScore()
+				t = n.NegaScout(newBoard, depth-1, newAlpha, newBeta, currentPlayer^1, previousMove).NegScore()
 			}
 
-			t.Move = m
-			t.MoveSequence = append(t.MoveSequence, m)
-
-			if t.Score >= alpha.Score {
+			if t.Score > alpha.Score {
+				t.Move = m
 				alpha = t
 			}
 			// cut-off
