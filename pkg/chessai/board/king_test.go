@@ -75,3 +75,11 @@ func TestKing_GetCastleMoves(t *testing.T) {
 	moves := whiteKing.GetCastleMoves(bo1, false)
 	assert.Equal(t, 2, len(*moves))
 }
+
+func TestKing_underAttackInvalidColor(t *testing.T) {
+	bo1 := &Board{}
+	bo1.ResetDefault()
+	king := bo1.GetPiece(location.NewLocation(7, 4)).(*King)
+	king.SetColor(4)
+	assert.False(t, king.underAttack(location.NewLocation(2, 3), bo1))
+}

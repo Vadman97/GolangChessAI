@@ -1,8 +1,10 @@
 package board
 
 import (
+	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"log"
@@ -15,6 +17,7 @@ import (
 
 func testEnPassantGetMoves(t *testing.T, initialMove *[]location.Move, expectedMoves int) {
 	bo1, lastMove := buildBoardWithInitialMoves(initialMove)
+	fmt.Println(bo1.Print())
 	c := (*lastMove.Piece).GetColor()
 	c ^= 1
 	moves := bo1.getEnPassantMoves(c, lastMove)
@@ -343,7 +346,7 @@ func TestBoard_getEnPassantMovesMissedOpportunity(t *testing.T) {
 }
 
 func TestBoard_getEnPassantMovesBlack(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(4, 2), &[]location.Move{
+	testEnPassantGetMoves(t, &[]location.Move{
 		{
 			Start: location.NewLocation(1, 2),
 			End:   location.NewLocation(4, 2),
@@ -352,4 +355,34 @@ func TestBoard_getEnPassantMovesBlack(t *testing.T) {
 			End:   location.NewLocation(4, 1),
 		},
 	}, 1)
+}
+
+func TestPieceFromTypeNilType(t *testing.T) {
+	assert.Nil(t, PieceFromType(piece.NilType))
+}
+
+func TestPieceFromTypeInvalidType(t *testing.T) {
+	assert.Panics(t, func() { PieceFromType(7) })
+}
+
+func TestBoard_Equals(t *testing.T) {
+	bo1 := &Board{}
+	bo1.ResetDefault()
+	bo2 := &Board{}
+	bo2.ResetDefault()
+	assert.True(t, bo1.Equals(bo2))
+
+	move := location.Move{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}
+	MakeMove(&move, bo2)
+	assert.False(t, bo1.Equals(bo2))
+}
+
+func TestBoard_RandomizeIllegal(t *testing.T) {
+	bo1 := &Board{}
+	bo1.ResetDefault()
+	bo1.TestRandGen = nil
+	bo2 := &Board{}
+	bo2.ResetDefault()
+	bo1.RandomizeIllegal()
+	assert.False(t, bo1.Equals(bo2))
 }
