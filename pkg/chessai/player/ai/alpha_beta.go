@@ -38,13 +38,13 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		// transposition table lookup
 		h = root.Hash()
 		if entry, ok := ab.player.alphaBetaTable.Read(&h, currentPlayer); ok {
-			if entry.Lower > NegInf && entry.Lower >= beta {
+			if entry.Lower >= beta {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
 					Score: entry.Lower,
 					Move:  entry.BestMove,
 				}
-			} else if entry.Upper < PosInf && entry.Upper <= alpha {
+			} else if entry.Upper <= alpha {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
 					Score: entry.Upper,
@@ -65,9 +65,9 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	var best ScoredMove
 	if depth == 0 {
 		best = ScoredMove{
-			Score: ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore,
+			//Score: ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore,
 			// TODO(Vadim) compare quiescence with none
-			//Score: ab.Quiesce(root, alpha, beta, ab.player.PlayerColor, previousMove),
+			Score: ab.Quiesce(root, alpha, beta, ab.player.PlayerColor, previousMove),
 		}
 	} else {
 		var maximizingPlayer = currentPlayer == ab.player.PlayerColor
@@ -118,10 +118,10 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	}
 
 	if !ab.abort && ab.player.TranspositionTableEnabled {
-		if best.Score <= alpha {
+		if best.Score >= beta {
 			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
-				Lower:    NegInf,
-				Upper:    best.Score,
+				Lower:    best.Score,
+				Upper:    PosInf,
 				BestMove: best.Move,
 			})
 		} else if best.Score > alpha && best.Score < beta {
@@ -130,10 +130,10 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 				Upper:    best.Score,
 				BestMove: best.Move,
 			})
-		} else if best.Score >= beta {
+		} else if best.Score <= alpha {
 			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
-				Lower:    best.Score,
-				Upper:    PosInf,
+				Lower:    NegInf,
+				Upper:    best.Score,
 				BestMove: best.Move,
 			})
 		}
