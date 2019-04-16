@@ -3,6 +3,7 @@ package ai
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"time"
 )
 
@@ -48,8 +49,6 @@ func (m *MTDf) trackThinkTime(stop chan bool, start time.Time) {
 	}
 }
 
-const iterativeIncrement = 2
-
 func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *board.LastMove) *ScoredMove {
 	if guess == nil {
 		guess = &ScoredMove{
@@ -57,12 +56,12 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 		}
 	}
 	start := time.Now()
+	iterativeIncrement := config.Get().IterativeIncrement
 	for m.currentSearchDepth = iterativeIncrement; m.currentSearchDepth <= m.player.MaxSearchDepth; m.currentSearchDepth += iterativeIncrement {
 		thinking := make(chan bool)
 		go m.trackThinkTime(thinking, start)
 		newGuess := m.MTDf(b, guess, previousMove)
 		close(thinking)
-		// MTDf returns a good move (did not abort search)
 		if !m.ab.abort {
 			guess = newGuess
 			m.lastSearchDepth = m.currentSearchDepth

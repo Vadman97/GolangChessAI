@@ -126,24 +126,24 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	} else {
 		for r := location.CoordinateType(0); r < board.Height; r++ {
 			for c := location.CoordinateType(0); c < board.Width; c++ {
-				if piece2 := b.GetPiece(location.NewLocation(r, c)); piece2 != nil {
-					eval.PieceCounts[piece2.GetColor()][piece2.GetPieceType()]++
-					eval.NumMoves[piece2.GetColor()] += uint16(len(*piece2.GetMoves(b, false)))
-					aMoves := piece2.GetAttackableMoves(b)
+				if gamePiece := b.GetPiece(location.NewLocation(r, c)); gamePiece != nil {
+					eval.PieceCounts[gamePiece.GetColor()][gamePiece.GetPieceType()]++
+					eval.NumMoves[gamePiece.GetColor()] += uint16(len(*gamePiece.GetMoves(b, false)))
+					aMoves := gamePiece.GetAttackableMoves(b)
 					if aMoves != nil {
-						eval.NumAttacks[piece2.GetColor()] += uint16(len(*aMoves))
+						eval.NumAttacks[gamePiece.GetColor()] += uint16(len(*aMoves))
 					}
 
-					if piece2.GetPieceType() == piece.PawnType {
-						eval.PawnColumns[piece2.GetColor()][c]++
-						eval.PawnRows[piece2.GetColor()][r]++
-						if r != board.StartRow[piece2.GetColor()]["Pawn"] {
-							eval.PieceAdvanced[piece2.GetColor()][piece2.GetPieceType()]++
+					if gamePiece.GetPieceType() == piece.PawnType {
+						eval.PawnColumns[gamePiece.GetColor()][c]++
+						eval.PawnRows[gamePiece.GetColor()][r]++
+						if r != board.StartRow[gamePiece.GetColor()]["Pawn"] {
+							eval.PieceAdvanced[gamePiece.GetColor()][gamePiece.GetPieceType()]++
 						}
 						// do not give bonus for advancing king
-					} else if piece2.GetPieceType() != piece.KingType {
-						if r != board.StartRow[piece2.GetColor()]["Piece"] {
-							eval.PieceAdvanced[piece2.GetColor()][piece2.GetPieceType()]++
+					} else if gamePiece.GetPieceType() != piece.KingType {
+						if r != board.StartRow[gamePiece.GetColor()]["Piece"] {
+							eval.PieceAdvanced[gamePiece.GetColor()][gamePiece.GetPieceType()]++
 						}
 					}
 				}

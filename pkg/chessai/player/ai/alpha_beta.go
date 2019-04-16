@@ -65,9 +65,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	var best ScoredMove
 	if depth == 0 {
 		best = ScoredMove{
-			//Score: ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore,
-			// TODO(Vadim) compare quiescence with none
-			Score: ab.Quiesce(root, alpha, beta, ab.player.PlayerColor, previousMove),
+			Score: ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore,
 		}
 	} else {
 		var maximizingPlayer = currentPlayer == ab.player.PlayerColor

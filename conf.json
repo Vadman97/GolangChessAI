@@ -14,5 +14,6 @@
   "PrintPlayerInfo": true,
   "NumberOfCompetitionGames": 100,
   "StartingElo": 1200,
-  "RandomMoveOrder": true
+  "RandomMoveOrder": true,
+  "IterativeIncrement": 1
 }

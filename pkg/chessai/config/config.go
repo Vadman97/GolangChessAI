@@ -24,6 +24,7 @@ type Configuration struct {
 	NumberOfCompetitionGames   int
 	StartingElo                int
 	RandomMoveOrder            bool
+	IterativeIncrement         int
 }
 
 const FilePath = "conf.json"
