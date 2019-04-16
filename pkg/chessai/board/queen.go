@@ -1,13 +1,14 @@
 package board
 
 import (
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 )
 
 type Queen struct {
 	Location location.Location
-	Color    byte
+	Color    color.Color
 }
 
 func (r *Queen) GetChar() rune {
@@ -18,11 +19,11 @@ func (r *Queen) GetPieceType() byte {
 	return piece.QueenType
 }
 
-func (r *Queen) GetColor() byte {
+func (r *Queen) GetColor() color.Color {
 	return r.Color
 }
 
-func (r *Queen) SetColor(color byte) {
+func (r *Queen) SetColor(color color.Color) {
 	r.Color = color
 }
 

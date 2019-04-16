@@ -9,39 +9,39 @@ import (
 
 type Evaluation struct {
 	// [color][pieceType] -> overall piece count
-	PieceCounts map[byte]map[byte]uint8
+	PieceCounts map[color.Color]map[byte]uint8
 	// [color][pieceType] -> count of pieces off starting position
-	PieceAdvanced map[byte]map[byte]uint8
+	PieceAdvanced map[color.Color]map[byte]uint8
 	// [color][column] -> num pawns
-	PawnColumns map[byte]map[location.CoordinateType]uint8
+	PawnColumns map[color.Color]map[location.CoordinateType]uint8
 	// [color][column] -> num pawns
-	PawnRows map[byte]map[location.CoordinateType]uint8
+	PawnRows map[color.Color]map[location.CoordinateType]uint8
 	// [color] -> num moves
-	NumMoves   map[byte]uint16
-	NumAttacks map[byte]uint16
+	NumMoves   map[color.Color]uint16
+	NumAttacks map[color.Color]uint16
 	TotalScore int
 }
 
 func NewEvaluation() *Evaluation {
 	e := Evaluation{
-		PieceCounts: map[byte]map[byte]uint8{
+		PieceCounts: map[color.Color]map[byte]uint8{
 			color.Black: {},
 			color.White: {},
 		},
-		PieceAdvanced: map[byte]map[byte]uint8{
+		PieceAdvanced: map[color.Color]map[byte]uint8{
 			color.Black: {},
 			color.White: {},
 		},
-		PawnColumns: map[byte]map[location.CoordinateType]uint8{
+		PawnColumns: map[color.Color]map[location.CoordinateType]uint8{
 			color.Black: {},
 			color.White: {},
 		},
-		PawnRows: map[byte]map[location.CoordinateType]uint8{
+		PawnRows: map[color.Color]map[location.CoordinateType]uint8{
 			color.Black: {},
 			color.White: {},
 		},
-		NumMoves:   map[byte]uint16{},
-		NumAttacks: map[byte]uint16{},
+		NumMoves:   map[color.Color]uint16{},
+		NumAttacks: map[color.Color]uint16{},
 	}
 	return &e
 }

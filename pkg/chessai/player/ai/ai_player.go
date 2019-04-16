@@ -23,6 +23,7 @@ const (
 	AlgorithmMiniMax             = "MiniMax"
 	AlgorithmAlphaBetaWithMemory = "AlphaBetaMemory"
 	AlgorithmMTDf                = "MTDf"
+	AlgorithmNegaScout           = "NegaScout"
 	AlgorithmRandom              = "Random"
 )
 
@@ -31,7 +32,7 @@ const (
 )
 
 // color -> list of openings: { list of moves }
-var OpeningMoves = map[byte][][]*location.Move{
+var OpeningMoves = map[color.Color][][]*location.Move{
 	color.Black: {{
 		&location.Move{
 			Start: location.NewLocation(board.StartRow[color.Black]["Pawn"], 4),
@@ -76,7 +77,7 @@ type Algorithm interface {
 type AIPlayer struct {
 	Algorithm                 Algorithm
 	TranspositionTableEnabled bool
-	PlayerColor               byte
+	PlayerColor               color.Color
 	MaxSearchDepth            int
 	MaxThinkTime              time.Duration
 	TurnCount                 int
@@ -90,7 +91,7 @@ type AIPlayer struct {
 	printer        chan string
 }
 
-func NewAIPlayer(c byte, algorithm Algorithm) *AIPlayer {
+func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
 	p := &AIPlayer{
 		Algorithm:                 algorithm,
 		TranspositionTableEnabled: config.Get().TranspositionTableEnabled,

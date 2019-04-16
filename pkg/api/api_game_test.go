@@ -14,27 +14,27 @@ import (
 )
 
 func TestGetGameState(t *testing.T) {
-	board := board.Board{}
-	board.ResetDefault()
+	board2 := board.Board{}
+	board2.ResetDefault()
 
 	testGame := &game.Game{
-		CurrentBoard: &board,
+		CurrentBoard:     &board2,
 		CurrentTurnColor: color.White,
-		Players: map[byte]player.Player{
+		Players: map[color.Color]player.Player{
 			color.White: nil,
 			color.Black: nil,
 		},
-		TotalMoveTime: map[byte]time.Duration{
+		TotalMoveTime: map[color.Color]time.Duration{
 			color.White: 0,
 			color.Black: 10,
 		},
-		LastMoveTime: map[byte]time.Duration{
+		LastMoveTime: map[color.Color]time.Duration{
 			color.White: 1,
 			color.Black: 2,
 		},
-		MovesPlayed:       8,
-		PreviousMove:      nil,
-		GameStatus:        game.Active,
+		MovesPlayed:  8,
+		PreviousMove: nil,
+		GameStatus:   game.Active,
 	}
 	setGame(testGame)
 

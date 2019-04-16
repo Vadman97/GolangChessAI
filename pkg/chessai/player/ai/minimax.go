@@ -3,10 +3,11 @@ package ai
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 )
 
-func (miniMax *MiniMax) MiniMaxRecurse(b *board.Board, m location.Move, depth int, currentPlayer byte,
+func (miniMax *MiniMax) MiniMaxRecurse(b *board.Board, m location.Move, depth int, currentPlayer color.Color,
 	previousMove *board.LastMove) *ScoredMove {
 	newBoard := b.Copy()
 	previousMove = board.MakeMove(&m, newBoard)
@@ -17,7 +18,7 @@ func (miniMax *MiniMax) MiniMaxRecurse(b *board.Board, m location.Move, depth in
 	return candidate
 }
 
-func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
+func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
 	if depth == 0 {
 		return &ScoredMove{
 			Score: miniMax.player.EvaluateBoard(b, miniMax.player.PlayerColor).TotalScore,

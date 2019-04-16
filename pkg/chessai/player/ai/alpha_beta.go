@@ -3,36 +3,11 @@ package ai
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
-func (ab *AlphaBetaWithMemory) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
-	standPat := ab.player.EvaluateBoard(root, currentPlayer).TotalScore
-	if standPat >= beta {
-		return beta
-	} else if alpha < standPat {
-		alpha = standPat
-	}
-	// until every capture has been examined
-	moves := root.GetAllMoves(currentPlayer, previousMove)
-	for _, m := range *moves {
-		// capture move
-		if !root.IsEmpty(m.End) {
-			child := root.Copy()
-			board.MakeMove(&m, child)
-			score := -ab.Quiesce(child, -beta, -alpha, currentPlayer^1, previousMove)
-
-			if score >= beta {
-				return beta
-			} else if score > alpha {
-				alpha = score
-			}
-		}
-	}
-	return alpha
-}
-
-func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
+func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
 	var h util.BoardHash
 	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
