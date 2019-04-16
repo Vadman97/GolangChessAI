@@ -49,3 +49,8 @@ func TestRook_IsRightRook(t *testing.T) {
 	rook.SetPosition(location.NewLocation(5, Width-1))
 	assert.True(t, rook.IsRightRook())
 }
+
+func TestRook_GetChar(t *testing.T) {
+	rook := PieceFromType(piece.RookType).(*Rook)
+	assert.Equal(t, 'R', rook.GetChar())
+}
