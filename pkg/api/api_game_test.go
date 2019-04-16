@@ -4,7 +4,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"net/http"
@@ -20,7 +20,7 @@ func TestGetGameState(t *testing.T) {
 	testGame := &game.Game{
 		CurrentBoard: &board,
 		CurrentTurnColor: color.White,
-		Players: map[byte]*ai.AIPlayer{
+		Players: map[byte]player.Player{
 			color.White: nil,
 			color.Black: nil,
 		},

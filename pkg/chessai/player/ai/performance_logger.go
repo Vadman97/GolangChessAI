@@ -94,9 +94,11 @@ func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, 
  * Call this function after the game is complete and no more logging is desired. It will generate all charts and save
  * the excel file.
  */
-func (logger *PerformanceLogger) CompletePerformanceLog(white *AIPlayer, black *AIPlayer) {
-	logger.generateChartsForPlayer(white)
-	logger.generateChartsForPlayer(black)
+func (logger *PerformanceLogger) CompletePerformanceLog(aiPlayers[] *AIPlayer) {
+	for _, ai := range aiPlayers {
+		logger.generateChartsForPlayer(ai)
+	}
+
 	err := logger.ExcelFile.SaveAs(logger.ExcelFileName)
 	if err != nil {
 		log.Fatal("Cannot save excel performance log.", err)
