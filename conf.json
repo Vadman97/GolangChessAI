@@ -13,5 +13,6 @@
   "ExcelPerformanceFileName": "./performance.xlsx",
   "PrintPlayerInfo": true,
   "NumberOfCompetitionGames": 100,
-  "StartingElo": 1200
+  "StartingElo": 1200,
+  "RandomMoveOrder": true
 }

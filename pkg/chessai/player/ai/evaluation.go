@@ -73,11 +73,12 @@ const (
 	PawnAdvancedWeight  = 1
 )
 
-type EvaluationPair struct {
-	Evaluations [color.NumColors]*Evaluation
+type evaluationPair struct {
+	evaluation *Evaluation
+	whoMoves   color.Color
 }
 
-// TODO(Vadim) make this a static function, share evaluation cache, keep track of hit rate per color
+// TODO(Vadim) make this a static function so evaluation cache is global
 func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
 	// first see if we have calculations we cannot cache
@@ -99,10 +100,15 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	hash := b.Hash()
 	if p.evaluationMap != nil {
 		if value, ok := p.evaluationMap.Read(&hash); ok {
-			entry := value.(*EvaluationPair)
-			if entry.Evaluations[whoMoves] != nil {
+			entry := value.(*evaluationPair)
+			if entry.evaluation != nil {
+				score := entry.evaluation.TotalScore
+				// store evaluation only once, flip perspective if needed
+				if whoMoves != entry.whoMoves {
+					score = -score
+				}
 				return &Evaluation{
-					TotalScore: entry.Evaluations[whoMoves].TotalScore,
+					TotalScore: score,
 				}
 			}
 		}
@@ -192,13 +198,12 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	}
 
 	if p.evaluationMap != nil {
-		entry := &EvaluationPair{
-			Evaluations: [2]*Evaluation{},
-		}
+		entry := &evaluationPair{}
 		if v, ok := p.evaluationMap.Read(&hash); ok {
-			entry = v.(*EvaluationPair)
+			entry = v.(*evaluationPair)
 		}
-		entry.Evaluations[whoMoves] = eval
+		entry.evaluation = eval
+		entry.whoMoves = whoMoves
 		p.evaluationMap.Store(&hash, entry)
 	}
 
