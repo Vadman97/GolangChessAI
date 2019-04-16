@@ -14,48 +14,52 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 	if depth == 0 {
 		// leaf node
 		return ScoredMove{
-			//Score: n.player.Quiesce(root, alpha.Score, beta.Score, currentPlayer, previousMove),
-			Score: n.player.EvaluateBoard(root, currentPlayer).TotalScore,
+			Score: n.player.Quiesce(root, alpha.Score, beta.Score, currentPlayer, previousMove),
+			//Score: n.player.EvaluateBoard(root, currentPlayer).TotalScore,
 		}
 	} else {
+		a := alpha
 		b := beta
 		moves := root.GetAllMoves(currentPlayer, previousMove)
 		for i, m := range *moves {
 			if n.abort {
-				return alpha
+				return a
 			}
 			newBoard := root.Copy()
 			previousMove = board.MakeMove(&m, newBoard)
 			n.player.Metrics.MovesConsidered++
-			newAlpha, newBeta := b.NegScore(), alpha.NegScore()
-			t := n.NegaScout(newBoard, depth-1, newAlpha, newBeta, currentPlayer^1, previousMove).NegScore()
 
-			if t.Score > alpha.Score && t.Score < beta.Score && i > 0 {
+			// search
+			t := n.NegaScout(newBoard, depth-1, b.NegScore(), a.NegScore(), currentPlayer^1, previousMove).NegScore()
+			t.Move = m
+
+			if t.Score > a.Score && t.Score < beta.Score && i > 0 && depth < n.startDepth-1 {
 				// re-search
-				newAlpha, newBeta := beta.NegScore(), alpha.NegScore()
-				t = n.NegaScout(newBoard, depth-1, newAlpha, newBeta, currentPlayer^1, previousMove).NegScore()
+				a = n.NegaScout(newBoard, depth-1, beta.NegScore(), t.NegScore(), currentPlayer^1, previousMove).NegScore()
+				a.Move = m
 			}
 
-			if t.Score > alpha.Score {
-				t.Move = m
-				alpha = t
+			if t.Score > a.Score {
+				a = t
 			}
+
 			// cut-off
-			if alpha.Score >= beta.Score {
+			if a.Score >= beta.Score {
 				n.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
-				return alpha
+				return a
 			}
 			// set new null window
-			b = alpha
+			b = a
 			b.Score++
 		}
-		return alpha
+		return a
 	}
 }
 
 type NegaScout struct {
 	player          *AIPlayer
 	abort           bool
+	startDepth      int
 	lastSearchDepth int
 }
 
@@ -66,13 +70,14 @@ func (n *NegaScout) GetName() string {
 func (n *NegaScout) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	n.player = p
 	n.abort = false
-	n.lastSearchDepth = p.MaxSearchDepth
-	best := n.NegaScout(b, p.MaxSearchDepth, ScoredMove{
+	n.startDepth = p.MaxSearchDepth
+	best := n.NegaScout(b, n.startDepth, ScoredMove{
 		Move:  location.Move{},
 		Score: NegInf,
 	}, ScoredMove{
 		Move:  location.Move{},
 		Score: PosInf,
 	}, p.PlayerColor, previousMove)
+	n.lastSearchDepth = n.startDepth
 	return &best
 }

@@ -16,9 +16,11 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 		if !root.IsEmpty(m.End) {
 			child := root.Copy()
 			board.MakeMove(&m, child)
+			p.Metrics.MovesConsidered++
 			score := -p.Quiesce(child, -beta, -alpha, currentPlayer^1, previousMove)
 
 			if score >= beta {
+				p.Metrics.MovesPrunedAB++
 				return beta
 			} else if score > alpha {
 				alpha = score
