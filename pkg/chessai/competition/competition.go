@@ -111,6 +111,7 @@ func (c *Competition) RunAICompetition() {
 	c.players[color.White].MaxSearchDepth = 128
 	c.players[color.White].MaxThinkTime = 15000 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.MiniMax{}
-	c.players[color.Black].MaxSearchDepth = 3
+	c.players[color.Black].MaxThinkTime = 15000 * time.Millisecond
+	c.players[color.Black].MaxSearchDepth = 128
 	c.RunCompetition()
 }

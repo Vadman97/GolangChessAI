@@ -5,6 +5,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"time"
 )
 
 func (miniMax *MiniMax) MiniMaxRecurse(b *board.Board, m location.Move, depth int, currentPlayer color.Color,
@@ -35,6 +36,9 @@ func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.C
 	}
 	moves := b.GetAllMoves(currentPlayer, previousMove)
 	for _, m := range *moves {
+		if miniMax.player.abort {
+			break
+		}
 		candidate := miniMax.MiniMaxRecurse(b, m, depth, currentPlayer, previousMove)
 		if betterMove(currentPlayer == miniMax.player.PlayerColor, &best, candidate) {
 			best = *candidate
@@ -44,17 +48,41 @@ func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.C
 	return &best
 }
 
+func (miniMax *MiniMax) IterativeMiniMax(b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	start := time.Now()
+	best := &ScoredMove{}
+	for miniMax.currentSearchDepth = 1; miniMax.currentSearchDepth <= miniMax.player.MaxSearchDepth; miniMax.currentSearchDepth += 1 {
+		thinking := make(chan bool)
+		go miniMax.player.trackThinkTime(thinking, start)
+		newBest := miniMax.MiniMax(b, miniMax.currentSearchDepth, miniMax.player.PlayerColor, previousMove)
+		close(thinking)
+		// did not abort search, good value
+		if !miniMax.player.abort {
+			best = newBest
+			miniMax.lastSearchDepth = miniMax.currentSearchDepth
+		} else {
+			// -1 due to discard of current level due to hard abort
+			miniMax.lastSearchDepth = miniMax.currentSearchDepth - 1
+			miniMax.player.printer <- fmt.Sprintf("MiniMax hard abort! evaluated to depth %d\n", miniMax.lastSearchDepth)
+			break
+		}
+	}
+	miniMax.lastSearchTime = time.Now().Sub(start)
+	return best
+}
+
 type MiniMax struct {
-	player          *AIPlayer
-	lastSearchDepth int
+	player             *AIPlayer
+	lastSearchDepth    int
+	currentSearchDepth int
+	lastSearchTime     time.Duration
 }
 
 func (miniMax *MiniMax) GetName() string {
-	return fmt.Sprintf("%s,[depth:%d]", AlgorithmMiniMax, miniMax.lastSearchDepth)
+	return fmt.Sprintf("%s,[D:%d;T:%s]", AlgorithmMiniMax, miniMax.lastSearchDepth, miniMax.lastSearchTime)
 }
 
 func (miniMax *MiniMax) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	miniMax.player = p
-	miniMax.lastSearchDepth = p.MaxSearchDepth
-	return miniMax.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
+	return miniMax.IterativeMiniMax(b, previousMove)
 }
