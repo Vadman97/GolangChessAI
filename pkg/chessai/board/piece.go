@@ -36,11 +36,14 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		pieceMoved := b.GetPiece(end)
 		pieceMoved.Move(m, b)
 
-		return &(LastMove{
+		lm := &LastMove{
 			Piece:     &pieceMoved,
 			Move:      m,
 			IsCapture: pieceCaptured != nil,
-		})
+		}
+		// here, not in game so that AI can keep track of FiftyMoveDraw condition
+		b.UpdateDrawCounter(lm)
+		return lm
 	}
 }
 
