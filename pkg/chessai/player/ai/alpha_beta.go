@@ -55,12 +55,12 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		moves := root.GetAllMoves(currentPlayer, previousMove)
 		for i, m := range *moves {
 			if maximizingPlayer {
-				if best.Score >= beta {
+				if best.Score > beta {
 					ab.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
 					break
 				}
 			} else {
-				if best.Score <= alpha {
+				if best.Score < alpha {
 					ab.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
 					break
 				}

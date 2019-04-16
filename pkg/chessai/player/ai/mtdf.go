@@ -75,6 +75,7 @@ func (m *MTDf) GetName() string {
 
 func (m *MTDf) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	m.player = p
+	m.player.abort = false
 	m.ab = AlphaBetaWithMemory{player: p}
 	return m.IterativeMTDf(b, nil, previousMove)
 }
