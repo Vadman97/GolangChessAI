@@ -238,7 +238,7 @@ func (p *AIPlayer) trackThinkTime(stop, done chan bool, start time.Time) {
 					p.printer <- fmt.Sprintf("requesting AI hard abort, out of time!\n")
 				}
 			}
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(1 * time.Millisecond)
 		}
 	}
 	done <- true

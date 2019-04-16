@@ -44,12 +44,13 @@ func (c *Competition) RunCompetition() {
 		// randomize color of players each game
 		c.randomizePlayers()
 		g := game.NewGame(c.players[c.whiteIndex], c.players[c.blackIndex])
-		//c.disablePrinting(g)
+		c.disablePrinting(g)
 		active := true
 		for active {
 			active = g.PlayTurn()
-			fmt.Printf("Moves made: %d, total game duration: %s, memory: %s",
-				g.MovesPlayed, g.GetTotalPlayTime(), util.GetMemStatString())
+			fmt.Printf("#%d, T: %s, P: %s, memory: %s",
+				g.MovesPlayed, g.GetTotalPlayTime(),
+				c.players[g.CurrentTurnColor^1].String(), util.GetMemStatString())
 		}
 		fmt.Println(g.Print())
 		g.ClearCaches()
@@ -107,7 +108,7 @@ func (c *Competition) RunAICompetition() {
 	// TODO(Vadim) output this to file and keep history of AI performance
 	// TODO(Vadim) load ai from file
 	rand.Seed(config.Get().TestRandSeed)
-	c.players[color.White].Algorithm = &ai.NegaScout{}
+	c.players[color.White].Algorithm = &ai.MiniMax{}
 	c.players[color.White].MaxSearchDepth = 128
 	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.MiniMax{}
