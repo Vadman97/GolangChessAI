@@ -1,9 +1,9 @@
 package board
 
 import (
+	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"log"
 )
 
 type Piece interface {
@@ -25,8 +25,7 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 	start := m.GetStart()
 	// TODO(Vadim) verify that you can take the piece based on Color - here or in getMoves?
 	if end.Equals(start) {
-		log.Fatalf("Invalid move attempted! Start and End same: %+v", start)
-		return nil
+		panic(fmt.Sprintf("Invalid move attempted! Start and End same: %+v", start))
 	} else {
 		// piece holds information about its location for convenience
 		// game tree stores as compressed game board -> have way to hash compressed game board fast
@@ -36,11 +35,14 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		pieceMoved := b.GetPiece(end)
 		pieceMoved.Move(m, b)
 
-		return &(LastMove{
+		lm := &LastMove{
 			Piece:     &pieceMoved,
 			Move:      m,
 			IsCapture: pieceCaptured != nil,
-		})
+		}
+		// here, not in game so that AI can keep track of FiftyMoveDraw condition
+		b.UpdateDrawCounter(lm)
+		return lm
 	}
 }
 

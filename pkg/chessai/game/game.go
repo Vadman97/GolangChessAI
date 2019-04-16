@@ -74,8 +74,6 @@ func (g *Game) PlayTurn() bool {
 		g.CurrentTurnColor ^= 1
 		g.MovesPlayed++
 
-		g.CurrentBoard.UpdateDrawCounter(g.PreviousMove)
-
 		// check that the next player is not in checkmate
 		// priority goes to win, then stalemate, then fifty move draw
 		if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {

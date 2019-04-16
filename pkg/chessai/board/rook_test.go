@@ -8,6 +8,11 @@ import (
 	"testing"
 )
 
+func TestRook_GetChar(t *testing.T) {
+	rook := PieceFromType(piece.RookType).(*Rook)
+	assert.Equal(t, 'R', rook.GetChar())
+}
+
 func TestRook_IsStartingRow(t *testing.T) {
 	rook := PieceFromType(piece.RookType).(*Rook)
 	rook.SetColor(color.Black)
@@ -48,4 +53,14 @@ func TestRook_IsRightRook(t *testing.T) {
 	assert.False(t, rook.IsRightRook())
 	rook.SetPosition(location.NewLocation(5, Width-1))
 	assert.True(t, rook.IsRightRook())
+}
+
+func TestRook_GetMovesOnlyFirstMove(t *testing.T) {
+	bo1, _ := buildBoardWithInitialMoves(&[]location.Move{{
+		Start: location.NewLocation(6, 0),
+		End:   location.NewLocation(4, 0),
+	}})
+	whiteRook := bo1.GetPiece(location.NewLocation(7, 0))
+	moves := whiteRook.GetMoves(bo1, true)
+	assert.Equal(t, 1, len(*moves))
 }

@@ -70,9 +70,12 @@ func (r *Knight) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	for _, loc := range *locations {
 		pieceOnLocation := board.GetPiece(loc)
 		if pieceOnLocation == nil || pieceOnLocation.GetColor() != r.Color {
-			moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
-			if onlyFirstMove {
-				return &moves
+			possibleMove := location.Move{Start: r.GetPosition(), End: loc}
+			if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
+				moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
+				if onlyFirstMove {
+					return &moves
+				}
 			}
 		}
 	}

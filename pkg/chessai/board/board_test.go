@@ -1,8 +1,10 @@
 package board
 
 import (
+	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"log"
@@ -12,6 +14,15 @@ import (
 	"testing"
 	"time"
 )
+
+func testEnPassantGetMoves(t *testing.T, initialMove *[]location.Move, expectedMoves int) {
+	bo1, lastMove := buildBoardWithInitialMoves(initialMove)
+	fmt.Println(bo1.Print())
+	c := (*lastMove.Piece).GetColor()
+	c ^= 1
+	moves := bo1.getEnPassantMoves(c, lastMove)
+	assert.Equal(t, expectedMoves, len(*moves))
+}
 
 func TestBoardMove(t *testing.T) {
 	board2 := Board{}
@@ -195,8 +206,7 @@ func TestBoard_IsStalemateWhite(t *testing.T) {
 }
 
 func simulateGameMove(move *location.Move, b *Board) {
-	lastMove := MakeMove(move, b)
-	b.UpdateDrawCounter(lastMove)
+	MakeMove(move, b)
 }
 
 func performFiftyDrawMoves(bIn *Board) *Board {
@@ -276,4 +286,103 @@ func TestFiftyMoveDrawResetByCapture(t *testing.T) {
 	}, b)
 
 	assert.Equal(t, 0, b.MovesSinceNoDraw)
+}
+
+func TestBoard_getEnPassantMovesNilMove(t *testing.T) {
+	bo1, _ := buildBoardWithInitialMoves(nil)
+	moves := bo1.getEnPassantMoves(color.White, nil)
+	assert.True(t, moves == nil)
+}
+
+func TestBoard_getEnPassantMovesDoubleOpportunity(t *testing.T) {
+	testEnPassantGetMoves(t, &[]location.Move{
+		{
+			Start: location.NewLocation(6, 3),
+			End:   location.NewLocation(3, 3),
+		},
+		{
+			Start: location.NewLocation(6, 5),
+			End:   location.NewLocation(3, 5),
+		},
+		{
+			Start: location.NewLocation(1, 4),
+			End:   location.NewLocation(3, 4),
+		},
+	}, 2)
+}
+
+func TestBoard_getEnPassantMovesSameColor(t *testing.T) {
+	testEnPassantGetMoves(t, &[]location.Move{
+		{
+			Start: location.NewLocation(1, 4),
+			End:   location.NewLocation(3, 4),
+		},
+		{
+			Start: location.NewLocation(1, 2),
+			End:   location.NewLocation(3, 2),
+		},
+		{
+			Start: location.NewLocation(1, 3),
+			End:   location.NewLocation(3, 3),
+		},
+	}, 0)
+}
+
+func TestBoard_getEnPassantMovesMissedOpportunity(t *testing.T) {
+	testEnPassantGetMoves(t, &[]location.Move{
+		{
+			Start: location.NewLocation(6, 3),
+			End:   location.NewLocation(3, 3),
+		},
+		{
+			Start: location.NewLocation(1, 4),
+			End:   location.NewLocation(3, 4),
+		},
+		{
+			Start: location.NewLocation(6, 5),
+			End:   location.NewLocation(3, 5),
+		},
+	}, 0)
+}
+
+func TestBoard_getEnPassantMovesBlack(t *testing.T) {
+	testEnPassantGetMoves(t, &[]location.Move{
+		{
+			Start: location.NewLocation(1, 2),
+			End:   location.NewLocation(4, 2),
+		}, {
+			Start: location.NewLocation(6, 1),
+			End:   location.NewLocation(4, 1),
+		},
+	}, 1)
+}
+
+func TestPieceFromTypeNilType(t *testing.T) {
+	assert.Nil(t, PieceFromType(piece.NilType))
+}
+
+func TestPieceFromTypeInvalidType(t *testing.T) {
+	assert.Panics(t, func() { PieceFromType(7) })
+}
+
+func TestBoard_Equals(t *testing.T) {
+	bo1 := &Board{}
+	bo1.ResetDefault()
+	bo2 := &Board{}
+	bo2.ResetDefault()
+	assert.True(t, bo1.Equals(bo2))
+
+	move := location.Move{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}
+	MakeMove(&move, bo2)
+	assert.False(t, bo1.Equals(bo2))
+}
+
+func TestBoard_RandomizeIllegal(t *testing.T) {
+	bo1 := &Board{}
+	bo1.ResetDefault()
+	bo1.TestRandGen = nil
+	bo2 := &Board{}
+	bo2.ResetDefault()
+	bo1.RandomizeIllegal()
+	assert.False(t, bo1.Equals(bo2))
 }
