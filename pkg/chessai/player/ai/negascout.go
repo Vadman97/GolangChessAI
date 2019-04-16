@@ -61,8 +61,8 @@ func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastM
 	start := time.Now()
 	best := ScoredMove{}
 	for n.currentSearchDepth = 1; n.currentSearchDepth <= n.player.MaxSearchDepth; n.currentSearchDepth += 1 {
-		thinking := make(chan bool)
-		go n.player.trackThinkTime(thinking, start)
+		thinking, done := make(chan bool), make(chan bool, 1)
+		go n.player.trackThinkTime(thinking, done, start)
 		newBest := n.NegaScout(b, n.currentSearchDepth, ScoredMove{
 			Move:  location.Move{},
 			Score: NegInf,
@@ -71,10 +71,12 @@ func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastM
 			Score: PosInf,
 		}, n.player.PlayerColor, previousMove)
 		close(thinking)
+		<-done
 		// did not abort search, good value
 		if !n.player.abort {
 			best = newBest
 			n.lastSearchDepth = n.currentSearchDepth
+			n.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", n.lastSearchDepth, best.Move.Print())
 		} else {
 			// -1 due to discard of current level due to hard abort
 			n.lastSearchDepth = n.currentSearchDepth - 1

@@ -40,13 +40,16 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 	start := time.Now()
 	iterativeIncrement := config.Get().IterativeIncrement
 	for m.currentSearchDepth = iterativeIncrement; m.currentSearchDepth <= m.player.MaxSearchDepth; m.currentSearchDepth += iterativeIncrement {
-		thinking := make(chan bool)
-		go m.player.trackThinkTime(thinking, start)
+		thinking, done := make(chan bool), make(chan bool, 1)
+		go m.player.trackThinkTime(thinking, done, start)
 		newGuess := m.MTDf(b, guess, previousMove)
 		close(thinking)
+		<-done
+		// MTDf returns a good move (did not abort search)
 		if !m.player.abort {
 			guess = newGuess
 			m.lastSearchDepth = m.currentSearchDepth
+			m.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", m.lastSearchDepth, guess.Move.Print())
 		} else {
 			// -1 due to discard of current level due to hard abort
 			m.lastSearchDepth = m.currentSearchDepth - iterativeIncrement

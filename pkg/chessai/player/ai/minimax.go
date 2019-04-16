@@ -49,17 +49,21 @@ func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.C
 }
 
 func (miniMax *MiniMax) IterativeMiniMax(b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	miniMax.player.abort = false
 	start := time.Now()
 	best := &ScoredMove{}
 	for miniMax.currentSearchDepth = 1; miniMax.currentSearchDepth <= miniMax.player.MaxSearchDepth; miniMax.currentSearchDepth += 1 {
-		thinking := make(chan bool)
-		go miniMax.player.trackThinkTime(thinking, start)
+		thinking, done := make(chan bool), make(chan bool, 1)
+		go miniMax.player.trackThinkTime(thinking, done, start)
+		miniMax.player.printer <- fmt.Sprintf("Start MM %s\n", miniMax.player.String())
 		newBest := miniMax.MiniMax(b, miniMax.currentSearchDepth, miniMax.player.PlayerColor, previousMove)
 		close(thinking)
+		<-done
 		// did not abort search, good value
 		if !miniMax.player.abort {
 			best = newBest
 			miniMax.lastSearchDepth = miniMax.currentSearchDepth
+			miniMax.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", miniMax.lastSearchDepth, best.Move.Print())
 		} else {
 			// -1 due to discard of current level due to hard abort
 			miniMax.lastSearchDepth = miniMax.currentSearchDepth - 1

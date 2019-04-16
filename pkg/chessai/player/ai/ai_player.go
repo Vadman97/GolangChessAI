@@ -224,11 +224,12 @@ func (p *AIPlayer) printThread(stop chan bool) {
 	}
 }
 
-func (p *AIPlayer) trackThinkTime(stop chan bool, start time.Time) {
+func (p *AIPlayer) trackThinkTime(stop, done chan bool, start time.Time) {
 	if p.MaxThinkTime != 0 {
 		for {
 			select {
 			case <-stop:
+				done <- true
 				return
 			default:
 				thinkTime := time.Now().Sub(start)
@@ -237,7 +238,8 @@ func (p *AIPlayer) trackThinkTime(stop chan bool, start time.Time) {
 					p.printer <- fmt.Sprintf("requesting AI hard abort, out of time!\n")
 				}
 			}
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
+	done <- true
 }
