@@ -31,24 +31,6 @@ func (m *MTDf) MTDf(root *board.Board, guess *ScoredMove, previousMove *board.La
 	return guess
 }
 
-func (m *MTDf) trackThinkTime(stop chan bool, start time.Time) {
-	if m.player.MaxThinkTime != 0 {
-		for {
-			select {
-			case <-stop:
-				return
-			default:
-				thinkTime := time.Now().Sub(start)
-				if thinkTime > m.player.MaxThinkTime {
-					m.ab.abort = true
-					m.player.printer <- fmt.Sprintf("MTDf requesting AB hard abort, out of time!")
-				}
-			}
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
-}
-
 func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *board.LastMove) *ScoredMove {
 	if guess == nil {
 		guess = &ScoredMove{
@@ -59,10 +41,10 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 	iterativeIncrement := config.Get().IterativeIncrement
 	for m.currentSearchDepth = iterativeIncrement; m.currentSearchDepth <= m.player.MaxSearchDepth; m.currentSearchDepth += iterativeIncrement {
 		thinking := make(chan bool)
-		go m.trackThinkTime(thinking, start)
+		go m.player.trackThinkTime(thinking, start)
 		newGuess := m.MTDf(b, guess, previousMove)
 		close(thinking)
-		if !m.ab.abort {
+		if !m.player.abort {
 			guess = newGuess
 			m.lastSearchDepth = m.currentSearchDepth
 		} else {

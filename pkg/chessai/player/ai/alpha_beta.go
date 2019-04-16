@@ -69,7 +69,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 			previousMove = board.MakeMove(&m, newBoard)
 			ab.player.Metrics.MovesConsidered++
 			var candidate *ScoredMove
-			if ab.abort {
+			if ab.player.abort {
 				break
 			}
 			if maximizingPlayer {
@@ -90,7 +90,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		}
 	}
 
-	if !ab.abort && ab.player.TranspositionTableEnabled {
+	if !ab.player.abort && ab.player.TranspositionTableEnabled {
 		if best.Score >= beta {
 			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
 				Lower:    best.Score,
@@ -117,7 +117,6 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 
 type AlphaBetaWithMemory struct {
 	player          *AIPlayer
-	abort           bool
 	lastSearchDepth int
 }
 
@@ -127,7 +126,7 @@ func (ab *AlphaBetaWithMemory) GetName() string {
 
 func (ab *AlphaBetaWithMemory) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
-	ab.abort = false
+	ab.player.abort = false
 	ab.lastSearchDepth = p.MaxSearchDepth
 	return ab.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
 }

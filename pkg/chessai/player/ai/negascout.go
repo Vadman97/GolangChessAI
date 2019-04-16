@@ -5,6 +5,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"time"
 )
 
 /**
@@ -22,7 +23,7 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 		b := beta
 		moves := root.GetAllMoves(currentPlayer, previousMove)
 		for i, m := range *moves {
-			if n.abort {
+			if n.player.abort {
 				return a
 			}
 			newBoard := root.Copy()
@@ -46,7 +47,7 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 			// cut-off
 			if a.Score >= beta.Score {
 				n.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
-				return a
+				break
 			}
 			// set new null window
 			b = a
@@ -56,11 +57,41 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 	}
 }
 
+func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastMove) ScoredMove {
+	start := time.Now()
+	best := ScoredMove{}
+	for n.currentSearchDepth = 1; n.currentSearchDepth <= n.player.MaxSearchDepth; n.currentSearchDepth += 1 {
+		thinking := make(chan bool)
+		go n.player.trackThinkTime(thinking, start)
+		newBest := n.NegaScout(b, n.currentSearchDepth, ScoredMove{
+			Move:  location.Move{},
+			Score: NegInf,
+		}, ScoredMove{
+			Move:  location.Move{},
+			Score: PosInf,
+		}, n.player.PlayerColor, previousMove)
+		close(thinking)
+		// did not abort search, good value
+		if !n.player.abort {
+			best = newBest
+			n.lastSearchDepth = n.currentSearchDepth
+		} else {
+			// -1 due to discard of current level due to hard abort
+			n.lastSearchDepth = n.currentSearchDepth - iterativeIncrement
+			n.player.printer <- fmt.Sprintf("NegaScout hard abort! evaluated to depth %d\n", n.lastSearchDepth)
+			break
+		}
+	}
+	n.lastSearchTime = time.Now().Sub(start)
+	return best
+}
+
 type NegaScout struct {
-	player          *AIPlayer
-	abort           bool
-	startDepth      int
-	lastSearchDepth int
+	player             *AIPlayer
+	startDepth         int
+	currentSearchDepth int
+	lastSearchDepth    int
+	lastSearchTime     time.Duration
 }
 
 func (n *NegaScout) GetName() string {
@@ -69,15 +100,10 @@ func (n *NegaScout) GetName() string {
 
 func (n *NegaScout) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	n.player = p
-	n.abort = false
+	n.player.abort = false
+
 	n.startDepth = p.MaxSearchDepth
-	best := n.NegaScout(b, n.startDepth, ScoredMove{
-		Move:  location.Move{},
-		Score: NegInf,
-	}, ScoredMove{
-		Move:  location.Move{},
-		Score: PosInf,
-	}, p.PlayerColor, previousMove)
-	n.lastSearchDepth = n.startDepth
+	best := n.IterativeNegaScout(b, previousMove)
+
 	return &best
 }

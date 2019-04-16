@@ -94,6 +94,7 @@ type AIPlayer struct {
 	evaluationMap  *util.ConcurrentBoardMap
 	alphaBetaTable *util.TranspositionTable
 	printer        chan string
+	abort          bool
 }
 
 func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
@@ -219,6 +220,24 @@ func (p *AIPlayer) printThread(stop chan bool) {
 			return
 		default:
 			util.PrintPrinter(p.printer, p.PrintInfo)
+		}
+	}
+}
+
+func (p *AIPlayer) trackThinkTime(stop chan bool, start time.Time) {
+	if p.MaxThinkTime != 0 {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				thinkTime := time.Now().Sub(start)
+				if thinkTime > p.MaxThinkTime {
+					p.abort = true
+					p.printer <- fmt.Sprintf("requesting AI hard abort, out of time!\n")
+				}
+			}
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }
