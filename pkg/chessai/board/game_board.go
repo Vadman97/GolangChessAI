@@ -7,7 +7,6 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
-	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -572,9 +571,8 @@ func PieceFromType(pieceTypeData byte) Piece {
 	} else if pieceTypeData == piece.PawnType {
 		return &Pawn{}
 	} else {
-		log.Fatal("Unknown piece type - error during decode: ", pieceTypeData)
+		panic(fmt.Sprintf("Unknown piece type - error during decode: %b", pieceTypeData))
 	}
-	return nil
 }
 
 func decodeData(l location.Location, data byte) Piece {

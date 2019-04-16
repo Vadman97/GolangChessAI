@@ -2,6 +2,7 @@ package board
 
 import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -44,4 +45,12 @@ func TestGetColorTypeRepr(t *testing.T) {
 	blackKing := PieceFromType(piece.KingType).(*King)
 	blackKing.SetColor(color.Black)
 	assert.Equal(t, "B_K", GetColorTypeRepr(blackKing))
+}
+
+func TestMakeMoveSameStartAndEnd(t *testing.T) {
+	bo1 := &Board{}
+	bo1.ResetDefault()
+	loc := location.NewLocation(6, 3)
+	invalidMove := &location.Move{Start: loc, End: loc}
+	assert.Panics(t, func() { MakeMove(invalidMove, bo1) })
 }

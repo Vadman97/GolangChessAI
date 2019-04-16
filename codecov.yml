@@ -11,7 +11,7 @@ coverage:
   status:
     project:
       board: # board should have 93 percent cov with always increasing
-        target: 93%
+        target: 100%
         threshold: 0%
         paths: "pkg/chessai/board"
       default: yes
