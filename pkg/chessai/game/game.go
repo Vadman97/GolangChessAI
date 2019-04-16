@@ -5,6 +5,8 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"math"
@@ -15,7 +17,7 @@ import (
 type Game struct {
 	CurrentBoard      *board.Board
 	CurrentTurnColor  byte
-	Players           map[byte]*ai.AIPlayer // TODO(Alex) change it to player.Player
+	Players           map[byte]player.Player
 	CurrentMoveTime   map[byte]time.Duration
 	LastMoveTime      map[byte]time.Duration
 	TotalMoveTime     map[byte]time.Duration
@@ -49,6 +51,7 @@ func (g *Game) GetGameOutcome() (outcome Outcome) {
 /**
  * Makes a move.  Returns boolean indicating if game is still active.
  */
+
 func (g *Game) PlayTurn() bool {
 	if g.GameStatus != Active {
 		panic("Game is not active!")
@@ -64,9 +67,15 @@ func (g *Game) PlayTurn() bool {
 		// print think time for slow players, regardless of what's going on
 		go g.periodicUpdates(quitTimeUpdates, start)
 
-		// TODO(Alex) allow games to work for humans & AI
-		bestMove := g.Players[g.CurrentTurnColor].GetBestMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
-		g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, bestMove)
+		var move *location.Move
+		switch p := g.Players[g.CurrentTurnColor].(type) {
+		case *player.HumanPlayer:
+			move = nil
+		case *ai.AIPlayer:
+			move = p.GetBestMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
+		}
+
+		g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, move)
 
 		// quit time updates (never prints if quick player)
 		close(quitTimeUpdates)
@@ -98,7 +107,14 @@ func (g *Game) PlayTurn() bool {
 		}
 	}
 	if g.GameStatus != Active {
-		g.PerformanceLogger.CompletePerformanceLog(g.Players[color.White], g.Players[color.Black])
+		var aiPlayers []*ai.AIPlayer
+		for c := color.White; c < color.NumColors; c++ {
+			if ai, isAI := g.Players[c].(*ai.AIPlayer); isAI {
+				aiPlayers = append(aiPlayers, ai)
+			}
+		}
+
+		g.PerformanceLogger.CompletePerformanceLog(aiPlayers)
 	}
 	g.printer <- fmt.Sprintln(g.Print())
 	return g.GameStatus == Active
@@ -140,7 +156,9 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 		default:
 			g.CurrentMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
 			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor, g.CurrentMoveTime))
-			g.printer <- fmt.Sprintf("\t%s\n\t", g.Players[g.CurrentTurnColor].Metrics.Print())
+			if ai, isAI := g.Players[g.CurrentTurnColor].(*ai.AIPlayer); isAI {
+				g.printer <- fmt.Sprintf("\t%s\n\t", ai.Metrics.Print())
+			}
 			g.printer <- util.GetMemStatString()
 			g.printer <- fmt.Sprintln()
 			// TODO(Vadim) decide if any other player things to print here
@@ -158,7 +176,9 @@ func (g *Game) ClearCaches() {
 	g.CurrentBoard.AttackableCache = util.NewConcurrentBoardMap()
 	g.CurrentBoard.MoveCache = util.NewConcurrentBoardMap()
 	for c := color.White; c < color.NumColors; c++ {
-		g.Players[c].ClearCaches()
+		if ai, isAI := g.Players[c].(*ai.AIPlayer); isAI {
+			ai.ClearCaches()
+		}
 	}
 }
 
@@ -185,7 +205,7 @@ func (g *Game) printThread() {
 	}
 }
 
-func NewGame(whitePlayer, blackPlayer *ai.AIPlayer) *Game {
+func NewGame(whitePlayer, blackPlayer player.Player) *Game {
 	performanceLogger := ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
 		config.Get().LogPerformance,
 		config.Get().ExcelPerformanceFileName,
@@ -193,7 +213,7 @@ func NewGame(whitePlayer, blackPlayer *ai.AIPlayer) *Game {
 	g := Game{
 		CurrentBoard:     &board.Board{},
 		CurrentTurnColor: color.White,
-		Players: map[byte]*ai.AIPlayer{
+		Players: map[byte]player.Player{
 			color.White: whitePlayer,
 			color.Black: blackPlayer,
 		},
