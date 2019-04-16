@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	NegInf = math.MinInt32
-	PosInf = math.MaxInt32
+	NegInf = math.MinInt32 + 8
+	PosInf = math.MaxInt32 - 7
 )
 
 const (

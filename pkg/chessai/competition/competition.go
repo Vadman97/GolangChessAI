@@ -108,7 +108,7 @@ func (c *Competition) RunAICompetition() {
 	// TODO(Vadim) load ai from file
 	rand.Seed(config.Get().TestRandSeed)
 	c.players[color.White].Algorithm = &ai.NegaScout{}
-	c.players[color.White].MaxSearchDepth = 4
+	c.players[color.White].MaxSearchDepth = 3
 	c.players[color.White].MaxThinkTime = 15000 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.MiniMax{}
 	c.players[color.Black].MaxSearchDepth = 3
