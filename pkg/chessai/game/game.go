@@ -132,7 +132,7 @@ func (g *Game) Print() (result string) {
 		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
 	}
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
-	result += fmt.Sprintf("Total game turns: %d\n", g.MovesPlayed/2)
+	result += fmt.Sprintf("Total game turns: %d\n", g.MovesPlayed/2+1)
 	result += fmt.Sprintf("Game state: %s", StatusStrings[g.GameStatus])
 	return
 }
@@ -218,6 +218,10 @@ func NewGame(whitePlayer, blackPlayer player.Player) *Game {
 			color.Black: blackPlayer,
 		},
 		TotalMoveTime: map[byte]time.Duration{
+			color.White: 0,
+			color.Black: 0,
+		},
+		CurrentMoveTime: map[byte]time.Duration{
 			color.White: 0,
 			color.Black: 0,
 		},

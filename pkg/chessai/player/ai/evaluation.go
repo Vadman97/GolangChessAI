@@ -73,58 +73,77 @@ const (
 	PawnAdvancedWeight  = 1
 )
 
-func (p *AIPlayer) EvaluateBoard(b *board.Board) *Evaluation {
+type evaluationPair struct {
+	evaluation *Evaluation
+	whoMoves   color.Color
+}
+
+// TODO(Vadim) make this a static function so evaluation cache is global
+func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
 	// first see if we have calculations we cannot cache
-	if b.MovesSinceNoDraw == 100 {
+	if b.MovesSinceNoDraw >= 100 {
+		// Vadim: >= instead of == because AI simulation will go beyond 100, it will know no win is possible
 		// Alex: This value may change, but AI right now prevents draws
 		eval.TotalScore = 0
 	} else {
-		eval = p.evaluateBoardCached(b)
+		eval = p.evaluateBoardCached(b, whoMoves)
 	}
 	eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw
 	return eval
 }
 
-func (p *AIPlayer) evaluateBoardCached(b *board.Board) *Evaluation {
+/**
+ * Symmetric heuristic evaluation, relative to whoMoves color
+ * https://www.chessprogramming.org/Evaluation#Side_to_move_relative
+ */
+func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Evaluation {
 	hash := b.Hash()
 	if p.evaluationMap != nil {
-		if score, ok := p.evaluationMap.Read(&hash); ok {
-			return &Evaluation{
-				TotalScore: score.(int),
+		if value, ok := p.evaluationMap.Read(&hash); ok {
+			entry := value.(*evaluationPair)
+			if entry.evaluation != nil {
+				score := entry.evaluation.TotalScore
+				// store evaluation only once, flip perspective if needed
+				if whoMoves != entry.whoMoves {
+					score = -score
+				}
+				return &Evaluation{
+					TotalScore: score,
+				}
 			}
 		}
 	}
 
 	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
-	if b.IsInCheckmate(p.PlayerColor^1, nil) {
+	if b.IsInCheckmate(whoMoves^1, nil) {
 		eval.TotalScore = PosInf
-	} else if b.IsInCheckmate(p.PlayerColor, nil) {
+	} else if b.IsInCheckmate(whoMoves, nil) {
 		eval.TotalScore = NegInf
-	} else if b.IsStalemate(p.PlayerColor, nil) || b.IsStalemate(p.PlayerColor^1, nil) {
+	} else if b.IsStalemate(whoMoves, nil) || b.IsStalemate(whoMoves^1, nil) {
 		eval.TotalScore = 0
 	} else {
 		for r := location.CoordinateType(0); r < board.Height; r++ {
 			for c := location.CoordinateType(0); c < board.Width; c++ {
-				if p := b.GetPiece(location.NewLocation(r, c)); p != nil {
-					eval.PieceCounts[p.GetColor()][p.GetPieceType()]++
-					eval.NumMoves[p.GetColor()] += uint16(len(*p.GetMoves(b, false)))
-					aMoves := p.GetAttackableMoves(b)
+				if gamePiece := b.GetPiece(location.NewLocation(r, c)); gamePiece != nil {
+					eval.PieceCounts[gamePiece.GetColor()][gamePiece.GetPieceType()]++
+					eval.NumMoves[gamePiece.GetColor()] += uint16(len(*gamePiece.GetMoves(b, false)))
+					aMoves := gamePiece.GetAttackableMoves(b)
 					if aMoves != nil {
-						eval.NumAttacks[p.GetColor()] += uint16(len(*aMoves))
+						eval.NumAttacks[gamePiece.GetColor()] += uint16(len(*aMoves))
 					}
 
-					if p.GetPieceType() == piece.PawnType {
-						eval.PawnColumns[p.GetColor()][c]++
-						eval.PawnRows[p.GetColor()][r]++
-						if r != board.StartRow[p.GetColor()]["Pawn"] {
-							eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
+					if gamePiece.GetPieceType() == piece.PawnType {
+						eval.PawnColumns[gamePiece.GetColor()][c]++
+						eval.PawnRows[gamePiece.GetColor()][r]++
+						if r != board.StartRow[gamePiece.GetColor()]["Pawn"] {
+							eval.PieceAdvanced[gamePiece.GetColor()][gamePiece.GetPieceType()]++
 						}
 						// do not give bonus for advancing king
-					} else if p.GetPieceType() != piece.KingType {
-						if r != board.StartRow[p.GetColor()]["Piece"] {
-							eval.PieceAdvanced[p.GetColor()][p.GetPieceType()]++
+					} else if gamePiece.GetPieceType() != piece.KingType {
+						if r != board.StartRow[gamePiece.GetColor()]["Piece"] {
+							eval.PieceAdvanced[gamePiece.GetColor()][gamePiece.GetPieceType()]++
 						}
 					}
 				}
@@ -171,7 +190,7 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board) *Evaluation {
 			// possible attacks
 			score += PieceNumAttacksWeight * int(eval.NumAttacks[c])
 
-			if c == p.PlayerColor {
+			if c == whoMoves {
 				eval.TotalScore += score
 			} else {
 				eval.TotalScore -= score
@@ -180,7 +199,13 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board) *Evaluation {
 	}
 
 	if p.evaluationMap != nil {
-		p.evaluationMap.Store(&hash, int(eval.TotalScore))
+		entry := &evaluationPair{}
+		if v, ok := p.evaluationMap.Read(&hash); ok {
+			entry = v.(*evaluationPair)
+		}
+		entry.evaluation = eval
+		entry.whoMoves = whoMoves
+		p.evaluationMap.Store(&hash, entry)
 	}
 
 	return eval

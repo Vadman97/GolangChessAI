@@ -20,7 +20,7 @@ func (miniMax *MiniMax) MiniMaxRecurse(b *board.Board, m location.Move, depth in
 func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
 	if depth == 0 {
 		return &ScoredMove{
-			Score: miniMax.player.EvaluateBoard(b).TotalScore,
+			Score: miniMax.player.EvaluateBoard(b, miniMax.player.PlayerColor).TotalScore,
 		}
 	}
 

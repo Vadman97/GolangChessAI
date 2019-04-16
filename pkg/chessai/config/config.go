@@ -23,6 +23,8 @@ type Configuration struct {
 	PrintPlayerInfo            bool
 	NumberOfCompetitionGames   int
 	StartingElo                int
+	RandomMoveOrder            bool
+	IterativeIncrement         int
 }
 
 const FilePath = "conf.json"

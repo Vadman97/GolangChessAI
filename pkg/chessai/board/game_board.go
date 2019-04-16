@@ -359,6 +359,11 @@ func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
 			}
 		}
 	}
+	if config.Get().RandomMoveOrder {
+		rand.Shuffle(len(moves), func(i, j int) {
+			moves[i], moves[j] = moves[j], moves[i]
+		})
+	}
 	return &moves
 }
 

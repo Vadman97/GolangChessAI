@@ -2,6 +2,7 @@ package bench
 
 import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -13,7 +14,7 @@ func BenchmarkEvaluate(b *testing.B) {
 	bo1.ResetDefault()
 	var eval *ai.Evaluation
 	for i := 0; i < b.N; i++ {
-		eval = p.EvaluateBoard(&bo1)
+		eval = p.EvaluateBoard(&bo1, color.Black)
 	}
 	assert.NotNil(b, eval)
 	if eval != nil {
@@ -28,7 +29,7 @@ func BenchmarkEvaluateParallel(b *testing.B) {
 		bo1 := board.Board{}
 		bo1.ResetDefault()
 		for pb.Next() {
-			p.EvaluateBoard(&bo1)
+			p.EvaluateBoard(&bo1, color.Black)
 		}
 	})
 }

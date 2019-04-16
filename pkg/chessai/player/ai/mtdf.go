@@ -3,10 +3,11 @@ package ai
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"time"
 )
 
-func (m *MTDf) MTDf(root *board.Board, guess *ScoredMove, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
+func (m *MTDf) MTDf(root *board.Board, guess *ScoredMove, previousMove *board.LastMove) *ScoredMove {
 	lowerBound := NegInf
 	upperBound := PosInf
 	for true {
@@ -16,7 +17,7 @@ func (m *MTDf) MTDf(root *board.Board, guess *ScoredMove, currentPlayer byte, pr
 		} else {
 			beta = guess.Score
 		}
-		guess = m.ab.AlphaBetaWithMemory(root, m.currentSearchDepth, beta-1, beta, currentPlayer, previousMove)
+		guess = m.ab.AlphaBetaWithMemory(root, m.currentSearchDepth, beta-1, beta, m.player.PlayerColor, previousMove)
 		if guess.Score < beta {
 			upperBound = guess.Score
 		} else {
@@ -55,18 +56,18 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 		}
 	}
 	start := time.Now()
-	for m.currentSearchDepth = 1; m.currentSearchDepth <= m.player.MaxSearchDepth; m.currentSearchDepth++ {
+	iterativeIncrement := config.Get().IterativeIncrement
+	for m.currentSearchDepth = iterativeIncrement; m.currentSearchDepth <= m.player.MaxSearchDepth; m.currentSearchDepth += iterativeIncrement {
 		thinking := make(chan bool)
 		go m.trackThinkTime(thinking, start)
-		newGuess := m.MTDf(b, guess, m.player.PlayerColor, previousMove)
+		newGuess := m.MTDf(b, guess, previousMove)
 		close(thinking)
-		// MTDf returns a good move (did not abort search)
 		if !m.ab.abort {
 			guess = newGuess
 			m.lastSearchDepth = m.currentSearchDepth
 		} else {
 			// -1 due to discard of current level due to hard abort
-			m.lastSearchDepth = m.currentSearchDepth - 1
+			m.lastSearchDepth = m.currentSearchDepth - iterativeIncrement
 			m.player.printer <- fmt.Sprintf("MTDf hard abort! evaluated to depth %d\n", m.lastSearchDepth)
 			break
 		}
