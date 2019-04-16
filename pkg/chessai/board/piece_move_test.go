@@ -1,7 +1,6 @@
 package board
 
 import (
-	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
@@ -179,7 +178,7 @@ func TestPawnGetMovesPromoteWhite(t *testing.T) {
 		End:   location.NewLocation(2, 3),
 	}, {
 		Start: location.NewLocation(7, 2),
-		End:   location.NewLocation(2, 2),
+		End:   location.NewLocation(4, 2),
 	}, {
 		Start: location.NewLocation(7, 4),
 		End:   location.NewLocation(2, 4),
@@ -187,7 +186,6 @@ func TestPawnGetMovesPromoteWhite(t *testing.T) {
 		Start: location.NewLocation(1, 3),
 		End:   location.NewLocation(6, 3),
 	}})
-	fmt.Println(bo1.Print())
 	moves := bo1.GetPiece(location.NewLocation(6, 3)).GetMoves(bo1, false)
 	assert.NotNil(t, moves)
 	if moves != nil {
@@ -326,7 +324,7 @@ func TestKingGetMovesDefended(t *testing.T) {
 	testPieceGetMoves(t, location.NewLocation(4, 4), &[]location.Move{{
 		Start: location.NewLocation(0, 4),
 		End:   location.NewLocation(4, 4),
-	}}, 8)
+	}}, 5)
 }
 
 func TestKingCannotMoveIntoCheck(t *testing.T) {
