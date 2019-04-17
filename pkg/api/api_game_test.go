@@ -14,11 +14,11 @@ import (
 )
 
 func TestGetGameState(t *testing.T) {
-	board2 := board.Board{}
-	board2.ResetDefault()
+	testBoard := board.Board{}
+	testBoard.ResetDefault()
 
 	testGame := &game.Game{
-		CurrentBoard:     &board2,
+		CurrentBoard:     &testBoard,
 		CurrentTurnColor: color.White,
 		Players: map[color.Color]player.Player{
 			color.White: nil,
