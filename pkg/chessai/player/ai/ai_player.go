@@ -6,6 +6,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"log"
 	"math"
@@ -21,8 +22,9 @@ const (
 
 const (
 	AlgorithmMiniMax             = "MiniMax"
-	AlgorithmAlphaBetaWithMemory = "AlphaBetaMemory"
+	AlgorithmAlphaBetaWithMemory = "α/β Memory"
 	AlgorithmMTDf                = "MTDf"
+	AlgorithmABDADA              = "ABDADA (α/β Parallel)"
 	AlgorithmRandom              = "Random"
 )
 
@@ -86,7 +88,7 @@ type AIPlayer struct {
 	Debug          bool
 	PrintInfo      bool
 	evaluationMap  *util.ConcurrentBoardMap
-	alphaBetaTable *util.TranspositionTable
+	alphaBetaTable *transposition_table.TranspositionTable
 	printer        chan string
 }
 
@@ -101,7 +103,7 @@ func NewAIPlayer(c byte, algorithm Algorithm) *AIPlayer {
 		Debug:                     config.Get().LogDebug,
 		PrintInfo:                 config.Get().PrintPlayerInfo,
 		evaluationMap:             util.NewConcurrentBoardMap(),
-		alphaBetaTable:            util.NewTranspositionTable(),
+		alphaBetaTable:            transposition_table.NewTranspositionTable(),
 		printer:                   make(chan string, 1000000),
 	}
 	if config.Get().UseOpenings {
@@ -203,7 +205,7 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 func (p *AIPlayer) ClearCaches() {
 	// TODO(Vadim) find better way to pick when to clear, based on size #49
 	p.evaluationMap = util.NewConcurrentBoardMap()
-	p.alphaBetaTable = util.NewTranspositionTable()
+	p.alphaBetaTable = transposition_table.NewTranspositionTable()
 }
 
 func (p *AIPlayer) printThread(stop chan bool) {
