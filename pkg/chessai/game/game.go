@@ -109,8 +109,8 @@ func (g *Game) PlayTurn() bool {
 	if g.GameStatus != Active {
 		var aiPlayers []*ai.AIPlayer
 		for c := color.White; c < color.NumColors; c++ {
-			if ai, isAI := g.Players[c].(*ai.AIPlayer); isAI {
-				aiPlayers = append(aiPlayers, ai)
+			if aiPlayer, isAI := g.Players[c].(*ai.AIPlayer); isAI {
+				aiPlayers = append(aiPlayers, aiPlayer)
 			}
 		}
 
@@ -156,8 +156,8 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 		default:
 			g.CurrentMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
 			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor, g.CurrentMoveTime))
-			if ai, isAI := g.Players[g.CurrentTurnColor].(*ai.AIPlayer); isAI {
-				g.printer <- fmt.Sprintf("\t%s\n\t", ai.Metrics.Print())
+			if aiPlayer, isAI := g.Players[g.CurrentTurnColor].(*ai.AIPlayer); isAI {
+				g.printer <- fmt.Sprintf("\t%s\n\t", aiPlayer.Metrics.Print())
 			}
 			g.printer <- util.GetMemStatString()
 			g.printer <- fmt.Sprintln()
@@ -176,8 +176,8 @@ func (g *Game) ClearCaches() {
 	g.CurrentBoard.AttackableCache = util.NewConcurrentBoardMap()
 	g.CurrentBoard.MoveCache = util.NewConcurrentBoardMap()
 	for c := color.White; c < color.NumColors; c++ {
-		if ai, isAI := g.Players[c].(*ai.AIPlayer); isAI {
-			ai.ClearCaches()
+		if aiPlayer, isAI := g.Players[c].(*ai.AIPlayer); isAI {
+			aiPlayer.ClearCaches()
 		}
 	}
 }
@@ -203,6 +203,7 @@ func (g *Game) printThread() {
 	for g.GameStatus == Active {
 		util.PrintPrinter(g.printer, g.PrintInfo)
 	}
+	util.PrintPrinter(g.printer, g.PrintInfo)
 }
 
 func NewGame(whitePlayer, blackPlayer player.Player) *Game {

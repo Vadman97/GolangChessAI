@@ -12,12 +12,24 @@ import (
 	"time"
 )
 
+const MovesToPlay = 1000
+const TimeToPlay = 2 * time.Minute
+
 func TestBoardAI(t *testing.T) {
-	const MovesToPlay = 1000
-	const TimeToPlay = 2 * time.Minute
+	var algorithmsToTest = [...]ai.Algorithm{
+		&ai.MiniMax{},
+		&ai.MTDf{},
+		&ai.NegaScout{},
+	}
 
 	rand.Seed(config.Get().TestRandSeed)
-	aiPlayerSmart := ai.NewAIPlayer(color.Black, &ai.MTDf{})
+	for _, algorithm := range algorithmsToTest {
+		runAITest(t, algorithm)
+	}
+}
+
+func runAITest(t *testing.T, algorithm ai.Algorithm) {
+	aiPlayerSmart := ai.NewAIPlayer(color.Black, algorithm)
 	aiPlayerSmart.MaxSearchDepth = 100
 	aiPlayerSmart.MaxThinkTime = 500 * time.Millisecond
 	aiPlayerDumb := ai.NewAIPlayer(color.White, &ai.Random{})
