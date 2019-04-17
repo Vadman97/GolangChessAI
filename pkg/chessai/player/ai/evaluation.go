@@ -73,6 +73,12 @@ const (
 	PawnAdvancedWeight  = 1
 )
 
+const (
+	WinScore       = PosInf
+	LossScore      = NegInf
+	StalemateScore = -PieceValueWeight // neg 1 pawn
+)
+
 type evaluationPair struct {
 	evaluation *Evaluation
 	whoMoves   color.Color
@@ -85,7 +91,7 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 	if b.MovesSinceNoDraw >= 100 {
 		// Vadim: >= instead of == because AI simulation will go beyond 100, it will know no win is possible
 		// Alex: This value may change, but AI right now prevents draws
-		eval.TotalScore = 0
+		eval.TotalScore = StalemateScore
 	} else {
 		eval = p.evaluateBoardCached(b, whoMoves)
 	}
@@ -118,9 +124,9 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
 	if b.IsInCheckmate(whoMoves^1, nil) {
-		eval.TotalScore = PosInf
+		eval.TotalScore = WinScore
 	} else if b.IsInCheckmate(whoMoves, nil) {
-		eval.TotalScore = NegInf
+		eval.TotalScore = LossScore
 	} else if b.IsStalemate(whoMoves, nil) || b.IsStalemate(whoMoves^1, nil) {
 		eval.TotalScore = 0
 	} else {

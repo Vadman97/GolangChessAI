@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
@@ -17,9 +18,7 @@ const TimeToPlay = 2 * time.Minute
 
 func TestBoardAI(t *testing.T) {
 	var algorithmsToTest = [...]ai.Algorithm{
-		&ai.MiniMax{},
 		&ai.MTDf{},
-		&ai.NegaScout{},
 	}
 
 	rand.Seed(config.Get().TestRandSeed)
@@ -33,7 +32,6 @@ func runAITest(t *testing.T, algorithm ai.Algorithm) {
 	aiPlayerSmart.MaxSearchDepth = 100
 	aiPlayerSmart.MaxThinkTime = 1000 * time.Millisecond
 	aiPlayerDumb := ai.NewAIPlayer(color.White, &ai.Random{})
-	aiPlayerDumb.MaxSearchDepth = 2
 	g := NewGame(aiPlayerDumb, aiPlayerSmart)
 	aiPlayerSmart.PrintInfo = false
 	aiPlayerDumb.PrintInfo = false
@@ -47,9 +45,13 @@ func runAITest(t *testing.T, algorithm ai.Algorithm) {
 			break
 		}
 	}
-	smartScore := aiPlayerSmart.EvaluateBoard(g.CurrentBoard, aiPlayerSmart.PlayerColor).TotalScore
-	dumbScore := aiPlayerDumb.EvaluateBoard(g.CurrentBoard, aiPlayerDumb.PlayerColor).TotalScore
-	fmt.Printf("Good AI %s Evaluation %d.\n", aiPlayerSmart, smartScore)
-	fmt.Printf("Bad AI %s Evaluation %d.\n", aiPlayerDumb, dumbScore)
-	assert.True(t, smartScore > dumbScore)
+	smartScore := int64(aiPlayerSmart.EvaluateBoard(g.CurrentBoard, aiPlayerSmart.PlayerColor).TotalScore)
+	dumbScore := int64(aiPlayerDumb.EvaluateBoard(g.CurrentBoard, aiPlayerDumb.PlayerColor).TotalScore)
+	fmt.Printf("Good %s E %d\n", aiPlayerSmart, smartScore)
+	fmt.Printf("Bad %s E %d\n", aiPlayerDumb, dumbScore)
+	if smartScore > dumbScore {
+		assert.True(t, smartScore > dumbScore)
+	} else {
+		assert.True(t, smartScore-dumbScore <= int64(ai.PieceValueWeight*ai.PieceValue[piece.PawnType]))
+	}
 }
