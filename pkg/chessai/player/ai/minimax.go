@@ -88,5 +88,12 @@ func (miniMax *MiniMax) GetName() string {
 
 func (miniMax *MiniMax) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	miniMax.player = p
-	return miniMax.IterativeMiniMax(b, previousMove)
+	if miniMax.player.MaxThinkTime != 0 {
+		// time limited mode
+		return miniMax.IterativeMiniMax(b, previousMove)
+	} else {
+		// strict depth mode
+		miniMax.lastSearchDepth = p.MaxSearchDepth
+		return miniMax.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
+	}
 }
