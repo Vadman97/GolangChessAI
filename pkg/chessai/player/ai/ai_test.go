@@ -32,7 +32,7 @@ func TestAIBestMovesSame(t *testing.T) {
 		fmt.Printf("===== EVALUATING %s =====\n\n\n", color.Names[c])
 		var moves []location.Move
 		for _, algorithm := range algorithmsToTest {
-			fmt.Printf("===== ALGORITHM %s =====\n\n\n", algorithm.GetName())
+			fmt.Printf("\n===== ALGORITHM %s =====\n", algorithm.GetName())
 			moves = append(moves, *getBestMove(gameBoard, c, algorithm))
 		}
 		for _, move := range moves {
