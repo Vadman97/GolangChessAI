@@ -148,7 +148,9 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 			if p.Debug {
 				p.printMoveDebug(b, scoredMove)
 			}
-			logger.MarkPerformance(b, scoredMove, p)
+			if logger != nil {
+				logger.MarkPerformance(b, scoredMove, p)
+			}
 			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
 				p.printer <- fmt.Sprintf("%s resigns, no best move available. Picking random.\n", p)
 				return &p.RandomMove(b, previousMove).Move
