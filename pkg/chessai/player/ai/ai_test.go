@@ -47,7 +47,7 @@ func TestAIBestMovesSame(t *testing.T) {
 func getBestMove(gameBoard *board.Board, c color.Color, algorithm Algorithm) *location.Move {
 	player := NewAIPlayer(c, algorithm)
 	player.MaxSearchDepth = 100
-	player.MaxThinkTime = 5000 * time.Millisecond
+	player.MaxThinkTime = 10000 * time.Millisecond
 
 	return player.GetBestMove(gameBoard, nil, nil)
 }

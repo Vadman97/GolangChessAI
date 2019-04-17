@@ -31,10 +31,12 @@ func TestBoardAI(t *testing.T) {
 func runAITest(t *testing.T, algorithm ai.Algorithm) {
 	aiPlayerSmart := ai.NewAIPlayer(color.Black, algorithm)
 	aiPlayerSmart.MaxSearchDepth = 100
-	aiPlayerSmart.MaxThinkTime = 500 * time.Millisecond
+	aiPlayerSmart.MaxThinkTime = 1000 * time.Millisecond
 	aiPlayerDumb := ai.NewAIPlayer(color.White, &ai.Random{})
 	aiPlayerDumb.MaxSearchDepth = 2
 	g := NewGame(aiPlayerDumb, aiPlayerSmart)
+	aiPlayerSmart.PrintInfo = false
+	aiPlayerDumb.PrintInfo = false
 	g.MoveLimit = MovesToPlay
 	g.TimeLimit = TimeToPlay
 
