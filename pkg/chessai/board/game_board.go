@@ -217,7 +217,7 @@ func (b *Board) IsEmpty(l location.Location) bool {
 	return b.getPieceData(l) == 0
 }
 
-func (b *Board) String() (result string) {
+func (b Board) String() (result string) {
 	/*
 		B_R|B_K|B_B|B_Q|B_&|B_B|B_K|B_R
 		B_P|B_P|000|B_P|B_P|B_P|B_P|B_P
@@ -403,7 +403,7 @@ func (b *Board) getEnPassantMoves(c color.Color, previousMove *LastMove) *[]loca
 		}
 		if captureLocation != nil {
 			for i := int8(-1); i <= 1; i += 2 {
-				adjacentLoc, inBounds := move.End.AddRelative(location.RelativeLocation{0, i})
+				adjacentLoc, inBounds := move.End.AddRelative(location.RelativeLocation{Col: i})
 				if inBounds {
 					adjacentPiece := b.GetPiece(adjacentLoc)
 					if adjacentPiece != nil && adjacentPiece.GetColor() == c && adjacentPiece.GetPieceType() == piece.PawnType {

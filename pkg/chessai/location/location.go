@@ -105,7 +105,7 @@ func inBounds(row, col int8) bool {
 	return row >= 0 && col >= 0 && row < 8 && col < 8
 }
 
-func (l *Location) String() string {
+func (l Location) String() string {
 	r, c := l.Get()
 	return fmt.Sprintf("(%+v, %+v)", r, c)
 }
@@ -131,6 +131,6 @@ func (m *Move) Equals(v *Move) bool {
 	return m.Start.Equals(v.Start) && m.End.Equals(v.End)
 }
 
-func (m *Move) String() string {
+func (m Move) String() string {
 	return fmt.Sprintf("move from %s to %s", m.Start.String(), m.End.String())
 }

@@ -50,7 +50,7 @@ func (c *Competition) RunCompetition() {
 			active = g.PlayTurn()
 			fmt.Printf("#%d, T: %s, P: %s, memory: %s",
 				g.MovesPlayed, g.GetTotalPlayTime(),
-				c.players[g.CurrentTurnColor^1].String(), util.GetMemStatString())
+				c.players[g.CurrentTurnColor^1], util.GetMemStatString())
 		}
 		fmt.Println(g)
 		g.ClearCaches()
@@ -60,7 +60,7 @@ func (c *Competition) RunCompetition() {
 	}
 }
 
-func (c *Competition) String() (result string) {
+func (c Competition) String() (result string) {
 	result += fmt.Sprintf("\n=== Game %d ===\n", c.gameNumber)
 	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.White], c.elos[color.White])
 	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.Black], c.elos[color.Black])

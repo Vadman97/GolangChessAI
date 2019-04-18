@@ -46,7 +46,7 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 
 			// cut-off
 			if a.Score >= beta.Score {
-				n.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
+				n.player.Metrics.MovesPrunedAB += uint64(len(*moves) - i)
 				break
 			}
 			// set new null window
@@ -76,7 +76,7 @@ func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastM
 		if !n.player.abort {
 			best = newBest
 			n.lastSearchDepth = n.currentSearchDepth
-			n.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", n.lastSearchDepth, best.Move.Print())
+			n.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", n.lastSearchDepth, best.Move)
 		} else {
 			// -1 due to discard of current level due to hard abort
 			n.lastSearchDepth = n.currentSearchDepth - 1

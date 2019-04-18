@@ -27,7 +27,7 @@ func TestBoardHashLookup(t *testing.T) {
 			scoreMap.Store(&hash, &bo1)
 		}
 	}
-	fmt.Println(bo1.String())
+	fmt.Println(bo1)
 	fmt.Printf("Hit ratio %.2f%%\n", float64(hits)/float64(N)*100.0)
 	fmt.Printf("Number different boards %d\n", N-hits)
 	scoreMap.PrintMetrics()

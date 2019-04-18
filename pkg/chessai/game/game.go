@@ -121,7 +121,7 @@ func (g *Game) PlayTurn() bool {
 	return g.GameStatus == Active
 }
 
-func (g *Game) String() (result string) {
+func (g Game) String() (result string) {
 	// we just played white if we are now on black, show info for white
 	result += fmt.Sprintln(g.CurrentBoard)
 	result += g.PrintThinkTime(g.CurrentTurnColor^1, g.LastMoveTime)

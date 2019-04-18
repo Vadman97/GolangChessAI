@@ -124,7 +124,7 @@ func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.L
 		if sm.Score >= bestMove.Score {
 			bestMove = sm
 		}
-		ab.player.printer <- fmt.Sprintf("Thread #%d best move: %s %d\n", i, sm.Move.String(), sm.Score)
+		ab.player.printer <- fmt.Sprintf("Thread #%d best move: %s %d\n", i, sm.Move, sm.Score)
 	}
 
 	return &bestMove

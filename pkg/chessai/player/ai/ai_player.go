@@ -96,7 +96,7 @@ type AIPlayer struct {
 	evaluationMap      *util.ConcurrentBoardMap
 	transpositionTable *transposition_table.TranspositionTable
 	printer            chan string
-	abort          bool
+	abort              bool
 }
 
 func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
@@ -172,7 +172,7 @@ func (p *AIPlayer) MakeMove(b *board.Board, move *location.Move) *board.LastMove
 	return lastMove
 }
 
-func (p *AIPlayer) String() string {
+func (p AIPlayer) String() string {
 	return fmt.Sprintf("AI (%s - %s)",
 		p.Algorithm.GetName(), color.Names[p.PlayerColor])
 }
@@ -195,10 +195,10 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 			endStr = "_"
 		}
 		result += fmt.Sprintf("\t%s to %s\n", startStr, endStr)
-		result += fmt.Sprintf("\t\t%s\n", move.String())
+		result += fmt.Sprintf("\t\t%s\n", move)
 		board.MakeMove(&move, debugBoard)
 	}
-	result += fmt.Sprintf("%s\n", p.Metrics.String())
+	result += fmt.Sprintf("%s\n", p.Metrics)
 	result += fmt.Sprintf("%s best move leads to score %d\n", p, m.Score)
 	p.printer <- fmt.Sprint(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")

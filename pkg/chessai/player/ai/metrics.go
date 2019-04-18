@@ -12,7 +12,7 @@ type Metrics struct {
 	MovesABImprovedTransposition uint64
 }
 
-func (metrics *Metrics) String() (res string) {
+func (metrics Metrics) String() (res string) {
 	res += fmt.Sprintf("Considered %d\n", metrics.MovesConsidered)
 	pruned := metrics.MovesPrunedAB + metrics.MovesPrunedTransposition
 	prunedPercent := 100 * float64(pruned) / float64(pruned+metrics.MovesConsidered)

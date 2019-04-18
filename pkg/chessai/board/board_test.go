@@ -17,7 +17,7 @@ import (
 
 func testEnPassantGetMoves(t *testing.T, initialMove *[]location.Move, expectedMoves int) {
 	bo1, lastMove := buildBoardWithInitialMoves(initialMove)
-	fmt.Println(bo1.String())
+	fmt.Println(bo1)
 	c := (*lastMove.Piece).GetColor()
 	c ^= 1
 	moves := bo1.getEnPassantMoves(c, lastMove)
