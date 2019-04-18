@@ -9,39 +9,39 @@ import (
 
 type Evaluation struct {
 	// [color][pieceType] -> overall piece count
-	PieceCounts map[byte]map[byte]uint8
+	PieceCounts map[color.Color]map[byte]uint8
 	// [color][pieceType] -> count of pieces off starting position
-	PieceAdvanced map[byte]map[byte]uint8
+	PieceAdvanced map[color.Color]map[byte]uint8
 	// [color][column] -> num pawns
-	PawnColumns map[byte]map[location.CoordinateType]uint8
+	PawnColumns map[color.Color]map[location.CoordinateType]uint8
 	// [color][column] -> num pawns
-	PawnRows map[byte]map[location.CoordinateType]uint8
+	PawnRows map[color.Color]map[location.CoordinateType]uint8
 	// [color] -> num moves
-	NumMoves   map[byte]uint16
-	NumAttacks map[byte]uint16
+	NumMoves   map[color.Color]uint16
+	NumAttacks map[color.Color]uint16
 	TotalScore int
 }
 
 func NewEvaluation() *Evaluation {
 	e := Evaluation{
-		PieceCounts: map[byte]map[byte]uint8{
+		PieceCounts: map[color.Color]map[byte]uint8{
 			color.Black: {},
 			color.White: {},
 		},
-		PieceAdvanced: map[byte]map[byte]uint8{
+		PieceAdvanced: map[color.Color]map[byte]uint8{
 			color.Black: {},
 			color.White: {},
 		},
-		PawnColumns: map[byte]map[location.CoordinateType]uint8{
+		PawnColumns: map[color.Color]map[location.CoordinateType]uint8{
 			color.Black: {},
 			color.White: {},
 		},
-		PawnRows: map[byte]map[location.CoordinateType]uint8{
+		PawnRows: map[color.Color]map[location.CoordinateType]uint8{
 			color.Black: {},
 			color.White: {},
 		},
-		NumMoves:   map[byte]uint16{},
-		NumAttacks: map[byte]uint16{},
+		NumMoves:   map[color.Color]uint16{},
+		NumAttacks: map[color.Color]uint16{},
 	}
 	return &e
 }
@@ -73,6 +73,12 @@ const (
 	PawnAdvancedWeight  = 1
 )
 
+const (
+	WinScore       = PosInf
+	LossScore      = NegInf
+	StalemateScore = -PieceValueWeight // neg 1 pawn
+)
+
 type evaluationPair struct {
 	evaluation *Evaluation
 	whoMoves   color.Color
@@ -85,7 +91,7 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 	if b.MovesSinceNoDraw >= 100 {
 		// Vadim: >= instead of == because AI simulation will go beyond 100, it will know no win is possible
 		// Alex: This value may change, but AI right now prevents draws
-		eval.TotalScore = 0
+		eval.TotalScore = StalemateScore
 	} else {
 		eval = p.evaluateBoardCached(b, whoMoves)
 	}
@@ -118,9 +124,9 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
 	if b.IsInCheckmate(whoMoves^1, nil) {
-		eval.TotalScore = PosInf
+		eval.TotalScore = WinScore
 	} else if b.IsInCheckmate(whoMoves, nil) {
-		eval.TotalScore = NegInf
+		eval.TotalScore = LossScore
 	} else if b.IsStalemate(whoMoves, nil) || b.IsStalemate(whoMoves^1, nil) {
 		eval.TotalScore = 0
 	} else {

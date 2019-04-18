@@ -48,8 +48,9 @@ func (c *Competition) RunCompetition() {
 		active := true
 		for active {
 			active = g.PlayTurn()
-			fmt.Printf("Moves made: %d, total game duration: %s, memory: %s",
-				g.MovesPlayed, g.GetTotalPlayTime(), util.GetMemStatString())
+			fmt.Printf("#%d, T: %s, P: %s, memory: %s",
+				g.MovesPlayed, g.GetTotalPlayTime(),
+				c.players[g.CurrentTurnColor^1].String(), util.GetMemStatString())
 		}
 		fmt.Println(g.Print())
 		g.ClearCaches()
@@ -107,10 +108,11 @@ func (c *Competition) RunAICompetition() {
 	// TODO(Vadim) output this to file and keep history of AI performance
 	// TODO(Vadim) load ai from file
 	rand.Seed(config.Get().TestRandSeed)
-	c.players[color.White].Algorithm = &ai.MTDf{}
-	c.players[color.White].MaxSearchDepth = 512
+	c.players[color.White].Algorithm = &ai.MiniMax{}
+	c.players[color.White].MaxSearchDepth = 128
 	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.MiniMax{}
-	c.players[color.Black].MaxSearchDepth = 1
+	c.players[color.Black].MaxThinkTime = 100 * time.Millisecond
+	c.players[color.Black].MaxSearchDepth = 128
 	c.RunCompetition()
 }

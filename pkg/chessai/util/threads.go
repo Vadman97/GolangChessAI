@@ -14,5 +14,5 @@ func PrintPrinter(printer chan string, printInfo bool) {
 			}
 		}
 	}
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(1 * time.Millisecond)
 }

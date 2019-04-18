@@ -1,13 +1,14 @@
 package board
 
 import (
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 )
 
 type Bishop struct {
 	Location location.Location
-	Color    byte
+	Color    color.Color
 }
 
 func (r *Bishop) GetChar() rune {
@@ -18,11 +19,11 @@ func (r *Bishop) GetPieceType() byte {
 	return piece.BishopType
 }
 
-func (r *Bishop) GetColor() byte {
+func (r *Bishop) GetColor() color.Color {
 	return r.Color
 }
 
-func (r *Bishop) SetColor(color byte) {
+func (r *Bishop) SetColor(color color.Color) {
 	r.Color = color
 }
 
