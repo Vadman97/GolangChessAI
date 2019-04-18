@@ -96,7 +96,10 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	// Allow 1 Client to connect at a time
 	// TODO(Alex) Might a client queue, but right now the client will have to reload
+	clientMutex.Lock()
 	if client != nil {
+		clientMutex.Unlock()
+
 		log.Print("Client attempted to connect, but a game is currently in progress...")
 		msg := api.ChessMessage{
 			Type: api.GameFull,
@@ -108,6 +111,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	clientMutex.Unlock()
 
 	// Initialize Client
 	clientMutex.Lock()
