@@ -36,6 +36,10 @@ type TranspositionTableEntryABDADA struct {
 	Lock sync.Mutex
 }
 
+/*
+	Note: Transposition table supports concurrent read/write for ABDADA
+		TODO(Vadim) - benchmark with Lock waiting profiler to see if it's worth using slices
+*/
 type TranspositionTable struct {
 	entryMap          map[util.BoardHash]map[color.Color]interface{}
 	numStored         int
@@ -52,9 +56,6 @@ func NewTranspositionTable() *TranspositionTable {
 	return &m
 }
 
-/*
-	Note: Transposition table does not support concurrent read/write at the moment
-*/
 func (m *TranspositionTable) Store(hash *util.BoardHash, currentTurn color.Color, entry interface{}) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
