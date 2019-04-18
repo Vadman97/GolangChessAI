@@ -17,13 +17,18 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	} else {
 		var best ScoredMove
 
-		answerChan := ab.asyncTTRead(root, uint16(depth), alpha, beta, currentPlayer, exclusiveProbe)
+		answerChan := ab.asyncTTRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
 		// generate moves while waiting for the answer ...
 		moves := root.GetAllMoves(currentPlayer, previousMove)
 
 		// block and grab the answer
 		ttAnswer := <-answerChan
+		alpha, beta = ttAnswer.alpha, ttAnswer.beta
+		best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
 
+		/* The current move is not evaluated if causing u a cutoff or
+		if we are in exclusive mode and another processor
+		is currently evaluating it. */
 	}
 }
 
@@ -48,7 +53,39 @@ type TTAnswer struct {
 	onEvaluation       bool
 }
 
-func (ab *ABDADA) asyncTTRead(root *board.Board, depth uint16, alpha, beta int, currentPlayer color.Color, exclusiveProbe bool) chan TTAnswer {
+func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
+	if ab.player.TranspositionTableEnabled {
+		// transposition table lookup
+		h := root.Hash()
+		if e, ok := ab.player.alphaBetaTable.Read(&h, currentPlayer); ok {
+			entry := e.(*transposition_table.TranspositionTableEntryABDADA)
+			if entry.Depth <= depth {
+				entry.Lock.Lock()
+
+				if entry.Depth == depth {
+					entry.NumProcessors--
+				} else {
+					entry.NumProcessors = 0
+				}
+
+				if sm.Score >= beta {
+					entry.EntryType = transposition_table.LowerBound
+				} else if sm.Score <= alpha {
+					entry.EntryType = transposition_table.UpperBound
+				} else {
+					entry.EntryType = transposition_table.TrueScore
+					entry.BestMove = sm.Move // TODO(Vadim) only if TrueScore?
+				}
+				entry.Score = sm.Score
+				entry.Depth = depth
+
+				entry.Lock.Unlock()
+			}
+		}
+	}
+}
+
+func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, exclusiveProbe bool) chan TTAnswer {
 	answerChan := make(chan TTAnswer)
 	go func(answerChan chan TTAnswer) {
 		answer := TTAnswer{
@@ -70,6 +107,7 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, depth uint16, alpha, beta int, 
 						answer.score = entry.Score
 						answer.alpha = entry.Score
 						answer.beta = entry.Score
+						answer.bestMove = entry.BestMove // TODO(Vadim) only if TrueScore?
 					} else if entry.EntryType == transposition_table.UpperBound && entry.Score < beta {
 						answer.score = entry.Score
 						answer.beta = entry.Score
