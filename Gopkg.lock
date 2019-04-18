@@ -26,6 +26,14 @@
   version = "v1.7.1"
 
 [[projects]]
+  digest = "1:7b5c6e2eeaa9ae5907c391a91c132abfd5c9e8a784a341b5625e750c67e6825d"
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
+  version = "v1.4.0"
+
+[[projects]]
   branch = "master"
   digest = "1:84bd7f8a2e0bcd53ddc33c3b47c34c1fe340c8632cbe928f7f8ae10ec6ecdd62"
   name = "github.com/mohae/deepcopy"
@@ -55,6 +63,7 @@
   input-imports = [
     "github.com/360EntSecGroup-Skylar/excelize",
     "github.com/gorilla/mux",
+    "github.com/gorilla/websocket",
     "github.com/stretchr/testify/assert",
   ]
   solver-name = "gps-cdcl"
