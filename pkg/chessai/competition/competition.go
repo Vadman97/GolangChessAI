@@ -110,7 +110,7 @@ func (c *Competition) RunAICompetition() {
 	c.players[color.White].Algorithm = &ai.MTDf{}
 	c.players[color.White].MaxSearchDepth = 512
 	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
-	c.players[color.Black].Algorithm = &ai.MiniMax{}
-	c.players[color.Black].MaxSearchDepth = 1
+	c.players[color.Black].Algorithm = &ai.ABDADA{}
+	c.players[color.Black].MaxSearchDepth = 2
 	c.RunCompetition()
 }

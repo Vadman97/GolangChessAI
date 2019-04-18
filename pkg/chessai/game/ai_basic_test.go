@@ -14,11 +14,11 @@ import (
 
 func TestBoardAI(t *testing.T) {
 	const MovesToPlay = 100
-	const TimeToPlay = 2 * time.Minute
+	const TimeToPlay = 60 * time.Minute
 
 	rand.Seed(config.Get().TestRandSeed)
-	aiPlayerSmart := ai.NewAIPlayer(color.Black, &ai.MTDf{})
-	aiPlayerSmart.MaxSearchDepth = 100
+	aiPlayerSmart := ai.NewAIPlayer(color.Black, &ai.ABDADA{})
+	aiPlayerSmart.MaxSearchDepth = 3
 	aiPlayerSmart.MaxThinkTime = 1 * time.Second
 	aiPlayerDumb := ai.NewAIPlayer(color.White, &ai.Random{
 		Rand: rand.New(rand.NewSource(config.Get().TestRandSeed)),
@@ -41,3 +41,9 @@ func TestBoardAI(t *testing.T) {
 	fmt.Printf("Bad AI %s Evaluation %d.\n", aiPlayerDumb, dumbScore)
 	assert.True(t, smartScore > dumbScore)
 }
+
+// ABDADA vs. Random, diff depths
+// Depth:             1,  2,  3,   4
+// Moves (ply):      71, 43, 17,  61
+// Total game turns: 36, 22,  9,  31
+// Time (sec):        1,  3, 38, 352

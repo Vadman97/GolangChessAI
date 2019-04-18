@@ -297,7 +297,7 @@ func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move
 		rand.Shuffle(len(moves), func(i, j int) {
 			moves[i], moves[j] = moves[j], moves[i]
 		})
-		return &moves
+		movesPtr = &moves
 	}
 	return movesPtr
 }

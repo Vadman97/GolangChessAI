@@ -133,7 +133,7 @@ func (g *Game) String() (result string) {
 		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
 	}
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
-	result += fmt.Sprintf("Total game turns: %d\n", g.MovesPlayed/2+1)
+	result += fmt.Sprintf("Total game turns: %d\n", (g.MovesPlayed-1)/2+1)
 	result += fmt.Sprintf("Game state: %s", StatusStrings[g.GameStatus])
 	return
 }

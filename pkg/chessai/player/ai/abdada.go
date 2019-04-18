@@ -118,11 +118,16 @@ func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.L
 		bestMoves = append(bestMoves, <-moveChan)
 	}
 
+	var bestMove ScoredMove
+	bestMove.Score = NegInf
 	for i, sm := range bestMoves {
-		fmt.Printf("Thread #%d best move: %s %d\n", i, sm.Move.String(), sm.Score)
+		if sm.Score >= bestMove.Score {
+			bestMove = sm
+		}
+		ab.player.printer <- fmt.Sprintf("Thread #%d best move: %s %d\n", i, sm.Move.String(), sm.Score)
 	}
 
-	return &bestMoves[0]
+	return &bestMove
 }
 
 type TTAnswer struct {
