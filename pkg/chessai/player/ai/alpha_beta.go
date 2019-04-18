@@ -3,48 +3,23 @@ package ai
 import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
-func (ab *AlphaBetaWithMemory) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
-	standPat := ab.player.EvaluateBoard(root, currentPlayer).TotalScore
-	if standPat >= beta {
-		return beta
-	} else if alpha < standPat {
-		alpha = standPat
-	}
-	// until every capture has been examined
-	moves := root.GetAllMoves(currentPlayer, previousMove)
-	for _, m := range *moves {
-		// capture move
-		if !root.IsEmpty(m.End) {
-			child := root.Copy()
-			board.MakeMove(&m, child)
-			score := -ab.Quiesce(child, -beta, -alpha, currentPlayer^1, previousMove)
-
-			if score >= beta {
-				return beta
-			} else if score > alpha {
-				alpha = score
-			}
-		}
-	}
-	return alpha
-}
-
-func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) *ScoredMove {
+func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
 	var h util.BoardHash
 	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h = root.Hash()
 		if entry, ok := ab.player.alphaBetaTable.Read(&h, currentPlayer); ok {
-			if entry.Lower > NegInf && entry.Lower >= beta {
+			if entry.Lower >= beta {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
 					Score: entry.Lower,
 					Move:  entry.BestMove,
 				}
-			} else if entry.Upper < PosInf && entry.Upper <= alpha {
+			} else if entry.Upper <= alpha {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
 					Score: entry.Upper,
@@ -80,12 +55,12 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		moves := root.GetAllMoves(currentPlayer, previousMove)
 		for i, m := range *moves {
 			if maximizingPlayer {
-				if best.Score >= beta {
+				if best.Score > beta {
 					ab.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
 					break
 				}
 			} else {
-				if best.Score <= alpha {
+				if best.Score < alpha {
 					ab.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
 					break
 				}
@@ -94,7 +69,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 			previousMove = board.MakeMove(&m, newBoard)
 			ab.player.Metrics.MovesConsidered++
 			var candidate *ScoredMove
-			if ab.abort {
+			if ab.player.abort {
 				break
 			}
 			if maximizingPlayer {
@@ -115,7 +90,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		}
 	}
 
-	if !ab.abort && ab.player.TranspositionTableEnabled {
+	if !ab.player.abort && ab.player.TranspositionTableEnabled {
 		if best.Score >= beta {
 			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
 				Lower:    best.Score,
@@ -142,7 +117,6 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 
 type AlphaBetaWithMemory struct {
 	player          *AIPlayer
-	abort           bool
 	lastSearchDepth int
 }
 
@@ -152,7 +126,7 @@ func (ab *AlphaBetaWithMemory) GetName() string {
 
 func (ab *AlphaBetaWithMemory) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
-	ab.abort = false
+	ab.player.abort = false
 	ab.lastSearchDepth = p.MaxSearchDepth
 	return ab.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
 }

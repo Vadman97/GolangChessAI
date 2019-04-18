@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 )
 
@@ -11,7 +12,7 @@ type TranspositionTableEntry struct {
 }
 
 type TranspositionTable struct {
-	entryMap          map[BoardHash]map[byte]*TranspositionTableEntry
+	entryMap          map[BoardHash]map[color.Color]*TranspositionTableEntry
 	numStored         int
 	numReads, numHits int
 }
@@ -19,7 +20,7 @@ type TranspositionTable struct {
 func NewTranspositionTable() *TranspositionTable {
 	var m TranspositionTable
 	if m.entryMap == nil {
-		m.entryMap = make(map[BoardHash]map[byte]*TranspositionTableEntry)
+		m.entryMap = make(map[BoardHash]map[color.Color]*TranspositionTableEntry)
 	}
 	return &m
 }
@@ -27,16 +28,16 @@ func NewTranspositionTable() *TranspositionTable {
 /*
 	Note: Transposition table does not support concurrent read/write at the moment
 */
-func (m *TranspositionTable) Store(hash *BoardHash, currentTurn byte, entry *TranspositionTableEntry) {
+func (m *TranspositionTable) Store(hash *BoardHash, currentTurn color.Color, entry *TranspositionTableEntry) {
 	_, ok := m.entryMap[*hash]
 	if !ok {
-		m.entryMap[*hash] = make(map[byte]*TranspositionTableEntry)
+		m.entryMap[*hash] = make(map[color.Color]*TranspositionTableEntry)
 	}
 	m.entryMap[*hash][currentTurn] = entry
 	m.numStored++
 }
 
-func (m *TranspositionTable) Read(hash *BoardHash, currentTurn byte) (*TranspositionTableEntry, bool) {
+func (m *TranspositionTable) Read(hash *BoardHash, currentTurn color.Color) (*TranspositionTableEntry, bool) {
 	m.numReads++
 
 	m1, ok := m.entryMap[*hash]

@@ -53,7 +53,7 @@ var StartingRowHex = [...]uint32{
 	0x2468A642,
 }
 
-var StartRow = map[byte]map[string]location.CoordinateType{
+var StartRow = map[color.Color]map[string]location.CoordinateType{
 	color.Black: {
 		"Piece": 0,
 		"Pawn":  1,
@@ -66,7 +66,7 @@ var StartRow = map[byte]map[string]location.CoordinateType{
 
 type MoveCacheEntry struct {
 	// color -> move
-	moves map[byte]interface{}
+	moves map[color.Color]interface{}
 }
 
 type Board struct {
@@ -201,7 +201,7 @@ func (b *Board) getPieceData(l location.Location) byte {
 	return byte((b.board[row] & (PieceMask << pos)) >> pos)
 }
 
-func (b *Board) SetFlag(flag byte, color byte, value bool) {
+func (b *Board) SetFlag(flag byte, color color.Color, value bool) {
 	if value {
 		b.flags |= (1 << flag) << (color * NumFlagBits)
 	} else {
@@ -209,7 +209,7 @@ func (b *Board) SetFlag(flag byte, color byte, value bool) {
 	}
 }
 
-func (b *Board) GetFlag(flag byte, color byte) bool {
+func (b *Board) GetFlag(flag byte, color color.Color) bool {
 	return (b.flags & ((1 << flag) << (color * NumFlagBits))) != 0
 }
 
@@ -261,7 +261,7 @@ func (b *Board) Print() (result string) {
 }
 
 func (b *Board) MakeRandomMove() {
-	moves := *b.GetAllMoves(byte(rand.Int()%color.NumColors), nil)
+	moves := *b.GetAllMoves(color.Color(rand.Int()%color.NumColors), nil)
 	if len(moves) > 0 {
 		MakeMove(&moves[rand.Int()%len(moves)], b)
 	}
@@ -276,7 +276,7 @@ func (b *Board) RandomizeIllegal() {
 		for c := location.CoordinateType(0); c < Width; c++ {
 			p := StartingRow[b.TestRandGen.Int()%len(StartingRow)]
 			p.SetPosition(location.NewLocation(r, c))
-			p.SetColor(byte(b.TestRandGen.Int() % 2))
+			p.SetColor(color.Color(b.TestRandGen.Int() % 2))
 			b.SetPiece(location.NewLocation(r, c), p)
 		}
 	}
@@ -286,11 +286,11 @@ func (b *Board) RandomizeIllegal() {
 /**
  * Check if color has at least one legal move, optimized
  */
-func (b *Board) HasLegalMove(color byte, previousMove *LastMove) bool {
+func (b *Board) HasLegalMove(color color.Color, previousMove *LastMove) bool {
 	return len(*b.getAllMovesCached(color, previousMove, true)) > 0
 }
 
-func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move {
+func (b *Board) GetAllMoves(color color.Color, previousMove *LastMove) *[]location.Move {
 	return b.getAllMovesCached(color, previousMove, false)
 }
 
@@ -298,45 +298,45 @@ func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move
  *	Only this is cached and not GetAllAttackableMoves for now because this calls GetAllAttackableMoves
  *	May need to cache that one too when we use it for CheckMate / Tie evaluation
  */
-func (b *Board) getAllMovesCached(color byte, previousMove *LastMove, onlyFirstMove bool) *[]location.Move {
+func (b *Board) getAllMovesCached(c color.Color, previousMove *LastMove, onlyFirstMove bool) *[]location.Move {
 	entry := &MoveCacheEntry{
-		moves: make(map[byte]interface{}),
+		moves: make(map[color.Color]interface{}),
 	}
 	if b.CacheGetAllMoves {
 		h := b.Hash()
 		if cacheEntry, cacheExists := b.MoveCache.Read(&h); cacheExists {
 			entry = cacheEntry.(*MoveCacheEntry)
 			// we've gotten the other color but not the one we want
-			if entry.moves[color] == nil {
-				entry.moves[color] = b.getAllMoves(color, onlyFirstMove)
+			if entry.moves[c] == nil {
+				entry.moves[c] = b.getAllMoves(c, onlyFirstMove)
 				// store only if we grabbing all moves
 				if !onlyFirstMove {
 					b.MoveCache.Store(&h, entry)
 				}
 			}
 		} else {
-			entry.moves[color] = b.getAllMoves(color, onlyFirstMove)
+			entry.moves[c] = b.getAllMoves(c, onlyFirstMove)
 			// store only if we grabbing all moves
 			if !onlyFirstMove {
 				b.MoveCache.Store(&h, entry)
 			}
 		}
 	} else {
-		entry.moves[color] = b.getAllMoves(color, onlyFirstMove)
+		entry.moves[c] = b.getAllMoves(c, onlyFirstMove)
 	}
 	if previousMove != nil {
-		enPassantMoves := b.getEnPassantMoves(color, previousMove)
-		allMoves := append(*(entry.moves[color].(*[]location.Move)), *enPassantMoves...)
+		enPassantMoves := b.getEnPassantMoves(c, previousMove)
+		allMoves := append(*(entry.moves[c].(*[]location.Move)), *enPassantMoves...)
 		return &allMoves
 	}
-	return entry.moves[color].(*[]location.Move)
+	return entry.moves[c].(*[]location.Move)
 }
 
 /**
  * Get moves for all pieces of color c.
  * If onlyFirstMove is set, will only return first move
  */
-func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
+func (b *Board) getAllMoves(c color.Color, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
 	for row := 0; row < Height; row++ {
 		// this is just a speedup - if the whole row is empty don't look at pieces
@@ -360,9 +360,7 @@ func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
 		}
 	}
 	if config.Get().RandomMoveOrder {
-		rand.Shuffle(len(moves), func(i, j int) {
-			moves[i], moves[j] = moves[j], moves[i]
-		})
+		moves = util.RandShuffleMoves(moves)
 	}
 	return &moves
 }
@@ -370,7 +368,7 @@ func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
 /**
  * Determines possible en passant moves based on color, board, and last move.
  */
-func (b *Board) getEnPassantMoves(c byte, previousMove *LastMove) *[]location.Move {
+func (b *Board) getEnPassantMoves(c color.Color, previousMove *LastMove) *[]location.Move {
 	if previousMove == nil {
 		return nil
 	}
@@ -413,33 +411,33 @@ func (b *Board) getEnPassantMoves(c byte, previousMove *LastMove) *[]location.Mo
 /*
  * Caches getAllAttackableMoves
  */
-func (b *Board) GetAllAttackableMoves(color byte) AttackableBoard {
+func (b *Board) GetAllAttackableMoves(c color.Color) AttackableBoard {
 	if b.CacheGetAllAttackableMoves {
 		h := b.Hash()
 		entry := &MoveCacheEntry{
-			moves: make(map[byte]interface{}),
+			moves: make(map[color.Color]interface{}),
 		}
 		if cacheEntry, cacheExists := b.AttackableCache.Read(&h); cacheExists {
 			entry = cacheEntry.(*MoveCacheEntry)
 			// we've gotten the other color but not the one we want
-			if entry.moves[color] == nil {
-				entry.moves[color] = b.getAllAttackableMoves(color)
+			if entry.moves[c] == nil {
+				entry.moves[c] = b.getAllAttackableMoves(c)
 				b.AttackableCache.Store(&h, entry)
 			}
 		} else {
-			entry.moves[color] = b.getAllAttackableMoves(color)
+			entry.moves[c] = b.getAllAttackableMoves(c)
 			b.AttackableCache.Store(&h, entry)
 		}
-		return entry.moves[color].(AttackableBoard)
+		return entry.moves[c].(AttackableBoard)
 	} else {
-		return b.getAllAttackableMoves(color)
+		return b.getAllAttackableMoves(c)
 	}
 }
 
 /**
  * Returns all attack moves for a specific color.
  */
-func (b *Board) getAllAttackableMoves(color byte) AttackableBoard {
+func (b *Board) getAllAttackableMoves(color color.Color) AttackableBoard {
 	attackable := CreateEmptyAttackableBoard()
 	for r := 0; r < Height; r++ {
 		// this is just a speedup - if the whole row is empty don't look at pieces
@@ -463,7 +461,7 @@ func (b *Board) getAllAttackableMoves(color byte) AttackableBoard {
 /**
  * Determines if a king of color c is under attack by the opposite color.
  */
-func (b *Board) IsKingInCheck(c byte) bool {
+func (b *Board) IsKingInCheck(c color.Color) bool {
 	oppositeColor := c ^ 1
 	attackableBoard := b.GetAllAttackableMoves(oppositeColor)
 	return IsLocationUnderAttack(attackableBoard, b.KingLocations[c])
@@ -474,7 +472,7 @@ func (b *Board) IsKingInCheck(c byte) bool {
  * This could mean that the king was in check and will still be in check, or that king has been put into check as a
  * result of the move.
  */
-func (b *Board) willMoveLeaveKingInCheck(c byte, m location.Move) bool {
+func (b *Board) willMoveLeaveKingInCheck(c color.Color, m location.Move) bool {
 	boardCopy := b.Copy()
 	MakeMove(&m, boardCopy)
 	return boardCopy.IsKingInCheck(c)
@@ -483,7 +481,7 @@ func (b *Board) willMoveLeaveKingInCheck(c byte, m location.Move) bool {
 /**
  * Checks if the king of color c is in checkmate.
  */
-func (b *Board) IsInCheckmate(c byte, previousMove *LastMove) bool {
+func (b *Board) IsInCheckmate(c color.Color, previousMove *LastMove) bool {
 	return !b.HasLegalMove(c, previousMove) && b.IsKingInCheck(c)
 }
 
