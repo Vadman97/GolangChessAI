@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
@@ -44,6 +45,9 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			iteration := 0
 			allDone := false
 			for iteration < 2 && alpha < beta && !allDone {
+				if ab.player.abort {
+					break
+				}
 				iteration++
 				allDone = true
 				firstMove := true
@@ -51,6 +55,9 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				move := moves[0]
 				moves = moves[1:]
 				for alpha < beta {
+					if ab.player.abort {
+						break
+					}
 					// On the first iteration, we want to be the only processor to evaluate young sons
 					exclusiveProbe = iteration == 1 && !firstMove
 
@@ -83,6 +90,67 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	}
 }
 
+func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMove *board.LastMove) ScoredMove {
+	ab.player.abort = false
+	var NumThreads = runtime.NumCPU()
+	moveChan := make(chan ScoredMove, NumThreads)
+	for i := 0; i < NumThreads; i++ {
+		go func(moveChan chan ScoredMove) {
+			moveChan <- ab.ABDADA(b, depth, alpha, beta, false, ab.player.PlayerColor, previousMove)
+		}(moveChan)
+	}
+
+	var bestMoves []ScoredMove
+	for i := 0; i < NumThreads; i++ {
+		bestMoves = append(bestMoves, <-moveChan)
+		// TODO(Vadim) can we abort the other threads after the first move is retrieved? or should we get all and pick best
+	}
+
+	var bestMove ScoredMove
+	bestMove.Score = NegInf
+	for _, sm := range bestMoves {
+		if sm.Score >= bestMove.Score {
+			bestMove = sm
+		}
+		//ab.player.printer <- fmt.Sprintf("Thread #%d best move: %s %d\n", i, sm.Move, sm.Score)
+	}
+	return bestMove
+}
+
+func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) ScoredMove {
+	start := time.Now()
+	best := ScoredMove{
+		Score: NegInf,
+	}
+	iterativeIncrement := config.Get().IterativeIncrement
+	for ab.currentSearchDepth = iterativeIncrement; ab.currentSearchDepth <= ab.player.MaxSearchDepth; ab.currentSearchDepth += iterativeIncrement {
+		thinking, done := make(chan bool), make(chan bool, 1)
+		go ab.player.trackThinkTime(thinking, done, start)
+		newGuess := ab.getBestMove(b, ab.currentSearchDepth, NegInf, PosInf, previousMove)
+		close(thinking)
+		<-done
+		// MTDf returns a good move (did not abort search)
+		if !ab.player.abort {
+			best = newGuess
+			ab.lastSearchDepth = ab.currentSearchDepth
+			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", ab.lastSearchDepth, best.Move)
+		} else {
+			// -1 due to discard of current level due to hard abort
+			ab.lastSearchDepth = ab.currentSearchDepth - iterativeIncrement
+			ab.player.printer <- fmt.Sprintf("%s hard abort! evaluated to depth %d\n", AlgorithmABDADA, ab.lastSearchDepth)
+			break
+		}
+	}
+	ab.lastSearchTime = time.Now().Sub(start)
+	return best
+}
+
+func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	ab.player = p
+	best := ab.iterativeABDADA(b, previousMove)
+	return &best
+}
+
 func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *board.Board, previousMove *board.LastMove) {
 	child = root.Copy()
 	previousMove = board.MakeMove(move, child)
@@ -101,42 +169,13 @@ func (ab *ABDADA) GetName() string {
 	return fmt.Sprintf("%s,[D:%d;T:%s]", AlgorithmABDADA, ab.lastSearchDepth, ab.lastSearchTime)
 }
 
-func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
-	ab.player = p
-
-	// TODO(Vadim) make iterative
-	var NumThreads = runtime.NumCPU()
-	moveChan := make(chan ScoredMove, NumThreads)
-	for i := 0; i < NumThreads; i++ {
-		go func(moveChan chan ScoredMove) {
-			moveChan <- ab.ABDADA(b, p.MaxSearchDepth, NegInf, PosInf, false, p.PlayerColor, previousMove)
-		}(moveChan)
-	}
-
-	var bestMoves []ScoredMove
-	for i := 0; i < NumThreads; i++ {
-		bestMoves = append(bestMoves, <-moveChan)
-	}
-
-	var bestMove ScoredMove
-	bestMove.Score = NegInf
-	for i, sm := range bestMoves {
-		if sm.Score >= bestMove.Score {
-			bestMove = sm
-		}
-		ab.player.printer <- fmt.Sprintf("Thread #%d best move: %s %d\n", i, sm.Move, sm.Score)
-	}
-
-	return &bestMove
-}
-
 type TTAnswer struct {
 	alpha, beta, score int
 	bestMove           location.Move
 }
 
 func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
-	if ab.player.TranspositionTableEnabled {
+	if !ab.player.abort && ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h := root.Hash()
 		if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
