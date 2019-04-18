@@ -38,7 +38,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h = root.Hash()
-		if entry, ok := ab.player.alphaBetaTable.Read(&h, currentPlayer); ok {
+		if entry, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
 			abEntry := entry.(*transposition_table.TranspositionTableEntryABMemory)
 			if abEntry.Lower > NegInf && abEntry.Lower >= beta {
 				ab.player.Metrics.MovesPrunedTransposition++
@@ -119,19 +119,19 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 
 	if !ab.abort && ab.player.TranspositionTableEnabled {
 		if best.Score >= beta {
-			ab.player.alphaBetaTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
+			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
 				Lower:    best.Score,
 				Upper:    PosInf,
 				BestMove: best.Move,
 			})
 		} else if best.Score > alpha && best.Score < beta {
-			ab.player.alphaBetaTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
+			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
 				Lower:    best.Score,
 				Upper:    best.Score,
 				BestMove: best.Move,
 			})
 		} else if best.Score <= alpha {
-			ab.player.alphaBetaTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
+			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
 				Lower:    NegInf,
 				Upper:    best.Score,
 				BestMove: best.Move,

@@ -6,20 +6,22 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"runtime"
 	"time"
 )
 
-func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
+func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove) ScoredMove {
 	if depth == 0 {
-		return &ScoredMove{
-			Score: ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore,
+		return ScoredMove{
+			Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
 		}
 	} else {
 		var best ScoredMove
 
 		answerChan := ab.asyncTTRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
 		// generate moves while waiting for the answer ...
-		moves := root.GetAllMoves(currentPlayer, previousMove)
+		moves := *root.GetAllMoves(currentPlayer, previousMove)
 
 		// block and grab the answer
 		ttAnswer := <-answerChan
@@ -29,7 +31,54 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		/* The current move is not evaluated if causing u a cutoff or
 		if we are in exclusive mode and another processor
 		is currently evaluating it. */
+		if alpha >= beta || best.Score == OnEvaluation {
+			return best
+		} else {
+			iteration := 0
+			allDone := false
+			for iteration < 2 && alpha < beta && !allDone {
+				iteration++
+				allDone = true
+				firstMove := true
+				move := moves[0]
+				moves = moves[1:]
+				for alpha < beta {
+					// On the first iteration, we want to be the only processor to evaluate young sons
+					exclusiveProbe = iteration == 1 && !firstMove
+
+					child, previousMove := ab.player.applyMove(root, &move)
+					value := ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, beta), exclusiveProbe, currentPlayer^1, previousMove)
+					value.Score = -value.Score
+					value.Move = move
+
+					if value.Score == -OnEvaluation {
+						allDone = false
+					} else if value.Score > best.Score {
+						best = value
+						if best.Score >= beta {
+							ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
+							return best
+						}
+					}
+					if len(moves) == 0 {
+						break
+					}
+					firstMove = false
+					move = moves[0]
+					moves = moves[1:]
+				}
+			}
+			ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
+			return best
+		}
 	}
+}
+
+func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *board.Board, previousMove *board.LastMove) {
+	child = root.Copy()
+	previousMove = board.MakeMove(move, child)
+	p.Metrics.MovesConsidered++
+	return
 }
 
 type ABDADA struct {
@@ -45,19 +94,37 @@ func (ab *ABDADA) GetName() string {
 
 func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
+
+	// TODO(Vadim) make iterative
+	var NumThreads = runtime.NumCPU() - 1
+	moveChan := make(chan ScoredMove, NumThreads)
+	for i := 0; i < NumThreads; i++ {
+		go func(moveChan chan ScoredMove) {
+			moveChan <- ab.ABDADA(b, p.MaxSearchDepth, NegInf, PosInf, false, p.PlayerColor, previousMove)
+		}(moveChan)
+	}
+
+	var bestMoves []ScoredMove
+	for i := 0; i < NumThreads; i++ {
+		bestMoves = append(bestMoves, <-moveChan)
+	}
+
+	for _, sm := range bestMoves {
+		fmt.Printf("%+v\n", sm)
+	}
+	return &bestMoves[0]
 }
 
 type TTAnswer struct {
 	alpha, beta, score int
 	bestMove           location.Move
-	onEvaluation       bool
 }
 
 func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
 	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h := root.Hash()
-		if e, ok := ab.player.alphaBetaTable.Read(&h, currentPlayer); ok {
+		if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
 			entry := e.(*transposition_table.TranspositionTableEntryABDADA)
 			if entry.Depth <= depth {
 				entry.Lock.Lock()
@@ -96,12 +163,12 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 		if ab.player.TranspositionTableEnabled {
 			// transposition table lookup
 			h := root.Hash()
-			if e, ok := ab.player.alphaBetaTable.Read(&h, currentPlayer); ok {
+			if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
 				entry := e.(*transposition_table.TranspositionTableEntryABDADA)
 				entry.Lock.Lock()
 
 				if entry.Depth == depth && exclusiveProbe && entry.NumProcessors > 0 {
-					answer.onEvaluation = true
+					answer.score = OnEvaluation
 				} else if entry.Depth >= depth {
 					if entry.EntryType == transposition_table.TrueScore {
 						answer.score = entry.Score

@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	NegInf = math.MinInt32
-	PosInf = math.MaxInt32
+	NegInf       = int(math.MinInt32 + 128)
+	PosInf       = int(math.MaxInt32 - 127)
+	OnEvaluation = int(PosInf + 10)
 )
 
 const (
@@ -85,11 +86,11 @@ type AIPlayer struct {
 	Opening                   int
 	Metrics                   *Metrics
 
-	Debug          bool
-	PrintInfo      bool
-	evaluationMap  *util.ConcurrentBoardMap
-	alphaBetaTable *transposition_table.TranspositionTable
-	printer        chan string
+	Debug              bool
+	PrintInfo          bool
+	evaluationMap      *util.ConcurrentBoardMap
+	transpositionTable *transposition_table.TranspositionTable
+	printer            chan string
 }
 
 func NewAIPlayer(c byte, algorithm Algorithm) *AIPlayer {
@@ -103,7 +104,7 @@ func NewAIPlayer(c byte, algorithm Algorithm) *AIPlayer {
 		Debug:                     config.Get().LogDebug,
 		PrintInfo:                 config.Get().PrintPlayerInfo,
 		evaluationMap:             util.NewConcurrentBoardMap(),
-		alphaBetaTable:            transposition_table.NewTranspositionTable(),
+		transpositionTable:        transposition_table.NewTranspositionTable(),
 		printer:                   make(chan string, 1000000),
 	}
 	if config.Get().UseOpenings {
@@ -193,7 +194,7 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.PrintMetrics()
 	result += fmt.Sprintf("Transposition table metrics\n")
-	result += p.alphaBetaTable.PrintMetrics()
+	result += p.transpositionTable.PrintMetrics()
 	result += fmt.Sprintf("Move cache metrics\n")
 	result += b.MoveCache.PrintMetrics()
 	result += fmt.Sprintf("Attack Move cache metrics\n")
@@ -205,7 +206,7 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 func (p *AIPlayer) ClearCaches() {
 	// TODO(Vadim) find better way to pick when to clear, based on size #49
 	p.evaluationMap = util.NewConcurrentBoardMap()
-	p.alphaBetaTable = transposition_table.NewTranspositionTable()
+	p.transpositionTable = transposition_table.NewTranspositionTable()
 }
 
 func (p *AIPlayer) printThread(stop chan bool) {

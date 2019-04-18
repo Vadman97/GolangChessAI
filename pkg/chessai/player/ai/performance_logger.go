@@ -94,7 +94,7 @@ func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, 
  * Call this function after the game is complete and no more logging is desired. It will generate all charts and save
  * the excel file.
  */
-func (logger *PerformanceLogger) CompletePerformanceLog(aiPlayers[] *AIPlayer) {
+func (logger *PerformanceLogger) CompletePerformanceLog(aiPlayers []*AIPlayer) {
 	for _, ai := range aiPlayers {
 		logger.generateChartsForPlayer(ai)
 	}
@@ -193,7 +193,7 @@ func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredM
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.PrintMetrics()
 	result += fmt.Sprintf("Transposition table metrics\n")
-	result += p.alphaBetaTable.PrintMetrics()
+	result += p.transpositionTable.PrintMetrics()
 	result += fmt.Sprintf("Move cache metrics\n")
 	result += b.MoveCache.PrintMetrics()
 	result += fmt.Sprintf("Attack Move cache metrics\n")
