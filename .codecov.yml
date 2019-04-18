@@ -23,7 +23,7 @@ coverage:
         target: 100%
         paths: "pkg/chessai/board"
       default: false  # TODO(Vadim) add this when we have more tests before going public
-    changes: yes
+    changes: no
 
 parsers:
   gcov:
