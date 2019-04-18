@@ -15,13 +15,13 @@ import (
 var g *game.Game
 
 type GameStateJSON struct {
-	CurrentBoard     [board.Height][board.Width]*PieceJSON `json:"currentBoard"`
-	CurrentTurnColor string                               `json:"currentTurn"`
-	MovesPlayed      uint	                              `json:"movesPlayed"`
-	PreviousMove     *MoveJSON                            `json:"previousMove"`
-	GameStatus       string                               `json:"gameStatus"`
-	MoveLimit        int32                                `json:"moveLimit"`
-	TimeLimit        time.Duration                        `json:"timeLimit"`
+	CurrentBoard     [board.Height][board.Width]*PieceJSON  `json:"currentBoard"`
+	CurrentTurnColor string                                 `json:"currentTurn"`
+	MovesPlayed      uint	                                `json:"movesPlayed"`
+	PreviousMove     *MoveJSON                              `json:"previousMove"`
+	GameStatus       string                                 `json:"gameStatus"`
+	MoveLimit        int32                                  `json:"moveLimit"`
+	TimeLimit        time.Duration                          `json:"timeLimit"`
 }
 
 type PieceJSON struct {
@@ -34,6 +34,10 @@ type MoveJSON struct {
 	End       [2]uint8   `json:"end"`
 	IsCapture bool       `json:"isCapture"`
 	Piece     PieceJSON  `json:"piece"`
+}
+
+type AvailableMovesJSON struct {
+	Moves []*MoveJSON
 }
 
 func setGame(gameToSet *game.Game) {
@@ -97,7 +101,7 @@ func PostGameCommandHandler(w http.ResponseWriter, r *http.Request) {
 	command := vars["command"]
 
 	if command == Start {
-		// TODO (Alex) Implement
+		// setGame(game.NewGame())
 	} else if command == Restart {
 		// TODO (Alex) Implement
 	}
