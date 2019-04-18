@@ -8,6 +8,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
@@ -18,10 +19,11 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		}
 	} else {
 		var best ScoredMove
+		best.Score = NegInf
 
 		answerChan := ab.asyncTTRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
 		// generate moves while waiting for the answer ...
-		moves := *root.GetAllMoves(currentPlayer, previousMove)
+		movesArr := root.GetAllMoves(currentPlayer, previousMove)
 
 		// block and grab the answer
 		ttAnswer := <-answerChan
@@ -32,6 +34,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		if we are in exclusive mode and another processor
 		is currently evaluating it. */
 		if alpha >= beta || best.Score == OnEvaluation {
+			atomic.AddUint64(&ab.player.Metrics.MovesPrunedTransposition, uint64(len(*movesArr)))
 			return best
 		} else {
 			iteration := 0
@@ -40,6 +43,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				iteration++
 				allDone = true
 				firstMove := true
+				moves := *movesArr
 				move := moves[0]
 				moves = moves[1:]
 				for alpha < beta {
@@ -47,7 +51,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 					exclusiveProbe = iteration == 1 && !firstMove
 
 					child, previousMove := ab.player.applyMove(root, &move)
-					value := ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, beta), exclusiveProbe, currentPlayer^1, previousMove)
+					value := ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, previousMove)
 					value.Score = -value.Score
 					value.Move = move
 
@@ -56,6 +60,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 					} else if value.Score > best.Score {
 						best = value
 						if best.Score >= beta {
+							atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(moves)))
 							ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
 							return best
 						}
@@ -96,7 +101,7 @@ func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.L
 	ab.player = p
 
 	// TODO(Vadim) make iterative
-	var NumThreads = runtime.NumCPU() - 1
+	var NumThreads = runtime.NumCPU()
 	moveChan := make(chan ScoredMove, NumThreads)
 	for i := 0; i < NumThreads; i++ {
 		go func(moveChan chan ScoredMove) {
@@ -109,9 +114,10 @@ func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.L
 		bestMoves = append(bestMoves, <-moveChan)
 	}
 
-	for _, sm := range bestMoves {
-		fmt.Printf("%+v\n", sm)
+	for i, sm := range bestMoves {
+		fmt.Printf("Thread #%d best move: %s %d\n", i, sm.Move.String(), sm.Score)
 	}
+
 	return &bestMoves[0]
 }
 
@@ -168,6 +174,7 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 				entry.Lock.Lock()
 
 				if entry.Depth == depth && exclusiveProbe && entry.NumProcessors > 0 {
+					// Only one processor allowed if exclusivity is required
 					answer.score = OnEvaluation
 				} else if entry.Depth >= depth {
 					if entry.EntryType == transposition_table.TrueScore {
@@ -189,12 +196,21 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 					}
 				} else {
 					// This is the first processor to evaluate this node
+					// new pass - we've seen node on previous evaluation
 					entry.Depth = depth
 					entry.EntryType = transposition_table.Unset
 					entry.NumProcessors = 1
 				}
 
 				entry.Lock.Unlock()
+			} else {
+				// This is the first processor to ever evaluate this node
+				entry := transposition_table.TranspositionTableEntryABDADA{
+					Depth:         depth,
+					EntryType:     transposition_table.Unset,
+					NumProcessors: 1,
+				}
+				ab.player.transpositionTable.Store(&h, currentPlayer, &entry)
 			}
 		}
 		answerChan <- answer

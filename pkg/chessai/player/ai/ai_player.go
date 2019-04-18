@@ -9,16 +9,15 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"log"
-	"math"
 	"math/rand"
 	"os"
 	"time"
 )
 
 const (
-	NegInf       = int(math.MinInt32 + 128)
-	PosInf       = int(math.MaxInt32 - 127)
-	OnEvaluation = int(PosInf + 10)
+	PosInf       = int(1000000000)
+	NegInf       = int(-PosInf)
+	OnEvaluation = int(1111111111)
 )
 
 const (

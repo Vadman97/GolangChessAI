@@ -39,6 +39,8 @@ type TranspositionTable struct {
 	entryMap          map[util.BoardHash]map[byte]interface{}
 	numStored         int
 	numReads, numHits int
+
+	lock sync.RWMutex
 }
 
 func NewTranspositionTable() *TranspositionTable {
@@ -53,6 +55,9 @@ func NewTranspositionTable() *TranspositionTable {
 	Note: Transposition table does not support concurrent read/write at the moment
 */
 func (m *TranspositionTable) Store(hash *util.BoardHash, currentTurn byte, entry interface{}) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	_, ok := m.entryMap[*hash]
 	if !ok {
 		m.entryMap[*hash] = make(map[byte]interface{})
@@ -62,6 +67,9 @@ func (m *TranspositionTable) Store(hash *util.BoardHash, currentTurn byte, entry
 }
 
 func (m *TranspositionTable) Read(hash *util.BoardHash, currentTurn byte) (interface{}, bool) {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
 	m.numReads++
 
 	m1, ok := m.entryMap[*hash]
