@@ -1,6 +1,7 @@
 package board
 
 import (
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 )
@@ -18,7 +19,7 @@ var possibleMoves = []location.RelativeLocation{
 
 type Knight struct {
 	Location location.Location
-	Color    byte
+	Color    color.Color
 }
 
 func (r *Knight) GetChar() rune {
@@ -29,11 +30,11 @@ func (r *Knight) GetPieceType() byte {
 	return piece.KnightType
 }
 
-func (r *Knight) GetColor() byte {
+func (r *Knight) GetColor() color.Color {
 	return r.Color
 }
 
-func (r *Knight) SetColor(color byte) {
+func (r *Knight) SetColor(color color.Color) {
 	r.Color = color
 }
 

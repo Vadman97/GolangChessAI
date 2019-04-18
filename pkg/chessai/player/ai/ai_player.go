@@ -25,6 +25,7 @@ const (
 	AlgorithmAlphaBetaWithMemory = "α/β Memory"
 	AlgorithmMTDf                = "MTDf"
 	AlgorithmABDADA              = "ABDADA (α/β Parallel)"
+	AlgorithmNegaScout           = "NegaScout"
 	AlgorithmRandom              = "Random"
 )
 
@@ -33,7 +34,7 @@ const (
 )
 
 // color -> list of openings: { list of moves }
-var OpeningMoves = map[byte][][]*location.Move{
+var OpeningMoves = map[color.Color][][]*location.Move{
 	color.Black: {{
 		&location.Move{
 			Start: location.NewLocation(board.StartRow[color.Black]["Pawn"], 4),
@@ -70,6 +71,11 @@ type ScoredMove struct {
 	Score        int
 }
 
+func (s ScoredMove) NegScore() ScoredMove {
+	s.Score = -s.Score
+	return s
+}
+
 type Algorithm interface {
 	GetName() string
 	GetBestMove(*AIPlayer, *board.Board, *board.LastMove) *ScoredMove
@@ -78,7 +84,7 @@ type Algorithm interface {
 type AIPlayer struct {
 	Algorithm                 Algorithm
 	TranspositionTableEnabled bool
-	PlayerColor               byte
+	PlayerColor               color.Color
 	MaxSearchDepth            int
 	MaxThinkTime              time.Duration
 	TurnCount                 int
@@ -90,9 +96,10 @@ type AIPlayer struct {
 	evaluationMap      *util.ConcurrentBoardMap
 	transpositionTable *transposition_table.TranspositionTable
 	printer            chan string
+	abort          bool
 }
 
-func NewAIPlayer(c byte, algorithm Algorithm) *AIPlayer {
+func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
 	p := &AIPlayer{
 		Algorithm:                 algorithm,
 		TranspositionTableEnabled: config.Get().TranspositionTableEnabled,
@@ -143,7 +150,9 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 			if p.Debug {
 				p.printMoveDebug(b, scoredMove)
 			}
-			logger.MarkPerformance(b, scoredMove, p)
+			if logger != nil {
+				logger.MarkPerformance(b, scoredMove, p)
+			}
 			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
 				p.printer <- fmt.Sprintf("%s resigns, no best move available. Picking random.\n", p)
 				return &(&Random{
@@ -219,4 +228,24 @@ func (p *AIPlayer) printThread(stop chan bool) {
 			util.PrintPrinter(p.printer, p.PrintInfo)
 		}
 	}
+}
+
+func (p *AIPlayer) trackThinkTime(stop, done chan bool, start time.Time) {
+	if p.MaxThinkTime != 0 {
+		for {
+			select {
+			case <-stop:
+				done <- true
+				return
+			default:
+				thinkTime := time.Now().Sub(start)
+				if thinkTime > p.MaxThinkTime {
+					p.abort = true
+					p.printer <- fmt.Sprintf("requesting AI hard abort, out of time!\n")
+				}
+			}
+			time.Sleep(1 * time.Millisecond)
+		}
+	}
+	done <- true
 }

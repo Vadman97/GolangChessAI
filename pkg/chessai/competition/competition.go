@@ -40,7 +40,7 @@ func NewCompetition() (c *Competition) {
 func (c *Competition) RunCompetition() {
 	c.competitionRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	for c.gameNumber = 1; c.gameNumber <= c.NumberOfGames; c.gameNumber++ {
-		fmt.Printf(c.String())
+		fmt.Println(c)
 		// randomize color of players each game
 		c.randomizePlayers()
 		g := game.NewGame(c.players[c.whiteIndex], c.players[c.blackIndex])
@@ -48,10 +48,11 @@ func (c *Competition) RunCompetition() {
 		active := true
 		for active {
 			active = g.PlayTurn()
-			fmt.Printf("Moves made: %d, total game duration: %s, memory: %s",
-				g.MovesPlayed, g.GetTotalPlayTime(), util.GetMemStatString())
+			fmt.Printf("#%d, T: %s, P: %s, memory: %s",
+				g.MovesPlayed, g.GetTotalPlayTime(),
+				c.players[g.CurrentTurnColor^1].String(), util.GetMemStatString())
 		}
-		fmt.Println(g.String())
+		fmt.Println(g)
 		g.ClearCaches()
 		outcome := c.derandomizeGameOutcome(g.GetGameOutcome())
 		c.elos = CalculateRatings(c.elos, outcome)
@@ -107,10 +108,11 @@ func (c *Competition) RunAICompetition() {
 	// TODO(Vadim) output this to file and keep history of AI performance
 	// TODO(Vadim) load ai from file
 	rand.Seed(config.Get().TestRandSeed)
-	c.players[color.White].Algorithm = &ai.MTDf{}
-	c.players[color.White].MaxSearchDepth = 512
+	c.players[color.White].Algorithm = &ai.MiniMax{}
+	c.players[color.White].MaxSearchDepth = 128
 	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.ABDADA{}
 	c.players[color.Black].MaxSearchDepth = 2
+	c.players[color.Black].MaxThinkTime = 100 * time.Millisecond
 	c.RunCompetition()
 }

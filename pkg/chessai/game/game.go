@@ -106,7 +106,7 @@ func (g *Game) PlayTurn() bool {
 			g.printer <- fmt.Sprintf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
 		}
 	}
-	g.printer <- fmt.Sprintln(g.String())
+	g.printer <- fmt.Sprintln(g)
 	if g.GameStatus != Active {
 		var aiPlayers []*ai.AIPlayer
 		for c := color.White; c < color.NumColors; c++ {
@@ -123,7 +123,7 @@ func (g *Game) PlayTurn() bool {
 
 func (g *Game) String() (result string) {
 	// we just played white if we are now on black, show info for white
-	result += fmt.Sprintln(g.CurrentBoard.String())
+	result += fmt.Sprintln(g.CurrentBoard)
 	result += g.PrintThinkTime(g.CurrentTurnColor^1, g.LastMoveTime)
 	if g.MovesPlayed%2 == 0 || g.GameStatus != Active {
 		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
@@ -158,7 +158,7 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 			g.CurrentMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
 			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor, g.CurrentMoveTime))
 			if aiPlayer, isAI := g.Players[g.CurrentTurnColor].(*ai.AIPlayer); isAI {
-				g.printer <- fmt.Sprintf("\t%s\n\t", aiPlayer.Metrics.String())
+				g.printer <- fmt.Sprintf("\t%s\n\t", aiPlayer.Metrics)
 			}
 			g.printer <- util.GetMemStatString()
 			g.printer <- fmt.Sprintln()
