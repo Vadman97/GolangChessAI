@@ -189,7 +189,7 @@ func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredM
 	defer func() { _ = file.Close() }()
 	var result string
 	result += fmt.Sprintf("Turn %d\n", p.TurnCount)
-	result += fmt.Sprintf("%s\n", p.Metrics.Print())
+	result += fmt.Sprintf("%s\n", p.Metrics.String())
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.PrintMetrics()
 	result += fmt.Sprintf("Transposition table metrics\n")

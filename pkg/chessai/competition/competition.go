@@ -40,7 +40,7 @@ func NewCompetition() (c *Competition) {
 func (c *Competition) RunCompetition() {
 	c.competitionRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	for c.gameNumber = 1; c.gameNumber <= c.NumberOfGames; c.gameNumber++ {
-		fmt.Printf(c.Print())
+		fmt.Printf(c.String())
 		// randomize color of players each game
 		c.randomizePlayers()
 		g := game.NewGame(c.players[c.whiteIndex], c.players[c.blackIndex])
@@ -51,7 +51,7 @@ func (c *Competition) RunCompetition() {
 			fmt.Printf("Moves made: %d, total game duration: %s, memory: %s",
 				g.MovesPlayed, g.GetTotalPlayTime(), util.GetMemStatString())
 		}
-		fmt.Println(g.Print())
+		fmt.Println(g.String())
 		g.ClearCaches()
 		outcome := c.derandomizeGameOutcome(g.GetGameOutcome())
 		c.elos = CalculateRatings(c.elos, outcome)
@@ -59,7 +59,7 @@ func (c *Competition) RunCompetition() {
 	}
 }
 
-func (c *Competition) Print() (result string) {
+func (c *Competition) String() (result string) {
 	result += fmt.Sprintf("\n=== Game %d ===\n", c.gameNumber)
 	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.White], c.elos[color.White])
 	result += fmt.Sprintf("[%s] Elo: %d\n", c.players[color.Black], c.elos[color.Black])

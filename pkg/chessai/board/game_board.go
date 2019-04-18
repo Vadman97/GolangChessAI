@@ -217,7 +217,7 @@ func (b *Board) IsEmpty(l location.Location) bool {
 	return b.getPieceData(l) == 0
 }
 
-func (b *Board) Print() (result string) {
+func (b *Board) String() (result string) {
 	/*
 		B_R|B_K|B_B|B_Q|B_&|B_B|B_K|B_R
 		B_P|B_P|000|B_P|B_P|B_P|B_P|B_P

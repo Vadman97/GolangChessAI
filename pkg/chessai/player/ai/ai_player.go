@@ -185,10 +185,10 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 			endStr = "_"
 		}
 		result += fmt.Sprintf("\t%s to %s\n", startStr, endStr)
-		result += fmt.Sprintf("\t\t%s\n", move.Print())
+		result += fmt.Sprintf("\t\t%s\n", move.String())
 		board.MakeMove(&move, debugBoard)
 	}
-	result += fmt.Sprintf("%s\n", p.Metrics.Print())
+	result += fmt.Sprintf("%s\n", p.Metrics.String())
 	result += fmt.Sprintf("%s best move leads to score %d\n", p, m.Score)
 	p.printer <- fmt.Sprint(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")
