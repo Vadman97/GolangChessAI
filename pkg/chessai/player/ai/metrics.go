@@ -1,15 +1,18 @@
 package ai
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Metrics struct {
-	MovesConsidered              int64
-	MovesPrunedAB                int64
-	MovesPrunedTransposition     int64
-	MovesABImprovedTransposition int64
+	MovesConsidered uint64
+
+	MovesPrunedAB                uint64
+	MovesPrunedTransposition     uint64
+	MovesABImprovedTransposition uint64
 }
 
-func (metrics *Metrics) Print() (res string) {
+func (metrics Metrics) String() (res string) {
 	res += fmt.Sprintf("Considered %d\n", metrics.MovesConsidered)
 	pruned := metrics.MovesPrunedAB + metrics.MovesPrunedTransposition
 	prunedPercent := 100 * float64(pruned) / float64(pruned+metrics.MovesConsidered)

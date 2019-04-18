@@ -217,7 +217,7 @@ func (b *Board) IsEmpty(l location.Location) bool {
 	return b.getPieceData(l) == 0
 }
 
-func (b *Board) Print() (result string) {
+func (b Board) String() (result string) {
 	/*
 		B_R|B_K|B_B|B_Q|B_&|B_B|B_K|B_R
 		B_P|B_P|000|B_P|B_P|B_P|B_P|B_P
@@ -291,6 +291,18 @@ func (b *Board) HasLegalMove(color color.Color, previousMove *LastMove) bool {
 }
 
 func (b *Board) GetAllMoves(color color.Color, previousMove *LastMove) *[]location.Move {
+	movesPtr := b.getAllMovesCached(color, previousMove, false)
+	if config.Get().RandomMoveOrder {
+		moves := *movesPtr
+		rand.Shuffle(len(moves), func(i, j int) {
+			moves[i], moves[j] = moves[j], moves[i]
+		})
+		movesPtr = &moves
+	}
+	return movesPtr
+}
+
+func (b *Board) GetAllMovesUnShuffled(color byte, previousMove *LastMove) *[]location.Move {
 	return b.getAllMovesCached(color, previousMove, false)
 }
 
@@ -299,35 +311,37 @@ func (b *Board) GetAllMoves(color color.Color, previousMove *LastMove) *[]locati
  *	May need to cache that one too when we use it for CheckMate / Tie evaluation
  */
 func (b *Board) getAllMovesCached(c color.Color, previousMove *LastMove, onlyFirstMove bool) *[]location.Move {
-	entry := &MoveCacheEntry{
+	entry := MoveCacheEntry{
 		moves: make(map[color.Color]interface{}),
 	}
-	if b.CacheGetAllMoves {
+	if b.CacheGetAllMoves && !onlyFirstMove {
 		h := b.Hash()
 		if cacheEntry, cacheExists := b.MoveCache.Read(&h); cacheExists {
-			entry = cacheEntry.(*MoveCacheEntry)
-			// we've gotten the other color but not the one we want
-			if entry.moves[c] == nil {
+			readEntry := cacheEntry.(*MoveCacheEntry)
+			if readEntry.moves[c] != nil {
+				// cache has the color we want
+				entry.moves[c] = readEntry.moves[c]
+			} else {
+				// cache entry exists so readEntry must have moves for other color, grab to store new cache entry
+				entry.moves[c^1] = readEntry.moves[c^1]
+				// calculate moves for desired color
 				entry.moves[c] = b.getAllMoves(c, onlyFirstMove)
-				// store only if we grabbing all moves
-				if !onlyFirstMove {
-					b.MoveCache.Store(&h, entry)
-				}
+				b.MoveCache.Store(&h, &entry)
 			}
 		} else {
 			entry.moves[c] = b.getAllMoves(c, onlyFirstMove)
-			// store only if we grabbing all moves
-			if !onlyFirstMove {
-				b.MoveCache.Store(&h, entry)
-			}
+			b.MoveCache.Store(&h, &entry)
 		}
+
 	} else {
 		entry.moves[c] = b.getAllMoves(c, onlyFirstMove)
 	}
 	if previousMove != nil {
-		enPassantMoves := b.getEnPassantMoves(c, previousMove)
-		allMoves := append(*(entry.moves[c].(*[]location.Move)), *enPassantMoves...)
-		return &allMoves
+		if !onlyFirstMove || (onlyFirstMove && len(*entry.moves[c].(*[]location.Move)) == 0) {
+			enPassantMoves := b.getEnPassantMoves(c, previousMove)
+			allMoves := append(*(entry.moves[c].(*[]location.Move)), *enPassantMoves...)
+			return &allMoves
+		}
 	}
 	return entry.moves[c].(*[]location.Move)
 }
@@ -359,9 +373,6 @@ func (b *Board) getAllMoves(c color.Color, onlyFirstMove bool) *[]location.Move 
 			}
 		}
 	}
-	if config.Get().RandomMoveOrder {
-		moves = util.RandShuffleMoves(moves)
-	}
 	return &moves
 }
 
@@ -392,7 +403,7 @@ func (b *Board) getEnPassantMoves(c color.Color, previousMove *LastMove) *[]loca
 		}
 		if captureLocation != nil {
 			for i := int8(-1); i <= 1; i += 2 {
-				adjacentLoc, inBounds := move.End.AddRelative(location.RelativeLocation{0, i})
+				adjacentLoc, inBounds := move.End.AddRelative(location.RelativeLocation{Col: i})
 				if inBounds {
 					adjacentPiece := b.GetPiece(adjacentLoc)
 					if adjacentPiece != nil && adjacentPiece.GetColor() == c && adjacentPiece.GetPieceType() == piece.PawnType {
@@ -414,20 +425,23 @@ func (b *Board) getEnPassantMoves(c color.Color, previousMove *LastMove) *[]loca
 func (b *Board) GetAllAttackableMoves(c color.Color) AttackableBoard {
 	if b.CacheGetAllAttackableMoves {
 		h := b.Hash()
-		entry := &MoveCacheEntry{
+		entry := MoveCacheEntry{
 			moves: make(map[color.Color]interface{}),
 		}
 		if cacheEntry, cacheExists := b.AttackableCache.Read(&h); cacheExists {
-			entry = cacheEntry.(*MoveCacheEntry)
-			// we've gotten the other color but not the one we want
-			if entry.moves[c] == nil {
-				entry.moves[c] = b.getAllAttackableMoves(c)
-				b.AttackableCache.Store(&h, entry)
+			readEntry := cacheEntry.(*MoveCacheEntry)
+			if readEntry.moves[c] != nil {
+				// cache has the color we want
+				return readEntry.moves[c].(AttackableBoard)
+			} else {
+				// cache entry exists so readEntry must have moves for other color
+				// grab to store new cache entry
+				entry.moves[c^1] = readEntry.moves[c^1]
 			}
-		} else {
-			entry.moves[c] = b.getAllAttackableMoves(c)
-			b.AttackableCache.Store(&h, entry)
 		}
+		// fill moves for desired color
+		entry.moves[c] = b.getAllAttackableMoves(c)
+		b.AttackableCache.Store(&h, &entry)
 		return entry.moves[c].(AttackableBoard)
 	} else {
 		return b.getAllAttackableMoves(c)

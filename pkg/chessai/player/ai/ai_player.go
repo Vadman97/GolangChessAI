@@ -6,23 +6,25 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"log"
-	"math"
 	"math/rand"
 	"os"
 	"time"
 )
 
 const (
-	NegInf = math.MinInt32 + 8
-	PosInf = math.MaxInt32 - 7
+	PosInf       = int(1000000000)
+	NegInf       = int(-PosInf)
+	OnEvaluation = int(1111111111)
 )
 
 const (
 	AlgorithmMiniMax             = "MiniMax"
-	AlgorithmAlphaBetaWithMemory = "AlphaBetaMemory"
+	AlgorithmAlphaBetaWithMemory = "α/β Memory"
 	AlgorithmMTDf                = "MTDf"
+	AlgorithmABDADA              = "ABDADA (α/β Parallel)"
 	AlgorithmNegaScout           = "NegaScout"
 	AlgorithmRandom              = "Random"
 )
@@ -89,12 +91,12 @@ type AIPlayer struct {
 	Opening                   int
 	Metrics                   *Metrics
 
-	Debug          bool
-	PrintInfo      bool
-	evaluationMap  *util.ConcurrentBoardMap
-	alphaBetaTable *util.TranspositionTable
-	printer        chan string
-	abort          bool
+	Debug              bool
+	PrintInfo          bool
+	evaluationMap      *util.ConcurrentBoardMap
+	transpositionTable *transposition_table.TranspositionTable
+	printer            chan string
+	abort              bool
 }
 
 func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
@@ -108,7 +110,7 @@ func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
 		Debug:                     config.Get().LogDebug,
 		PrintInfo:                 config.Get().PrintPlayerInfo,
 		evaluationMap:             util.NewConcurrentBoardMap(),
-		alphaBetaTable:            util.NewTranspositionTable(),
+		transpositionTable:        transposition_table.NewTranspositionTable(),
 		printer:                   make(chan string, 1000000),
 	}
 	if config.Get().UseOpenings {
@@ -153,7 +155,9 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 			}
 			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
 				p.printer <- fmt.Sprintf("%s resigns, no best move available. Picking random.\n", p)
-				return &p.RandomMove(b, previousMove).Move
+				return &(&Random{
+					Rand: rand.New(rand.NewSource(time.Now().UnixNano())),
+				}).RandomMove(b, p.PlayerColor, previousMove).Move
 			}
 			return &scoredMove.Move
 		} else {
@@ -168,7 +172,7 @@ func (p *AIPlayer) MakeMove(b *board.Board, move *location.Move) *board.LastMove
 	return lastMove
 }
 
-func (p *AIPlayer) String() string {
+func (p AIPlayer) String() string {
 	return fmt.Sprintf("AI (%s - %s)",
 		p.Algorithm.GetName(), color.Names[p.PlayerColor])
 }
@@ -191,16 +195,16 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 			endStr = "_"
 		}
 		result += fmt.Sprintf("\t%s to %s\n", startStr, endStr)
-		result += fmt.Sprintf("\t\t%s\n", move.Print())
+		result += fmt.Sprintf("\t\t%s\n", move)
 		board.MakeMove(&move, debugBoard)
 	}
-	result += fmt.Sprintf("%s\n", p.Metrics.Print())
+	result += fmt.Sprintf("%s\n", p.Metrics)
 	result += fmt.Sprintf("%s best move leads to score %d\n", p, m.Score)
 	p.printer <- fmt.Sprint(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.PrintMetrics()
 	result += fmt.Sprintf("Transposition table metrics\n")
-	result += p.alphaBetaTable.PrintMetrics()
+	result += p.transpositionTable.PrintMetrics()
 	result += fmt.Sprintf("Move cache metrics\n")
 	result += b.MoveCache.PrintMetrics()
 	result += fmt.Sprintf("Attack Move cache metrics\n")
@@ -212,7 +216,7 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 func (p *AIPlayer) ClearCaches() {
 	// TODO(Vadim) find better way to pick when to clear, based on size #49
 	p.evaluationMap = util.NewConcurrentBoardMap()
-	p.alphaBetaTable = util.NewTranspositionTable()
+	p.transpositionTable = transposition_table.NewTranspositionTable()
 }
 
 func (p *AIPlayer) printThread(stop chan bool) {

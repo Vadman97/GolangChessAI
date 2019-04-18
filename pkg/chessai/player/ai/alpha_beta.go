@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 )
 
@@ -12,28 +13,29 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h = root.Hash()
-		if entry, ok := ab.player.alphaBetaTable.Read(&h, currentPlayer); ok {
-			if entry.Lower >= beta {
+		if entry, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
+			abEntry := entry.(*transposition_table.TranspositionTableEntryABMemory)
+			if abEntry.Lower >= beta {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
-					Score: entry.Lower,
-					Move:  entry.BestMove,
+					Score: abEntry.Lower,
+					Move:  abEntry.BestMove,
 				}
-			} else if entry.Upper <= alpha {
+			} else if abEntry.Upper <= alpha {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
-					Score: entry.Upper,
-					Move:  entry.BestMove,
+					Score: abEntry.Upper,
+					Move:  abEntry.BestMove,
 				}
 			}
-			if entry.Lower > NegInf && entry.Lower > alpha {
+			if abEntry.Lower > NegInf && abEntry.Lower > alpha {
 				ab.player.Metrics.MovesABImprovedTransposition++
-				alpha = entry.Lower
-				// TODO(Vadim) first in for loop of moves try entry.BestMove, same in other else
+				alpha = abEntry.Lower
+				// TODO(Vadim) first in for loop of moves try abEntry.BestMove, same in other else
 			}
-			if entry.Upper < PosInf && entry.Upper < beta {
+			if abEntry.Upper < PosInf && abEntry.Upper < beta {
 				ab.player.Metrics.MovesABImprovedTransposition++
-				beta = entry.Upper
+				beta = abEntry.Upper
 			}
 		}
 	}
@@ -56,12 +58,12 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		for i, m := range *moves {
 			if maximizingPlayer {
 				if best.Score > beta {
-					ab.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
+					ab.player.Metrics.MovesPrunedAB += uint64(len(*moves) - i)
 					break
 				}
 			} else {
 				if best.Score < alpha {
-					ab.player.Metrics.MovesPrunedAB += int64(len(*moves) - i)
+					ab.player.Metrics.MovesPrunedAB += uint64(len(*moves) - i)
 					break
 				}
 			}
@@ -92,19 +94,19 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 
 	if !ab.player.abort && ab.player.TranspositionTableEnabled {
 		if best.Score >= beta {
-			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
+			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
 				Lower:    best.Score,
 				Upper:    PosInf,
 				BestMove: best.Move,
 			})
 		} else if best.Score > alpha && best.Score < beta {
-			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
+			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
 				Lower:    best.Score,
 				Upper:    best.Score,
 				BestMove: best.Move,
 			})
 		} else if best.Score <= alpha {
-			ab.player.alphaBetaTable.Store(&h, currentPlayer, &util.TranspositionTableEntry{
+			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
 				Lower:    NegInf,
 				Upper:    best.Score,
 				BestMove: best.Move,

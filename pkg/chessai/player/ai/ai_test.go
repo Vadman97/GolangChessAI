@@ -28,7 +28,7 @@ func TestAIBestMovesSame(t *testing.T) {
 	for i := 0; i < 42; i++ {
 		gameBoard.MakeRandomMove()
 	}
-	fmt.Println(gameBoard.Print())
+	fmt.Println(gameBoard)
 
 	for c := color.White; c < color.NumColors; c++ {
 		fmt.Printf("===== EVALUATING %s =====\n\n\n", color.Names[c])
@@ -39,7 +39,7 @@ func TestAIBestMovesSame(t *testing.T) {
 			fmt.Printf("===== ALGORITHM %s =====\n\n", algorithm.GetName())
 		}
 		for _, move := range moves {
-			fmt.Println(move.Print())
+			fmt.Println(move)
 		}
 		evaluateScores(t, c, gameBoard, moves)
 		// TODO(Vadim) check that score actually improves by comparing to other outcomes of moves

@@ -31,7 +31,9 @@ func runAITest(t *testing.T, algorithm ai.Algorithm) {
 	aiPlayerSmart := ai.NewAIPlayer(color.Black, algorithm)
 	aiPlayerSmart.MaxSearchDepth = 100
 	aiPlayerSmart.MaxThinkTime = 1000 * time.Millisecond
-	aiPlayerDumb := ai.NewAIPlayer(color.White, &ai.Random{})
+	aiPlayerDumb := ai.NewAIPlayer(color.White, &ai.Random{
+		Rand: rand.New(rand.NewSource(config.Get().TestRandSeed)),
+	})
 	g := NewGame(aiPlayerDumb, aiPlayerSmart)
 	aiPlayerSmart.PrintInfo = false
 	aiPlayerDumb.PrintInfo = false
@@ -55,3 +57,9 @@ func runAITest(t *testing.T, algorithm ai.Algorithm) {
 		assert.True(t, smartScore-dumbScore <= int64(ai.PieceValueWeight*ai.PieceValue[piece.PawnType]))
 	}
 }
+
+// ABDADA vs. Random, diff depths
+// Depth:             1,  2,  3,   4
+// Moves (ply):      71, 43, 17,  61
+// Total game turns: 36, 22,  9,  31
+// Time (sec):        1,  3, 38, 352

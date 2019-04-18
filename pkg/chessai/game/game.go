@@ -106,6 +106,7 @@ func (g *Game) PlayTurn() bool {
 			g.printer <- fmt.Sprintf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
 		}
 	}
+	g.printer <- fmt.Sprintln(g)
 	if g.GameStatus != Active {
 		var aiPlayers []*ai.AIPlayer
 		for c := color.White; c < color.NumColors; c++ {
@@ -115,14 +116,14 @@ func (g *Game) PlayTurn() bool {
 		}
 
 		g.PerformanceLogger.CompletePerformanceLog(aiPlayers)
+		g.printThread()
 	}
-	g.printer <- fmt.Sprintln(g.Print())
 	return g.GameStatus == Active
 }
 
-func (g *Game) Print() (result string) {
+func (g Game) String() (result string) {
 	// we just played white if we are now on black, show info for white
-	result += fmt.Sprintln(g.CurrentBoard.Print())
+	result += fmt.Sprintln(g.CurrentBoard)
 	result += g.PrintThinkTime(g.CurrentTurnColor^1, g.LastMoveTime)
 	if g.MovesPlayed%2 == 0 || g.GameStatus != Active {
 		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
@@ -132,7 +133,7 @@ func (g *Game) Print() (result string) {
 		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
 	}
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
-	result += fmt.Sprintf("Total game turns: %d\n", g.MovesPlayed/2+1)
+	result += fmt.Sprintf("Total game turns: %d\n", (g.MovesPlayed-1)/2+1)
 	result += fmt.Sprintf("Game state: %s", StatusStrings[g.GameStatus])
 	return
 }
@@ -157,7 +158,7 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 			g.CurrentMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
 			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor, g.CurrentMoveTime))
 			if aiPlayer, isAI := g.Players[g.CurrentTurnColor].(*ai.AIPlayer); isAI {
-				g.printer <- fmt.Sprintf("\t%s\n\t", aiPlayer.Metrics.Print())
+				g.printer <- fmt.Sprintf("\t%s\n\t", aiPlayer.Metrics)
 			}
 			g.printer <- util.GetMemStatString()
 			g.printer <- fmt.Sprintln()

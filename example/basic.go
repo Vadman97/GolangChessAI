@@ -15,7 +15,7 @@ func main() {
 	myBoard := board.Board{}
 	myBoard.ResetDefault()
 	fmt.Println("Before moves")
-	fmt.Println(myBoard.Print())
+	fmt.Println(myBoard)
 
 	turnColor := color.White
 	start := time.Now()
@@ -31,11 +31,11 @@ func main() {
 		scoreMap.Store(&hash, 0)
 		turnColor = (turnColor + 1) % color.NumColors
 		fmt.Printf("Move %d\n", i)
-		fmt.Println(myBoard.Print())
+		fmt.Println(myBoard)
 	}
 
 	fmt.Println("After moves")
-	fmt.Println(myBoard.Print())
+	fmt.Println(myBoard)
 	// comment out printing inside loop for accurate timing
 	fmt.Printf("Played %d moves in %d ms.", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
 	// show how score map is filled (hashes hopefully distribute evenly over slices)

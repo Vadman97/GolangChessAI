@@ -49,7 +49,7 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 		if !m.player.abort {
 			guess = newGuess
 			m.lastSearchDepth = m.currentSearchDepth
-			m.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", m.lastSearchDepth, guess.Move.Print())
+			m.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", m.lastSearchDepth, guess.Move)
 		} else {
 			// -1 due to discard of current level due to hard abort
 			m.lastSearchDepth = m.currentSearchDepth - iterativeIncrement
