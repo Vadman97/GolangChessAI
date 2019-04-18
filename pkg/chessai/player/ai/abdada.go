@@ -25,6 +25,10 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		// generate moves while waiting for the answer ...
 		movesArr := root.GetAllMoves(currentPlayer, previousMove)
 
+		if len(*movesArr) == 0 {
+			return best
+		}
+
 		// block and grab the answer
 		ttAnswer := <-answerChan
 		alpha, beta = ttAnswer.alpha, ttAnswer.beta

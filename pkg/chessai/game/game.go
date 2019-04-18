@@ -106,6 +106,7 @@ func (g *Game) PlayTurn() bool {
 			g.printer <- fmt.Sprintf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
 		}
 	}
+	g.printer <- fmt.Sprintln(g.String())
 	if g.GameStatus != Active {
 		var aiPlayers []*ai.AIPlayer
 		for c := color.White; c < color.NumColors; c++ {
@@ -115,8 +116,8 @@ func (g *Game) PlayTurn() bool {
 		}
 
 		g.PerformanceLogger.CompletePerformanceLog(aiPlayers)
+		g.printThread()
 	}
-	g.printer <- fmt.Sprintln(g.String())
 	return g.GameStatus == Active
 }
 
@@ -203,6 +204,7 @@ func (g *Game) printThread() {
 	for g.GameStatus == Active {
 		util.PrintPrinter(g.printer, g.PrintInfo)
 	}
+	util.PrintPrinter(g.printer, g.PrintInfo)
 }
 
 func NewGame(whitePlayer, blackPlayer player.Player) *Game {

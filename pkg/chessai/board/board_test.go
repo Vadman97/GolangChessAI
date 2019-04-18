@@ -386,3 +386,10 @@ func TestBoard_RandomizeIllegal(t *testing.T) {
 	bo1.RandomizeIllegal()
 	assert.False(t, bo1.Equals(bo2))
 }
+
+func TestBoard_GetAllMovesUnShuffled(t *testing.T) {
+	bo1 := &Board{}
+	bo1.ResetDefault()
+	moves := bo1.GetAllMovesUnShuffled(color.Black, nil)
+	assert.Equal(t, *moves, *bo1.GetAllMovesUnShuffled(color.Black, nil))
+}

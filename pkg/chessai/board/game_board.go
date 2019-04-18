@@ -291,6 +291,18 @@ func (b *Board) HasLegalMove(color byte, previousMove *LastMove) bool {
 }
 
 func (b *Board) GetAllMoves(color byte, previousMove *LastMove) *[]location.Move {
+	movesPtr := b.getAllMovesCached(color, previousMove, false)
+	if config.Get().RandomMoveOrder {
+		moves := *movesPtr
+		rand.Shuffle(len(moves), func(i, j int) {
+			moves[i], moves[j] = moves[j], moves[i]
+		})
+		return &moves
+	}
+	return movesPtr
+}
+
+func (b *Board) GetAllMovesUnShuffled(color byte, previousMove *LastMove) *[]location.Move {
 	return b.getAllMovesCached(color, previousMove, false)
 }
 
@@ -360,11 +372,6 @@ func (b *Board) getAllMoves(c byte, onlyFirstMove bool) *[]location.Move {
 				}
 			}
 		}
-	}
-	if config.Get().RandomMoveOrder {
-		rand.Shuffle(len(moves), func(i, j int) {
-			moves[i], moves[j] = moves[j], moves[i]
-		})
 	}
 	return &moves
 }
