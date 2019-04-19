@@ -35,7 +35,7 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 			t := n.NegaScout(newBoard, depth-1, b.NegScore(), a.NegScore(), currentPlayer^1, previousMove).NegScore()
 			t.Move = m
 
-			if t.Score > a.Score && t.Score < beta.Score && i > 0 && depth < n.startDepth-1 {
+			if t.Score > a.Score && t.Score < beta.Score && i > 0 && depth < n.currentSearchDepth-1 {
 				// re-search
 				a = n.NegaScout(newBoard, depth-1, beta.NegScore(), t.NegScore(), currentPlayer^1, previousMove).NegScore()
 				a.Move = m
@@ -92,7 +92,6 @@ func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastM
 
 type NegaScout struct {
 	player             *AIPlayer
-	startDepth         int
 	currentSearchDepth int
 	lastSearchDepth    int
 	lastSearchTime     time.Duration
@@ -106,7 +105,6 @@ func (n *NegaScout) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board
 	n.player = p
 	n.player.abort = false
 
-	n.startDepth = p.MaxSearchDepth
 	best := n.IterativeNegaScout(b, previousMove)
 
 	return &best

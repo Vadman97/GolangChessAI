@@ -142,6 +142,7 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 		thinking := make(chan bool)
 		go p.printThread(thinking)
 		defer close(thinking)
+		p.abort = false
 		// reset metrics for each move
 		p.Metrics = &Metrics{}
 

@@ -45,8 +45,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			iteration := 0
 			allDone := false
 			for iteration < 2 && alpha < beta && !allDone {
-				if ab.player.abort {
-					break
+				if ab.player.abort || ab.kill {
+					return best
 				}
 				iteration++
 				allDone = true
@@ -55,8 +55,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				move := moves[0]
 				moves = moves[1:]
 				for alpha < beta {
-					if ab.player.abort {
-						break
+					if ab.player.abort || ab.kill {
+						return best
 					}
 					// On the first iteration, we want to be the only processor to evaluate young sons
 					exclusiveProbe = iteration == 1 && !firstMove
@@ -101,9 +101,22 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	}
 
 	var bestMoves []ScoredMove
-	for i := 0; i < NumThreads; i++ {
+
+	const AbortAfterFirst = true
+	if AbortAfterFirst {
+		// abort the other threads after the first move is retrieved
+		// get first thread's move
 		bestMoves = append(bestMoves, <-moveChan)
-		// TODO(Vadim) can we abort the other threads after the first move is retrieved? or should we get all and pick best
+		// abort the rest
+		ab.kill = true
+		for i := 0; i < NumThreads-1; i++ {
+			<-moveChan
+		}
+		ab.kill = false
+	} else {
+		for i := 0; i < NumThreads; i++ {
+			bestMoves = append(bestMoves, <-moveChan)
+		}
 	}
 
 	var bestMove ScoredMove
@@ -160,6 +173,7 @@ func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *boa
 
 type ABDADA struct {
 	player             *AIPlayer
+	kill               bool
 	currentSearchDepth int
 	lastSearchDepth    int
 	lastSearchTime     time.Duration
@@ -175,7 +189,7 @@ type TTAnswer struct {
 }
 
 func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
-	if !ab.player.abort && ab.player.TranspositionTableEnabled {
+	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h := root.Hash()
 		if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
