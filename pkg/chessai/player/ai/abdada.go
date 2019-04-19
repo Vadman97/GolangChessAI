@@ -209,9 +209,9 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 					entry.EntryType = transposition_table.UpperBound
 				} else {
 					entry.EntryType = transposition_table.TrueScore
-					entry.BestMove = sm.Move // TODO(Vadim) only if TrueScore?
 				}
 				entry.Score = sm.Score
+				entry.BestMove = sm.Move
 				entry.Depth = depth
 
 				entry.Lock.Unlock()
@@ -243,7 +243,6 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 						answer.score = entry.Score
 						answer.alpha = entry.Score
 						answer.beta = entry.Score
-						answer.bestMove = entry.BestMove // TODO(Vadim) only if TrueScore?
 					} else if entry.EntryType == transposition_table.UpperBound && entry.Score < beta {
 						answer.score = entry.Score
 						answer.beta = entry.Score
@@ -251,6 +250,7 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 						answer.score = entry.Score
 						answer.alpha = entry.Score
 					}
+					answer.bestMove = entry.BestMove // TODO(Vadim) only if TrueScore?
 
 					if entry.Depth == depth && answer.alpha < answer.beta {
 						// Increment the number of processors evaluating this node

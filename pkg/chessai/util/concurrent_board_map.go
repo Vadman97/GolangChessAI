@@ -62,7 +62,7 @@ func (m *ConcurrentBoardMap) Read(hash *BoardHash) (interface{}, bool) {
 	return v, ok
 }
 
-func (m *ConcurrentBoardMap) PrintMetrics() (result string) {
+func (m ConcurrentBoardMap) String() (result string) {
 	totalLockUsage := m.GetTotalLockUsage()
 	totalHits := m.GetTotalHits()
 	totalReads := m.GetTotalReads()

@@ -21,10 +21,9 @@ import (
 )
 
 var algorithmsToTest = map[string]Algorithm{
-	//AlgorithmMiniMax:   &MiniMax{},
-	AlgorithmMTDf: &MTDf{},
-	//AlgorithmNegaScout: &NegaScout{},
-	AlgorithmABDADA: &ABDADA{},
+	AlgorithmMiniMax: &MiniMax{},
+	AlgorithmMTDf:    &MTDf{},
+	AlgorithmABDADA:  &ABDADA{},
 }
 
 type competitionBoard struct {
@@ -83,6 +82,7 @@ func TestAIBestMovesSame(t *testing.T) {
 					// this is used to ensure all algorithms get the same moves
 					assert.Equal(t, moves[AlgorithmMiniMax], move)
 				}*/
+				// if there is an expected best move, compare
 				if !entry.bestMove.Start.Equals(entry.bestMove.End) {
 					fmt.Printf("===== ALGORITHM %s =====\n", algorithmName)
 					fmt.Printf("== EXPECTED BEST MOVE %s ==\n", entry.bestMove)

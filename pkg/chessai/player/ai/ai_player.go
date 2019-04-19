@@ -203,13 +203,17 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 	result += fmt.Sprintf("%s best move leads to score %d\n", p, m.Score)
 	p.printer <- fmt.Sprint(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")
-	result += p.evaluationMap.PrintMetrics()
+	result += p.evaluationMap.String()
 	result += fmt.Sprintf("Transposition table metrics\n")
 	result += p.transpositionTable.PrintMetrics()
-	result += fmt.Sprintf("Move cache metrics\n")
-	result += b.MoveCache.PrintMetrics()
-	result += fmt.Sprintf("Attack Move cache metrics\n")
-	result += b.AttackableCache.PrintMetrics()
+	if b.MoveCache != nil {
+		result += fmt.Sprintf("Move cache metrics\n")
+		result += b.MoveCache.String()
+	}
+	if b.AttackableCache != nil {
+		result += fmt.Sprintf("Attack Move cache metrics\n")
+		result += b.AttackableCache.String()
+	}
 	result += fmt.Sprintf("\n\n")
 	_, _ = fmt.Fprint(file, result)
 }

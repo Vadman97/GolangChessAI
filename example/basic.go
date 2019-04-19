@@ -39,5 +39,5 @@ func main() {
 	// comment out printing inside loop for accurate timing
 	fmt.Printf("Played %d moves in %d ms.", MovesToPlay, time.Now().Sub(start)/time.Millisecond)
 	// show how score map is filled (hashes hopefully distribute evenly over slices)
-	//scoreMap.PrintMetrics()
+	//scoreMap.String()
 }

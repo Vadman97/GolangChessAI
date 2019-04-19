@@ -154,7 +154,7 @@ func TestBoardHashLookupParallel(t *testing.T) {
 	pSuccess := 100.0 * float64(totalNumStores) / (NumOps * NumThreads)
 	log.Printf("Parallel randomize,hash,write,read %d ops with %d us/loop. %.1f%% stores successful (%d)\n",
 		NumOps*NumThreads, timePerOp, pSuccess, totalNumStores)
-	//scoreMap.PrintMetrics()
+	//scoreMap.String()
 }
 
 func TestBoardColorFromChar(t *testing.T) {
