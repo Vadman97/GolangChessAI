@@ -6,7 +6,6 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"log"
 	"math/rand"
@@ -94,7 +93,7 @@ type AIPlayer struct {
 	Debug              bool
 	PrintInfo          bool
 	evaluationMap      *util.ConcurrentBoardMap
-	transpositionTable *transposition_table.TranspositionTable
+	transpositionTable *util.ConcurrentBoardMap
 	printer            chan string
 	abort              bool
 }
@@ -110,7 +109,7 @@ func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
 		Debug:                     config.Get().LogDebug,
 		PrintInfo:                 config.Get().PrintPlayerInfo,
 		evaluationMap:             util.NewConcurrentBoardMap(),
-		transpositionTable:        transposition_table.NewTranspositionTable(),
+		transpositionTable:        util.NewConcurrentBoardMap(),
 		printer:                   make(chan string, 1000000),
 	}
 	if config.Get().UseOpenings {
@@ -205,7 +204,7 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.String()
 	result += fmt.Sprintf("Transposition table metrics\n")
-	result += p.transpositionTable.PrintMetrics()
+	result += p.transpositionTable.String()
 	if b.MoveCache != nil {
 		result += fmt.Sprintf("Move cache metrics\n")
 		result += b.MoveCache.String()

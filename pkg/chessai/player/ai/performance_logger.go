@@ -193,7 +193,7 @@ func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredM
 	result += fmt.Sprintf("Board evaluation metrics\n")
 	result += p.evaluationMap.String()
 	result += fmt.Sprintf("Transposition table metrics\n")
-	result += p.transpositionTable.PrintMetrics()
+	result += p.transpositionTable.String()
 	result += fmt.Sprintf("Move cache metrics\n")
 	result += b.MoveCache.String()
 	result += fmt.Sprintf("Attack Move cache metrics\n")

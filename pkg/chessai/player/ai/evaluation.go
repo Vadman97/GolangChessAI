@@ -106,7 +106,7 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Evaluation {
 	hash := b.Hash()
 	if p.evaluationMap != nil {
-		if value, ok := p.evaluationMap.Read(&hash); ok {
+		if value, ok := p.evaluationMap.Read(&hash, 0); ok {
 			entry := value.(*evaluationPair)
 			score := entry.score
 			// store evaluation only once, flip perspective if needed
@@ -203,13 +203,10 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	}
 
 	if p.evaluationMap != nil {
-		entry := &evaluationPair{}
-		if v, ok := p.evaluationMap.Read(&hash); ok {
-			entry = v.(*evaluationPair)
-		}
-		entry.score = eval.TotalScore
-		entry.whoMoves = whoMoves
-		p.evaluationMap.Store(&hash, entry)
+		p.evaluationMap.Store(&hash, 0, &evaluationPair{
+			score:    eval.TotalScore,
+			whoMoves: whoMoves,
+		})
 	}
 
 	return eval
