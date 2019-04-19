@@ -8,6 +8,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"log"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -155,11 +156,21 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 		}
 	}
 	ab.lastSearchTime = time.Now().Sub(start)
+	if best.Move.Start.Equals(best.Move.End) {
+		log.Printf("%s has no best move: %s", AlgorithmABDADA, best.Move)
+	}
 	return best
 }
 
 func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
+	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {
+		log.Printf("WARNING: Trying to use %s with move caching enabled.\n", AlgorithmABDADA)
+		log.Println("WARNING: Disabling GetAllMoves, GetAllAttackableMoves caching.")
+		log.Printf("%s performs better without caching since it generates moves asynchronously\n", AlgorithmABDADA)
+		b.CacheGetAllMoves = false
+		b.CacheGetAllAttackableMoves = false
+	}
 	best := ab.iterativeABDADA(b, previousMove)
 	return &best
 }

@@ -65,10 +65,10 @@ func (m *ConcurrentBoardMap) Read(hash *BoardHash, currentTurn color.Color) (int
 		v, ok := m1[currentTurn]
 		if ok {
 			m.numHits[lockIdx]++
-			return v, ok
+			return v, true
 		}
 	}
-	return nil, ok
+	return nil, false
 }
 
 func (m ConcurrentBoardMap) String() (result string) {
