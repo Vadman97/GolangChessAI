@@ -80,8 +80,8 @@ const (
 )
 
 type evaluationPair struct {
-	evaluation *Evaluation
-	whoMoves   color.Color
+	score    int
+	whoMoves color.Color
 }
 
 // TODO(Vadim) make this a static function so evaluation cache is global
@@ -108,15 +108,13 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	if p.evaluationMap != nil {
 		if value, ok := p.evaluationMap.Read(&hash); ok {
 			entry := value.(*evaluationPair)
-			if entry.evaluation != nil {
-				score := entry.evaluation.TotalScore
-				// store evaluation only once, flip perspective if needed
-				if whoMoves != entry.whoMoves {
-					score = -score
-				}
-				return &Evaluation{
-					TotalScore: score,
-				}
+			score := entry.score
+			// store evaluation only once, flip perspective if needed
+			if whoMoves != entry.whoMoves {
+				score = -score
+			}
+			return &Evaluation{
+				TotalScore: score,
 			}
 		}
 	}
@@ -209,7 +207,7 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 		if v, ok := p.evaluationMap.Read(&hash); ok {
 			entry = v.(*evaluationPair)
 		}
-		entry.evaluation = eval
+		entry.score = eval.TotalScore
 		entry.whoMoves = whoMoves
 		p.evaluationMap.Store(&hash, entry)
 	}

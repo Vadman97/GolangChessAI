@@ -61,13 +61,8 @@ func TestAIBestMovesSame(t *testing.T) {
 				moves[algorithmName] = *getBestMove(entry.board, c, algorithm)
 				fmt.Printf("===== ALGORITHM %s =====\n\n", algorithm.GetName())
 
-				go func() {
-					time.Sleep(10 * time.Second)
-					entry.board.AttackableCache = util.NewConcurrentBoardMap()
-					entry.board.MoveCache = util.NewConcurrentBoardMap()
-					runtime.GC()
-					fmt.Println(util.GetMemStatString())
-				}()
+				runtime.GC()
+				fmt.Println(util.GetMemStatString())
 			}
 			for _, move := range moves {
 				fmt.Println(move)
