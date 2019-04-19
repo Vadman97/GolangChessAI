@@ -27,8 +27,11 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		// generate moves while waiting for the answer ...
 		movesArr := root.GetAllMoves(currentPlayer, previousMove)
 
+		// this is a terminal node because we have no moves, either we lost or tied
 		if len(*movesArr) == 0 {
-			return best
+			return ScoredMove{
+				Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
+			}
 		}
 
 		// block and grab the answer

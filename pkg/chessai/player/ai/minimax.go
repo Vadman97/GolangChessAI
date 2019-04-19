@@ -20,7 +20,9 @@ func (miniMax *MiniMax) MiniMaxRecurse(b *board.Board, m location.Move, depth in
 }
 
 func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
-	if depth == 0 {
+	moves := b.GetAllMoves(currentPlayer, previousMove)
+	// max recursion or terminal node
+	if depth == 0 || len(*moves) == 0 {
 		return &ScoredMove{
 			Score: miniMax.player.EvaluateBoard(b, miniMax.player.PlayerColor).TotalScore,
 		}
@@ -34,7 +36,6 @@ func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.C
 		// minimizing player
 		best.Score = PosInf
 	}
-	moves := b.GetAllMoves(currentPlayer, previousMove)
 	for _, m := range *moves {
 		if miniMax.player.abort {
 			break

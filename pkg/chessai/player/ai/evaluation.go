@@ -94,8 +94,8 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 		eval.TotalScore = StalemateScore
 	} else {
 		eval = p.evaluateBoardCached(b, whoMoves)
+		eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw
 	}
-	eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw
 	return eval
 }
 
@@ -126,7 +126,8 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	} else if b.IsInCheckmate(whoMoves, nil) {
 		eval.TotalScore = LossScore
 	} else if b.IsStalemate(whoMoves, nil) || b.IsStalemate(whoMoves^1, nil) {
-		eval.TotalScore = 0
+		// want to discourage us from stalemating other player or getting stalemated
+		eval.TotalScore = StalemateScore
 	} else {
 		for r := location.CoordinateType(0); r < board.Height; r++ {
 			for c := location.CoordinateType(0); c < board.Width; c++ {
