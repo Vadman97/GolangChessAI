@@ -61,11 +61,11 @@ const (
 	PieceAdvanceWeight    = 50
 	PieceNumMovesWeight   = 10
 	PieceNumAttacksWeight = 10
-	KingDisplacedWeight   = -2 * PieceValueWeight   // neg 2 pawns
-	RookDisplacedWeight   = -1 * PieceValueWeight   // neg 1 pawn
-	KingCastledWeight     = 3 * PieceValueWeight    // three pawn
-	KingCheckedWeight     = 1 * PieceValueWeight    // one pawn
-	Weight50Rule          = -PieceValueWeight / 100 // neg 1 pawn if we do nothing in 50 moves
+	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
+	RookDisplacedWeight   = -1 * PieceValueWeight // neg 1 pawn
+	KingCastledWeight     = 3 * PieceValueWeight  // three pawn
+	KingCheckedWeight     = 1 * PieceValueWeight  // one pawn
+	Weight50Rule          = StalemateScore / 100  // neg 1 pawn if we do nothing in 50 moves
 )
 
 const (
@@ -76,7 +76,7 @@ const (
 const (
 	WinScore       = PosInf
 	LossScore      = NegInf
-	StalemateScore = -PieceValueWeight // neg 1 pawn
+	StalemateScore = -9 * PieceValueWeight // neg queen
 )
 
 type evaluationPair struct {
