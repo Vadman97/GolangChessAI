@@ -261,7 +261,7 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 						answer.score = entry.Score
 						answer.alpha = entry.Score
 					}
-					answer.bestMove = entry.BestMove // TODO(Vadim) only if TrueScore?
+					answer.bestMove = entry.BestMove
 
 					if entry.Depth == depth && answer.alpha < answer.beta {
 						// Increment the number of processors evaluating this node
