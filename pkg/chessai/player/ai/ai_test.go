@@ -42,11 +42,12 @@ func TestAIBestMovesSame(t *testing.T) {
 	for i := 0; i < 42; i++ {
 		gb.MakeRandomMove()
 	}
-	//boardsToTest["Random"] = competitionBoard{
-	//	board: gb,
-	//}
 
-	boardsToTest = loadCompetitionBoards(boardsToTest)
+	boardsToTest["Random"] = competitionBoard{
+		board: gb,
+	}
+
+	//boardsToTest = loadCompetitionBoards(boardsToTest)
 
 	for boardName, entry := range boardsToTest {
 		for c := color.White; c < color.NumColors; c++ {

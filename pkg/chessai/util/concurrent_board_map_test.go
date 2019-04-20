@@ -1,20 +1,20 @@
 package util
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"testing"
 )
 
 func TestConcurrentBoardMap_StoreUpdateReadABDADA(t *testing.T) {
 	tt := NewConcurrentBoardMap()
 
-	b := board.Board{}
-	b.ResetDefault()
-	b.RandomizeIllegal()
-	h := b.Hash()
+	var h BoardHash
+	r := rand.New(rand.NewSource(config.Get().TestRandSeed))
+	r.Read(h[:])
 
 	ttEntry := transposition_table.TranspositionTableEntryABDADA{}
 	tt.Store(&h, color.Black, &ttEntry)
