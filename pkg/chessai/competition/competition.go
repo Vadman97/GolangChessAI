@@ -58,6 +58,7 @@ func (c *Competition) RunCompetition() {
 		c.elos = CalculateRatings(c.elos, outcome)
 		c.RecordOutcome(outcome)
 	}
+	fmt.Println(c)
 }
 
 func (c Competition) String() (result string) {
