@@ -13,10 +13,10 @@ import (
 	"time"
 )
 
-var algorithmsToTest = map[string]Algorithm{
-	AlgorithmMiniMax:   &MiniMax{},
-	AlgorithmMTDf:      &MTDf{},
-	AlgorithmNegaScout: &NegaScout{},
+var algorithmsToTest = [...]string{
+	AlgorithmMiniMax,
+	AlgorithmMTDf,
+	AlgorithmNegaScout,
 }
 
 func TestAIBestMovesSame(t *testing.T) {
@@ -33,7 +33,8 @@ func TestAIBestMovesSame(t *testing.T) {
 	for c := color.White; c < color.NumColors; c++ {
 		fmt.Printf("===== EVALUATING %s =====\n\n\n", color.Names[c])
 		moves := map[string]location.Move{}
-		for algorithmName, algorithm := range algorithmsToTest {
+		for _, algorithmName := range algorithmsToTest {
+			algorithm := NameToAlgorithm[algorithmName]
 			fmt.Printf("\n\n===== ALGORITHM %s =====\n", algorithmName)
 			moves[algorithmName] = *getBestMove(gameBoard, c, algorithm)
 			fmt.Printf("===== ALGORITHM %s =====\n\n", algorithm.GetName())
