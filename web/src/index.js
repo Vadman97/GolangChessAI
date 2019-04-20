@@ -7,20 +7,33 @@ import GameSocket from './socket/GameSocket'
 window['jQuery'] = $;
 require('oakmac-chessboard');
 
-const config = {
+const boardConfig = {
   draggable: true,
   position: 'start',
+  pieceTheme: 'img/chesspieces/wikipedia-svg/{piece}.svg'
 };
-const board = ChessBoard('board', config);
+const board = ChessBoard('board', boardConfig);
+
+let gameSocket;
+
+// BUTTON FOR POST REQUEST
+// CrEATE SOCKET
+// RECEIVE GAME STATUS
+// SET BOARD
+// SEND PLAYER MOVE
 
 $(document).ready(() => {
-  const gameSocket = new GameSocket(messageHandler);
-  gameSocket.send(SocketConstants.PlayerMove, {
-    start: [0, 0],
-    end: [0, 1],
-    isCapture: false,
-    piece: null,
-  });
+
+  // gameSocket.send(SocketConstants.PlayerMove, {
+  //   start: [0, 0],
+  //   end: [0, 1],
+  //   isCapture: false,
+  //   piece: null,
+  // });
+});
+
+$("#start-btn").click(() => {
+  $.post(`${window.location.host}/api/game?command=start`)
 });
 
 function messageHandler(event) {
