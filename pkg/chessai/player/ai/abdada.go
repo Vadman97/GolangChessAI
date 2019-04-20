@@ -27,17 +27,17 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		// generate moves while waiting for the answer ...
 		movesArr := root.GetAllMoves(currentPlayer, previousMove)
 
+		// block and grab the answer
+		ttAnswer := <-answerChan
+		alpha, beta = ttAnswer.alpha, ttAnswer.beta
+		best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
+
 		// this is a terminal node because we have no moves, either we lost or tied
 		if len(*movesArr) == 0 {
 			return ScoredMove{
 				Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
 			}
 		}
-
-		// block and grab the answer
-		ttAnswer := <-answerChan
-		alpha, beta = ttAnswer.alpha, ttAnswer.beta
-		best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
 
 		/* The current move is not evaluated if causing u a cutoff or
 		if we are in exclusive mode and another processor

@@ -221,6 +221,7 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 
 func (p *AIPlayer) ClearCaches() {
 	// TODO(Vadim) find better way to pick when to clear, based on size #49
+	log.Println("WARNING: Clearing player caches (negatively affects ABDADA if during game)")
 	p.evaluationMap = util.NewConcurrentBoardMap()
 	p.transpositionTable = util.NewConcurrentBoardMap()
 }
