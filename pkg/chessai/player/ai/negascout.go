@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"time"
 )
@@ -60,7 +61,8 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastMove) ScoredMove {
 	start := time.Now()
 	best := ScoredMove{}
-	for n.currentSearchDepth = 1; n.currentSearchDepth <= n.player.MaxSearchDepth; n.currentSearchDepth += 1 {
+	iterativeIncrement := config.Get().IterativeIncrement
+	for n.currentSearchDepth = iterativeIncrement; n.currentSearchDepth <= n.player.MaxSearchDepth; n.currentSearchDepth += iterativeIncrement {
 		thinking, done := make(chan bool), make(chan bool, 1)
 		go n.player.trackThinkTime(thinking, done, start)
 		newBest := n.NegaScout(b, n.currentSearchDepth, ScoredMove{
