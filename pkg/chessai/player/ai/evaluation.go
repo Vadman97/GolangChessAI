@@ -61,11 +61,11 @@ const (
 	PieceAdvanceWeight    = 50
 	PieceNumMovesWeight   = 10
 	PieceNumAttacksWeight = 10
-	KingDisplacedWeight   = -2 * PieceValueWeight   // neg 2 pawns
-	RookDisplacedWeight   = -1 * PieceValueWeight   // neg 1 pawn
-	KingCastledWeight     = 3 * PieceValueWeight    // three pawn
-	KingCheckedWeight     = 1 * PieceValueWeight    // one pawn
-	Weight50Rule          = -PieceValueWeight / 100 // neg 1 pawn if we do nothing in 50 moves
+	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
+	RookDisplacedWeight   = -1 * PieceValueWeight // neg 1 pawn
+	KingCastledWeight     = 3 * PieceValueWeight  // three pawn
+	KingCheckedWeight     = 1 * PieceValueWeight  // one pawn
+	Weight50Rule          = StalemateScore / 100  // neg 1 pawn if we do nothing in 50 moves
 )
 
 const (
@@ -76,12 +76,12 @@ const (
 const (
 	WinScore       = PosInf
 	LossScore      = NegInf
-	StalemateScore = -PieceValueWeight // neg 1 pawn
+	StalemateScore = -9 * PieceValueWeight // neg queen
 )
 
 type evaluationPair struct {
-	evaluation *Evaluation
-	whoMoves   color.Color
+	score    int
+	whoMoves color.Color
 }
 
 // TODO(Vadim) make this a static function so evaluation cache is global
@@ -94,8 +94,8 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 		eval.TotalScore = StalemateScore
 	} else {
 		eval = p.evaluateBoardCached(b, whoMoves)
+		eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw
 	}
-	eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw
 	return eval
 }
 
@@ -106,17 +106,15 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Evaluation {
 	hash := b.Hash()
 	if p.evaluationMap != nil {
-		if value, ok := p.evaluationMap.Read(&hash); ok {
+		if value, ok := p.evaluationMap.Read(&hash, 0); ok {
 			entry := value.(*evaluationPair)
-			if entry.evaluation != nil {
-				score := entry.evaluation.TotalScore
-				// store evaluation only once, flip perspective if needed
-				if whoMoves != entry.whoMoves {
-					score = -score
-				}
-				return &Evaluation{
-					TotalScore: score,
-				}
+			score := entry.score
+			// store evaluation only once, flip perspective if needed
+			if whoMoves != entry.whoMoves {
+				score = -score
+			}
+			return &Evaluation{
+				TotalScore: score,
 			}
 		}
 	}
@@ -128,7 +126,8 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	} else if b.IsInCheckmate(whoMoves, nil) {
 		eval.TotalScore = LossScore
 	} else if b.IsStalemate(whoMoves, nil) || b.IsStalemate(whoMoves^1, nil) {
-		eval.TotalScore = 0
+		// want to discourage us from stalemating other player or getting stalemated
+		eval.TotalScore = StalemateScore
 	} else {
 		for r := location.CoordinateType(0); r < board.Height; r++ {
 			for c := location.CoordinateType(0); c < board.Width; c++ {
@@ -205,13 +204,10 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	}
 
 	if p.evaluationMap != nil {
-		entry := &evaluationPair{}
-		if v, ok := p.evaluationMap.Read(&hash); ok {
-			entry = v.(*evaluationPair)
-		}
-		entry.evaluation = eval
-		entry.whoMoves = whoMoves
-		p.evaluationMap.Store(&hash, entry)
+		p.evaluationMap.Store(&hash, 0, &evaluationPair{
+			score:    eval.TotalScore,
+			whoMoves: whoMoves,
+		})
 	}
 
 	return eval

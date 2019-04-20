@@ -8,6 +8,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"log"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -26,8 +27,11 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		// generate moves while waiting for the answer ...
 		movesArr := root.GetAllMoves(currentPlayer, previousMove)
 
+		// this is a terminal node because we have no moves, either we lost or tied
 		if len(*movesArr) == 0 {
-			return best
+			return ScoredMove{
+				Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
+			}
 		}
 
 		// block and grab the answer
@@ -45,8 +49,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			iteration := 0
 			allDone := false
 			for iteration < 2 && alpha < beta && !allDone {
-				if ab.player.abort {
-					break
+				if ab.player.abort || ab.kill {
+					return best
 				}
 				iteration++
 				allDone = true
@@ -55,8 +59,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				move := moves[0]
 				moves = moves[1:]
 				for alpha < beta {
-					if ab.player.abort {
-						break
+					if ab.player.abort || ab.kill {
+						return best
 					}
 					// On the first iteration, we want to be the only processor to evaluate young sons
 					exclusiveProbe = iteration == 1 && !firstMove
@@ -101,9 +105,22 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	}
 
 	var bestMoves []ScoredMove
-	for i := 0; i < NumThreads; i++ {
+
+	const AbortAfterFirst = true
+	if AbortAfterFirst {
+		// abort the other threads after the first move is retrieved
+		// get first thread's move
 		bestMoves = append(bestMoves, <-moveChan)
-		// TODO(Vadim) can we abort the other threads after the first move is retrieved? or should we get all and pick best
+		// abort the rest
+		ab.kill = true
+		for i := 0; i < NumThreads-1; i++ {
+			<-moveChan
+		}
+		ab.kill = false
+	} else {
+		for i := 0; i < NumThreads; i++ {
+			bestMoves = append(bestMoves, <-moveChan)
+		}
 	}
 
 	var bestMove ScoredMove
@@ -142,11 +159,21 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 		}
 	}
 	ab.lastSearchTime = time.Now().Sub(start)
+	if best.Move.Start.Equals(best.Move.End) {
+		log.Printf("%s has no best move: %s", AlgorithmABDADA, best.Move)
+	}
 	return best
 }
 
 func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
+	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {
+		log.Printf("WARNING: Trying to use %s with move caching enabled.\n", AlgorithmABDADA)
+		log.Println("WARNING: Disabling GetAllMoves, GetAllAttackableMoves caching.")
+		log.Printf("%s performs better without caching since it generates moves asynchronously\n", AlgorithmABDADA)
+		b.CacheGetAllMoves = false
+		b.CacheGetAllAttackableMoves = false
+	}
 	best := ab.iterativeABDADA(b, previousMove)
 	return &best
 }
@@ -160,6 +187,7 @@ func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *boa
 
 type ABDADA struct {
 	player             *AIPlayer
+	kill               bool
 	currentSearchDepth int
 	lastSearchDepth    int
 	lastSearchTime     time.Duration
@@ -175,7 +203,7 @@ type TTAnswer struct {
 }
 
 func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
-	if !ab.player.abort && ab.player.TranspositionTableEnabled {
+	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h := root.Hash()
 		if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
@@ -195,9 +223,9 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 					entry.EntryType = transposition_table.UpperBound
 				} else {
 					entry.EntryType = transposition_table.TrueScore
-					entry.BestMove = sm.Move // TODO(Vadim) only if TrueScore?
 				}
 				entry.Score = sm.Score
+				entry.BestMove = sm.Move
 				entry.Depth = depth
 
 				entry.Lock.Unlock()
@@ -229,7 +257,6 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 						answer.score = entry.Score
 						answer.alpha = entry.Score
 						answer.beta = entry.Score
-						answer.bestMove = entry.BestMove // TODO(Vadim) only if TrueScore?
 					} else if entry.EntryType == transposition_table.UpperBound && entry.Score < beta {
 						answer.score = entry.Score
 						answer.beta = entry.Score
@@ -237,6 +264,7 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 						answer.score = entry.Score
 						answer.alpha = entry.Score
 					}
+					answer.bestMove = entry.BestMove // TODO(Vadim) only if TrueScore?
 
 					if entry.Depth == depth && answer.alpha < answer.beta {
 						// Increment the number of processors evaluating this node

@@ -19,6 +19,8 @@ const TimeToPlay = 2 * time.Minute
 func TestBoardAI(t *testing.T) {
 	var algorithmsToTest = [...]ai.Algorithm{
 		&ai.MTDf{},
+		&ai.ABDADA{},
+		&ai.MiniMax{},
 	}
 
 	rand.Seed(config.Get().TestRandSeed)
