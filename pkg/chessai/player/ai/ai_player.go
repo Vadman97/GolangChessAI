@@ -219,8 +219,8 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 
 func (p *AIPlayer) ClearCaches() {
 	// TODO(Vadim) find better way to pick when to clear, based on size #49
-	// p.evaluationMap = util.NewConcurrentBoardMap()
-	// p.transpositionTable = transposition_table.NewTranspositionTable()
+	p.evaluationMap = util.NewConcurrentBoardMap()
+	p.transpositionTable = util.NewConcurrentBoardMap()
 }
 
 func (p *AIPlayer) printThread(stop chan bool) {

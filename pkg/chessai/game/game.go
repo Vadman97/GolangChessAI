@@ -173,12 +173,14 @@ func (g *Game) UpdateTime(start time.Time) {
 	g.TotalMoveTime[g.CurrentTurnColor] += g.LastMoveTime[g.CurrentTurnColor]
 }
 
-func (g *Game) ClearCaches() {
+func (g *Game) ClearCaches(clearPlayers bool) {
 	g.CurrentBoard.AttackableCache = util.NewConcurrentBoardMap()
 	g.CurrentBoard.MoveCache = util.NewConcurrentBoardMap()
-	for c := color.White; c < color.NumColors; c++ {
-		if aiPlayer, isAI := g.Players[c].(*ai.AIPlayer); isAI {
-			aiPlayer.ClearCaches()
+	if clearPlayers {
+		for c := color.White; c < color.NumColors; c++ {
+			if aiPlayer, isAI := g.Players[c].(*ai.AIPlayer); isAI {
+				aiPlayer.ClearCaches()
+			}
 		}
 	}
 }
@@ -191,7 +193,7 @@ func (g *Game) memoryThread() {
 	for g.GameStatus == Active {
 		if util.GetMemoryUsed() > g.CacheMemoryLimit {
 			g.printer <- fmt.Sprintf("Clearing caches\n")
-			g.ClearCaches()
+			g.ClearCaches(false)
 			runtime.GC()
 			g.printer <- fmt.Sprintf("Cleared!\n")
 			g.printer <- util.GetMemStatString()
