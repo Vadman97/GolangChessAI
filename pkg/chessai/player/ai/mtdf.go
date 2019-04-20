@@ -75,5 +75,13 @@ func (m *MTDf) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.Last
 	m.player = p
 	m.player.abort = false
 	m.ab = AlphaBetaWithMemory{player: p}
+
+	if !b.CacheGetAllMoves || !b.CacheGetAllAttackableMoves {
+		log.Printf("WARNING: Trying to use %s without move caching enabled.\n", m.GetName())
+		log.Println("WARNING: Enabling GetAllMoves, GetAllAttackableMoves caching.")
+		b.CacheGetAllMoves = true
+		b.CacheGetAllAttackableMoves = true
+	}
+
 	return m.IterativeMTDf(b, nil, previousMove)
 }
