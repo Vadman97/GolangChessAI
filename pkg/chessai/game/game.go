@@ -16,11 +16,12 @@ import (
 
 type Game struct {
 	CurrentBoard      *board.Board
-	CurrentTurnColor  byte
-	Players           map[byte]player.Player
-	CurrentMoveTime   map[byte]time.Duration
-	LastMoveTime      map[byte]time.Duration
-	TotalMoveTime     map[byte]time.Duration
+	CurrentTurnColor  color.Color
+	Players           map[color.Color]player.Player
+	CurrentMoveTime   map[color.Color]time.Duration
+	LastMoveTime      map[color.Color]time.Duration
+	TotalMoveTime     map[color.Color]time.Duration
+	TotalSearchDepth  map[color.Color]int
 	MovesPlayed       uint
 	PreviousMove      *board.LastMove
 	GameStatus        byte
@@ -131,6 +132,12 @@ func (g Game) String() (result string) {
 		result += fmt.Sprintf("Average move time:\n")
 		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
 		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
+
+		whiteAvg = float64(g.TotalSearchDepth[color.White]) / float64(g.MovesPlayed/2)
+		blackAvg = float64(g.TotalSearchDepth[color.Black]) / float64(g.MovesPlayed/2)
+		result += fmt.Sprintf("Average search depth:\n")
+		result += fmt.Sprintf("\t White: %f\n", whiteAvg)
+		result += fmt.Sprintf("\t Black: %f\n", blackAvg)
 	}
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
 	result += fmt.Sprintf("Total game turns: %d\n", (g.MovesPlayed-1)/2+1)
@@ -171,6 +178,9 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 func (g *Game) UpdateTime(start time.Time) {
 	g.LastMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
 	g.TotalMoveTime[g.CurrentTurnColor] += g.LastMoveTime[g.CurrentTurnColor]
+	if aiPlayer, isAi := g.Players[g.CurrentTurnColor].(*ai.AIPlayer); isAi {
+		g.TotalSearchDepth[g.CurrentTurnColor] += aiPlayer.LastSearchDepth
+	}
 }
 
 func (g *Game) ClearCaches(clearPlayers bool) {
@@ -222,6 +232,10 @@ func NewGame(whitePlayer, blackPlayer player.Player) *Game {
 			color.Black: blackPlayer,
 		},
 		TotalMoveTime: map[byte]time.Duration{
+			color.White: 0,
+			color.Black: 0,
+		},
+		TotalSearchDepth: map[byte]int{
 			color.White: 0,
 			color.Black: 0,
 		},

@@ -149,18 +149,17 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 		// MTDf returns a good move (did not abort search)
 		if !ab.player.abort {
 			best = newGuess
-			ab.lastSearchDepth = ab.currentSearchDepth
-			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", ab.lastSearchDepth, best.Move)
+			ab.player.LastSearchDepth = ab.currentSearchDepth
+			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", ab.player.LastSearchDepth, best.Move)
 		} else {
 			// -1 due to discard of current level due to hard abort
-			ab.lastSearchDepth = ab.currentSearchDepth - iterativeIncrement
-			ab.player.printer <- fmt.Sprintf("%s hard abort! evaluated to depth %d\n", AlgorithmABDADA, ab.lastSearchDepth)
+			ab.player.LastSearchDepth = ab.currentSearchDepth - iterativeIncrement
+			ab.player.printer <- fmt.Sprintf("%s hard abort! evaluated to depth %d\n", ab.GetName(), ab.player.LastSearchDepth)
 			break
 		}
 	}
-	ab.lastSearchTime = time.Now().Sub(start)
 	if best.Move.Start.Equals(best.Move.End) {
-		log.Printf("%s has no best move: %s", AlgorithmABDADA, best.Move)
+		log.Printf("%s has no best move: %s", ab.GetName(), best.Move)
 	}
 	return best
 }
@@ -168,9 +167,9 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
 	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {
-		log.Printf("WARNING: Trying to use %s with move caching enabled.\n", AlgorithmABDADA)
+		log.Printf("WARNING: Trying to use %s with move caching enabled.\n", ab.GetName())
 		log.Println("WARNING: Disabling GetAllMoves, GetAllAttackableMoves caching.")
-		log.Printf("%s performs better without caching since it generates moves asynchronously\n", AlgorithmABDADA)
+		log.Printf("%s performs better without caching since it generates moves asynchronously\n", ab.GetName())
 		b.CacheGetAllMoves = false
 		b.CacheGetAllAttackableMoves = false
 	}
@@ -189,12 +188,10 @@ type ABDADA struct {
 	player             *AIPlayer
 	kill               bool
 	currentSearchDepth int
-	lastSearchDepth    int
-	lastSearchTime     time.Duration
 }
 
 func (ab *ABDADA) GetName() string {
-	return fmt.Sprintf("%s,[D:%d;T:%s]", AlgorithmABDADA, ab.lastSearchDepth, ab.lastSearchTime)
+	return AlgorithmABDADA
 }
 
 type TTAnswer struct {

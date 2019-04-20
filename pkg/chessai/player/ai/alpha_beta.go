@@ -1,7 +1,6 @@
 package ai
 
 import (
-	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
@@ -119,17 +118,16 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 }
 
 type AlphaBetaWithMemory struct {
-	player          *AIPlayer
-	lastSearchDepth int
+	player *AIPlayer
 }
 
 func (ab *AlphaBetaWithMemory) GetName() string {
-	return fmt.Sprintf("%s,[depth:%d]", AlgorithmAlphaBetaWithMemory, ab.lastSearchDepth)
+	return AlgorithmAlphaBetaWithMemory
 }
 
 func (ab *AlphaBetaWithMemory) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
 	ab.player.abort = false
-	ab.lastSearchDepth = p.MaxSearchDepth
+	ab.player.LastSearchDepth = p.MaxSearchDepth
 	return ab.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
 }

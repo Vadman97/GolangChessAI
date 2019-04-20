@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
+	"log"
 	"time"
 )
 
@@ -48,16 +49,15 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 		// MTDf returns a good move (did not abort search)
 		if !m.player.abort {
 			guess = newGuess
-			m.lastSearchDepth = m.currentSearchDepth
-			m.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", m.lastSearchDepth, guess.Move)
+			m.player.LastSearchDepth = m.currentSearchDepth
+			m.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", m.player.LastSearchDepth, guess.Move)
 		} else {
 			// -1 due to discard of current level due to hard abort
-			m.lastSearchDepth = m.currentSearchDepth - iterativeIncrement
-			m.player.printer <- fmt.Sprintf("MTDf hard abort! evaluated to depth %d\n", m.lastSearchDepth)
+			m.player.LastSearchDepth = m.currentSearchDepth - iterativeIncrement
+			m.player.printer <- fmt.Sprintf("MTDf hard abort! evaluated to depth %d\n", m.player.LastSearchDepth)
 			break
 		}
 	}
-	m.lastSearchTime = time.Now().Sub(start)
 	return guess
 }
 
@@ -65,12 +65,10 @@ type MTDf struct {
 	player             *AIPlayer
 	ab                 AlphaBetaWithMemory
 	currentSearchDepth int
-	lastSearchDepth    int
-	lastSearchTime     time.Duration
 }
 
 func (m *MTDf) GetName() string {
-	return fmt.Sprintf("%s,[D:%d;T:%s]", AlgorithmMTDf, m.lastSearchDepth, m.lastSearchTime)
+	return AlgorithmMTDf
 }
 
 func (m *MTDf) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {

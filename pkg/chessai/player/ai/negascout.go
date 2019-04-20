@@ -78,28 +78,25 @@ func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastM
 		// did not abort search, good value
 		if !n.player.abort {
 			best = newBest
-			n.lastSearchDepth = n.currentSearchDepth
-			n.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", n.lastSearchDepth, best.Move)
+			n.player.LastSearchDepth = n.currentSearchDepth
+			n.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", n.player.LastSearchDepth, best.Move)
 		} else {
 			// -1 due to discard of current level due to hard abort
-			n.lastSearchDepth = n.currentSearchDepth - 1
-			n.player.printer <- fmt.Sprintf("NegaScout hard abort! evaluated to depth %d\n", n.lastSearchDepth)
+			n.player.LastSearchDepth = n.currentSearchDepth - 1
+			n.player.printer <- fmt.Sprintf("NegaScout hard abort! evaluated to depth %d\n", n.player.LastSearchDepth)
 			break
 		}
 	}
-	n.lastSearchTime = time.Now().Sub(start)
 	return best
 }
 
 type NegaScout struct {
 	player             *AIPlayer
 	currentSearchDepth int
-	lastSearchDepth    int
-	lastSearchTime     time.Duration
 }
 
 func (n *NegaScout) GetName() string {
-	return fmt.Sprintf("%s,[D:%d;T:%s]", AlgorithmNegaScout, n.lastSearchDepth, n.lastSearchTime)
+	return AlgorithmNegaScout
 }
 
 func (n *NegaScout) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {

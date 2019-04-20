@@ -86,6 +86,8 @@ type AIPlayer struct {
 	PlayerColor               color.Color
 	MaxSearchDepth            int
 	MaxThinkTime              time.Duration
+	LastSearchDepth           int
+	LastSearchTime            time.Duration
 	TurnCount                 int
 	Opening                   int
 	Metrics                   *Metrics
@@ -154,7 +156,7 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 				logger.MarkPerformance(b, scoredMove, p)
 			}
 			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
-				p.printer <- fmt.Sprintf("%s resigns, no best move available. Picking random.\n", p)
+				log.Printf("%s resigns, no best move available. Picking random.\n", p)
 				return &(&Random{
 					Rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 				}).RandomMove(b, p.PlayerColor, previousMove).Move
