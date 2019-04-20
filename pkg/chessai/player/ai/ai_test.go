@@ -159,8 +159,8 @@ func evaluateScores(t *testing.T, c color.Color, gameBoard *board.Board, moves m
 
 func getBestMove(gameBoard *board.Board, c color.Color, algorithm Algorithm) *location.Move {
 	player := NewAIPlayer(c, algorithm)
-	player.MaxSearchDepth = 16
-	player.MaxThinkTime = 180000 * time.Millisecond
+	player.MaxSearchDepth = 100
+	player.MaxThinkTime = 5000 * time.Millisecond
 
 	return player.GetBestMove(gameBoard, nil, nil)
 }
