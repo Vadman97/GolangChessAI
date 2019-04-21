@@ -167,8 +167,8 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
 	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {
-		log.Printf("WARNING: Trying to use %s with move caching enabled.\n", ab.GetName())
-		log.Println("WARNING: Disabling GetAllMoves, GetAllAttackableMoves caching.")
+		log.Printf("Trying to use %s with move caching enabled.\n", ab.GetName())
+		log.Println("Disabling GetAllMoves, GetAllAttackableMoves caching.")
 		log.Printf("%s performs better without caching since it generates moves asynchronously\n", ab.GetName())
 		b.CacheGetAllMoves = false
 		b.CacheGetAllAttackableMoves = false

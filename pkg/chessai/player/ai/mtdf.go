@@ -77,8 +77,8 @@ func (m *MTDf) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.Last
 	m.ab = AlphaBetaWithMemory{player: p}
 
 	if !b.CacheGetAllMoves || !b.CacheGetAllAttackableMoves {
-		log.Printf("WARNING: Trying to use %s without move caching enabled.\n", m.GetName())
-		log.Println("WARNING: Enabling GetAllMoves, GetAllAttackableMoves caching.")
+		log.Printf("Trying to use %s without move caching enabled.\n", m.GetName())
+		log.Println("Enabling GetAllMoves, GetAllAttackableMoves caching.")
 		b.CacheGetAllMoves = true
 		b.CacheGetAllAttackableMoves = true
 	}

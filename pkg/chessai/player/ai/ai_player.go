@@ -10,6 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -219,11 +220,29 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 	_, _ = fmt.Fprint(file, result)
 }
 
-func (p *AIPlayer) ClearCaches() {
-	// TODO(Vadim) find better way to pick when to clear, based on size #49
-	log.Println("WARNING: Clearing player caches (negatively affects ABDADA if during game)")
-	p.evaluationMap = util.NewConcurrentBoardMap()
-	p.transpositionTable = util.NewConcurrentBoardMap()
+func (p *AIPlayer) ClearCaches(force bool) {
+	cleared := false
+	if force {
+		log.Println("WARNING: Force clearing player caches (negative affects if during game)")
+		p.evaluationMap = util.NewConcurrentBoardMap()
+		p.transpositionTable = util.NewConcurrentBoardMap()
+		cleared = true
+	} else {
+		if p.evaluationMap.GetTotalWrites() > 5000000 {
+			log.Println("WARNING: Clearing player evaluation cache due to size")
+			p.evaluationMap = util.NewConcurrentBoardMap()
+			cleared = true
+		}
+		if p.transpositionTable.GetTotalWrites() > 5000000 {
+			log.Println("WARNING: Clearing player transposition table due to size")
+			p.transpositionTable = util.NewConcurrentBoardMap()
+			cleared = true
+		}
+	}
+	if cleared {
+		runtime.GC()
+		log.Println("Forcing garbage collection")
+	}
 }
 
 func (p *AIPlayer) printThread(stop chan bool) {

@@ -119,6 +119,12 @@ func (g *Game) PlayTurn() bool {
 		g.PerformanceLogger.CompletePerformanceLog(aiPlayers)
 		g.printThread()
 	}
+	// perform player cleanup
+	for c := color.White; c < color.NumColors; c++ {
+		if aiPlayer, isAI := g.Players[c].(*ai.AIPlayer); isAI {
+			aiPlayer.ClearCaches(false)
+		}
+	}
 	return g.GameStatus == Active
 }
 
@@ -189,7 +195,7 @@ func (g *Game) ClearCaches(clearPlayers bool) {
 	if clearPlayers {
 		for c := color.White; c < color.NumColors; c++ {
 			if aiPlayer, isAI := g.Players[c].(*ai.AIPlayer); isAI {
-				aiPlayer.ClearCaches()
+				aiPlayer.ClearCaches(true)
 			}
 		}
 	}
