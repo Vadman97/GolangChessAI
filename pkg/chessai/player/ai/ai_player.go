@@ -26,6 +26,7 @@ const (
 	AlgorithmABDADA              = "ABDADA (α/β Parallel)"
 	AlgorithmNegaScout           = "NegaScout"
 	AlgorithmRandom              = "Random"
+	AlgorithmJamboree            = "Jamboree (α/β Parallel)"
 )
 
 const (

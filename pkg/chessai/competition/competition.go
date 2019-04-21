@@ -44,7 +44,7 @@ func (c *Competition) RunCompetition() {
 		// randomize color of players each game
 		c.randomizePlayers()
 		g := game.NewGame(c.players[c.whiteIndex], c.players[c.blackIndex])
-		c.disablePrinting(g)
+		//c.disablePrinting(g)
 		active := true
 		for active {
 			active = g.PlayTurn()
@@ -112,8 +112,8 @@ func (c *Competition) RunAICompetition() {
 	c.players[color.White].Algorithm = &ai.MiniMax{}
 	c.players[color.White].MaxSearchDepth = 128
 	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
-	c.players[color.Black].Algorithm = &ai.ABDADA{}
-	c.players[color.Black].MaxSearchDepth = 2
+	c.players[color.Black].Algorithm = &ai.Jamboree{}
+	c.players[color.Black].MaxSearchDepth = 3
 	c.players[color.Black].MaxThinkTime = 100 * time.Millisecond
 	c.RunCompetition()
 }

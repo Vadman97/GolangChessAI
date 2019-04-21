@@ -32,3 +32,10 @@ type TranspositionTableEntryABDADA struct {
 
 	Lock sync.Mutex
 }
+
+type TranspositionTableEntryJamboree struct {
+	Score    int
+	BestMove location.Move
+	Depth    uint16
+	Lock     sync.Mutex
+}
