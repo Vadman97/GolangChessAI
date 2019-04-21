@@ -99,6 +99,9 @@ func (g *Game) PlayTurn() bool {
 		} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
 			// 50 Move Rule (50 moves per color)
 			g.GameStatus = FiftyMoveDraw
+		} else if g.CurrentBoard.PreviousPositionsSeen >= 3 {
+			// 3-position repetition
+			g.GameStatus = RepeatedActionThreeTimeDraw
 		}
 
 		if g.GameStatus == Active {
