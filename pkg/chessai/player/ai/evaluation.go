@@ -66,7 +66,7 @@ const (
 	KingCastledWeight     = 3 * PawnValueWeight
 	KingCheckedWeight     = 1 * PawnValueWeight
 	// neg 1 pawn if we do nothing in 50 moves
-	Weight50Rule = StalemateScore / PawnValueWeight
+	Weight50Rule = -PawnValueWeight / PawnValueWeight
 )
 
 const (
