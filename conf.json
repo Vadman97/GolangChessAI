@@ -1,5 +1,5 @@
 {
-  "MemoryLimit": 9216,
+  "MemoryLimit": 8196,
   "TestRandSeed": 12435,
   "UseOpenings": false,
   "CacheGetAllMoves": true,
