@@ -228,12 +228,12 @@ func (p *AIPlayer) ClearCaches(force bool) {
 		p.transpositionTable = util.NewConcurrentBoardMap()
 		cleared = true
 	} else {
-		if p.evaluationMap.GetTotalWrites() > 5000000 {
+		if p.evaluationMap.GetTotalWrites() > 1000000 {
 			log.Println("WARNING: Clearing player evaluation cache due to size")
 			p.evaluationMap = util.NewConcurrentBoardMap()
 			cleared = true
 		}
-		if p.transpositionTable.GetTotalWrites() > 5000000 {
+		if p.transpositionTable.GetTotalWrites() > 1000000 {
 			log.Println("WARNING: Clearing player transposition table due to size")
 			p.transpositionTable = util.NewConcurrentBoardMap()
 			cleared = true
