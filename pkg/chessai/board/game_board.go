@@ -77,11 +77,15 @@ type Board struct {
 	MoveCache, AttackableCache *util.ConcurrentBoardMap
 	KingLocations              [color.NumColors]location.Location
 
+	CacheGetAllMoves, CacheGetAllAttackableMoves bool
+
 	// MovesSinceNoDraw stores the number of moves since no draw conditions have occurred
 	// draw conditions: pawn hasn't moved or piece hasn't been captured for 50 turns each side
 	MovesSinceNoDraw int
-
-	CacheGetAllMoves, CacheGetAllAttackableMoves bool
+	// previous boards that we have encountered for 3-move-repetition
+	PreviousPositions []util.BoardHash
+	// number of previous positions we have seen
+	PreviousPositionsSeen int
 }
 
 func (b *Board) Hash() (result util.BoardHash) {
@@ -139,6 +143,8 @@ func (b *Board) Copy() *Board {
 	newBoard.MovesSinceNoDraw = b.MovesSinceNoDraw
 	newBoard.CacheGetAllMoves = b.CacheGetAllMoves
 	newBoard.CacheGetAllAttackableMoves = b.CacheGetAllAttackableMoves
+	newBoard.PreviousPositions = b.PreviousPositions
+	newBoard.PreviousPositionsSeen = b.PreviousPositionsSeen
 	return &newBoard
 }
 
@@ -160,6 +166,8 @@ func (b *Board) ResetDefault() {
 		location.NewLocation(7, 4),
 		location.NewLocation(0, 4),
 	}
+	b.PreviousPositions = nil
+	b.PreviousPositionsSeen = 0
 }
 
 func (b *Board) ResetDefaultSlow() {

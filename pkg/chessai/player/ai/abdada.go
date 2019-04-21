@@ -33,7 +33,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
 
 		// this is a terminal node because we have no moves, either we lost or tied
-		if len(*movesArr) == 0 {
+		if ab.player.terminalNode(root, movesArr) {
 			return ScoredMove{
 				Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
 			}

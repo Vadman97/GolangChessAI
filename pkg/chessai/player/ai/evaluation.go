@@ -93,6 +93,8 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 		// Vadim: >= instead of == because AI simulation will go beyond 100, it will know no win is possible
 		// Alex: This value may change, but AI right now prevents draws
 		eval.TotalScore = StalemateScore
+	} else if b.PreviousPositionsSeen >= 3 {
+		eval.TotalScore = StalemateScore
 	} else {
 		eval = p.evaluateBoardCached(b, whoMoves)
 		eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw

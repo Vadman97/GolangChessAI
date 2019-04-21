@@ -15,7 +15,7 @@ import (
 func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMove, currentPlayer color.Color, previousMove *board.LastMove) ScoredMove {
 	moves := root.GetAllMoves(currentPlayer, previousMove)
 	// max recursion or terminal node
-	if depth == 0 || len(*moves) == 0 {
+	if depth == 0 || n.player.terminalNode(root, moves) {
 		// leaf node
 		return ScoredMove{
 			Score: n.player.Quiesce(root, alpha.Score, beta.Score, currentPlayer, previousMove),

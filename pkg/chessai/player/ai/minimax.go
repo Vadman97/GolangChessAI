@@ -22,7 +22,7 @@ func (miniMax *MiniMax) MiniMaxRecurse(b *board.Board, m location.Move, depth in
 func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
 	moves := b.GetAllMoves(currentPlayer, previousMove)
 	// max recursion or terminal node
-	if depth == 0 || len(*moves) == 0 {
+	if depth == 0 || miniMax.player.terminalNode(b, moves) {
 		return &ScoredMove{
 			Score: miniMax.player.EvaluateBoard(b, miniMax.player.PlayerColor).TotalScore,
 		}
