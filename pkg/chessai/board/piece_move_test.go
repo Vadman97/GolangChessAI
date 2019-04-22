@@ -259,12 +259,12 @@ func TestKingGetMovesDefended(t *testing.T) {
 func TestKingCannotMoveIntoCheck(t *testing.T) {
 	b, previousMove := buildBoardWithInitialMoves(&[]location.Move{{
 		Start: location.NewLocation(7, 4),
-		End:   location.NewLocation(4, 4),
+		End:   location.NewLocation(3, 3),
 	}})
 	moves := b.GetAllMoves(color.Black, previousMove)
 	numKingMoves := 0
 	for _, m := range *moves {
-		if m.Start.GetRow() == 4 && m.Start.GetCol() == 4 {
+		if m.Start.GetRow() == 3 && m.Start.GetCol() == 3 {
 			numKingMoves++
 		}
 	}
