@@ -538,7 +538,6 @@ func (b *Board) LoadBoardFromText(boardRows []string) {
 			b.SetPiece(l, p)
 		}
 	}
-	fmt.Println(*b)
 }
 
 func (b *Board) move(m *location.Move) {

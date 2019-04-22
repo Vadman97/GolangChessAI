@@ -42,7 +42,6 @@ func testBoard(t *testing.T, fileName string) {
 	}
 	myBoard := board.Board{}
 	myBoard.LoadBoardFromText(lines[1:])
-	fmt.Println(fileName)
 	evaluateAndCompare(t, playerColor, int(score), &myBoard)
 }
 

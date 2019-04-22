@@ -1,7 +1,6 @@
 package board
 
 import (
-	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
@@ -23,7 +22,6 @@ func buildBoardWithInitialMoves(initialMove *[]location.Move) (*Board, *LastMove
 
 func testPieceGetMoves(t *testing.T, l location.Location, initialMove *[]location.Move, expectedMoves int) {
 	bo1, _ := buildBoardWithInitialMoves(initialMove)
-	fmt.Println(bo1)
 	if l.GetRow() == StartRow[color.Black]["Piece"] {
 		assert.Equal(t, color.Black, bo1.GetPiece(l).GetColor())
 	} else if l.GetRow() == StartRow[color.White]["Piece"] {
