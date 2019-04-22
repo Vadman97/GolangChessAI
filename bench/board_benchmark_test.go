@@ -94,7 +94,7 @@ func BenchmarkBoardHashLookup(b *testing.B) {
 		hash = bo1.Hash()
 		bo1.RandomizeIllegal()
 		b.StartTimer()
-		scoreMap.Store(&hash, rand.Int31())
+		scoreMap.Store(&hash, 0, rand.Int31())
 	}
 	b.StopTimer()
 }
@@ -110,9 +110,9 @@ func BenchmarkBoardParallelHashLookup(b *testing.B) {
 			hash := bo1.Hash()
 			r := randGen.Int31()
 
-			scoreMap.Store(&hash, r)
+			scoreMap.Store(&hash, 0, r)
 
-			val, ok := scoreMap.Read(&hash)
+			val, ok := scoreMap.Read(&hash, 0)
 			assert.True(b, ok)
 			assert.Equal(b, r, val)
 		}

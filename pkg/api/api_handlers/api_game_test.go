@@ -209,7 +209,8 @@ func TestGetGameState(t *testing.T) {
 	  "previousMove": null,
 	  "gameStatus": "Active",
 	  "moveLimit": 0,
-	  "timeLimit": 0
+	  "timeLimit": 0,
+	  "humanColor": ""
 	}`
 
 	assert.JSONEq(t, expectedBody, rr.Body.String())

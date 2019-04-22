@@ -53,11 +53,12 @@ func (c *Competition) RunCompetition() {
 				c.players[g.CurrentTurnColor^1], util.GetMemStatString())
 		}
 		fmt.Println(g)
-		g.ClearCaches()
+		g.ClearCaches(true)
 		outcome := c.derandomizeGameOutcome(g.GetGameOutcome())
 		c.elos = CalculateRatings(c.elos, outcome)
 		c.RecordOutcome(outcome)
 	}
+	fmt.Println(c)
 }
 
 func (c Competition) String() (result string) {

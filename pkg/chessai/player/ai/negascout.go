@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"time"
 )
@@ -12,7 +13,9 @@ import (
  * Based on https://www.chessprogramming.org/NegaScout#Alternative
  */
 func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMove, currentPlayer color.Color, previousMove *board.LastMove) ScoredMove {
-	if depth == 0 {
+	moves := root.GetAllMoves(currentPlayer, previousMove)
+	// max recursion or terminal node
+	if depth == 0 || len(*moves) == 0 {
 		// leaf node
 		return ScoredMove{
 			Score: n.player.Quiesce(root, alpha.Score, beta.Score, currentPlayer, previousMove),
@@ -21,7 +24,6 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 	} else {
 		a := alpha
 		b := beta
-		moves := root.GetAllMoves(currentPlayer, previousMove)
 		for i, m := range *moves {
 			if n.player.abort {
 				return a
@@ -34,7 +36,7 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 			t := n.NegaScout(newBoard, depth-1, b.NegScore(), a.NegScore(), currentPlayer^1, previousMove).NegScore()
 			t.Move = m
 
-			if t.Score > a.Score && t.Score < beta.Score && i > 0 && depth < n.startDepth-1 {
+			if t.Score > a.Score && t.Score < beta.Score && i > 0 && depth < n.currentSearchDepth-1 {
 				// re-search
 				a = n.NegaScout(newBoard, depth-1, beta.NegScore(), t.NegScore(), currentPlayer^1, previousMove).NegScore()
 				a.Move = m
@@ -60,7 +62,8 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastMove) ScoredMove {
 	start := time.Now()
 	best := ScoredMove{}
-	for n.currentSearchDepth = 1; n.currentSearchDepth <= n.player.MaxSearchDepth; n.currentSearchDepth += 1 {
+	iterativeIncrement := config.Get().IterativeIncrement
+	for n.currentSearchDepth = iterativeIncrement; n.currentSearchDepth <= n.player.MaxSearchDepth; n.currentSearchDepth += iterativeIncrement {
 		thinking, done := make(chan bool), make(chan bool, 1)
 		go n.player.trackThinkTime(thinking, done, start)
 		newBest := n.NegaScout(b, n.currentSearchDepth, ScoredMove{
@@ -90,7 +93,6 @@ func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastM
 
 type NegaScout struct {
 	player             *AIPlayer
-	startDepth         int
 	currentSearchDepth int
 	lastSearchDepth    int
 	lastSearchTime     time.Duration
@@ -104,7 +106,6 @@ func (n *NegaScout) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board
 	n.player = p
 	n.player.abort = false
 
-	n.startDepth = p.MaxSearchDepth
 	best := n.IterativeNegaScout(b, previousMove)
 
 	return &best

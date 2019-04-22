@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"sync"
 	"sync/atomic"
 )
@@ -14,7 +15,7 @@ const (
 type BoardHash = [33]byte
 
 type ConcurrentBoardMap struct {
-	scoreMap                       [NumSlices]map[BoardHash]interface{}
+	entryMap                       [NumSlices]map[BoardHash]map[color.Color]interface{}
 	locks                          [NumSlices]sync.RWMutex
 	lockUsage                      [NumSlices]uint64
 	numHits, numWrites, numQueries [NumSlices]uint64
@@ -23,46 +24,54 @@ type ConcurrentBoardMap struct {
 func NewConcurrentBoardMap() *ConcurrentBoardMap {
 	var m ConcurrentBoardMap
 	for i := 0; i < NumSlices; i++ {
-		if m.scoreMap[i] == nil {
-			m.scoreMap[i] = make(map[BoardHash]interface{})
+		if m.entryMap[i] == nil {
+			m.entryMap[i] = make(map[BoardHash]map[color.Color]interface{})
 		}
 	}
 	return &m
 }
 
-func (m *ConcurrentBoardMap) getLock(hash *BoardHash) (*sync.RWMutex, uint32) {
+func (m *ConcurrentBoardMap) getLock(hash *BoardHash, currentTurn color.Color) (*sync.RWMutex, uint32) {
 	var s uint32
 	for i := 0; i < 28; i += 4 {
 		s += (binary.BigEndian.Uint32(hash[i:i+4]) / NumSlices) % NumSlices
 	}
-	s = (s + uint32(hash[32])) % NumSlices
+	s = (s + uint32(hash[32]) + uint32(currentTurn)) % NumSlices
 	atomic.AddUint64(&m.lockUsage[s], 1)
 	return &m.locks[s], s
 }
 
-func (m *ConcurrentBoardMap) Store(hash *BoardHash, value interface{}) {
-	lock, lockIdx := m.getLock(hash)
+func (m *ConcurrentBoardMap) Store(hash *BoardHash, currentTurn color.Color, value interface{}) {
+	lock, lockIdx := m.getLock(hash, currentTurn)
 	lock.Lock()
 	defer lock.Unlock()
 
 	m.numWrites[lockIdx]++
-	m.scoreMap[lockIdx][*hash] = value
+	_, ok := m.entryMap[lockIdx][*hash]
+	if !ok {
+		m.entryMap[lockIdx][*hash] = make(map[color.Color]interface{})
+	}
+	m.entryMap[lockIdx][*hash][currentTurn] = value
 }
 
-func (m *ConcurrentBoardMap) Read(hash *BoardHash) (interface{}, bool) {
-	lock, lockIdx := m.getLock(hash)
+func (m *ConcurrentBoardMap) Read(hash *BoardHash, currentTurn color.Color) (interface{}, bool) {
+	lock, lockIdx := m.getLock(hash, currentTurn)
 	lock.Lock()
 	defer lock.Unlock()
 	m.numQueries[lockIdx]++
 
-	v, ok := m.scoreMap[lockIdx][*hash]
+	m1, ok := m.entryMap[lockIdx][*hash]
 	if ok {
-		m.numHits[lockIdx]++
+		v, ok := m1[currentTurn]
+		if ok {
+			m.numHits[lockIdx]++
+			return v, true
+		}
 	}
-	return v, ok
+	return nil, false
 }
 
-func (m *ConcurrentBoardMap) PrintMetrics() (result string) {
+func (m ConcurrentBoardMap) String() (result string) {
 	totalLockUsage := m.GetTotalLockUsage()
 	totalHits := m.GetTotalHits()
 	totalReads := m.GetTotalReads()

@@ -6,7 +6,6 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"log"
 	"math/rand"
@@ -80,7 +79,7 @@ type AIPlayer struct {
 	Debug              bool
 	PrintInfo          bool
 	evaluationMap      *util.ConcurrentBoardMap
-	transpositionTable *transposition_table.TranspositionTable
+	transpositionTable *util.ConcurrentBoardMap
 	printer            chan string
 	abort              bool
 }
@@ -96,7 +95,7 @@ func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
 		Debug:                     config.Get().LogDebug,
 		PrintInfo:                 config.Get().PrintPlayerInfo,
 		evaluationMap:             util.NewConcurrentBoardMap(),
-		transpositionTable:        transposition_table.NewTranspositionTable(),
+		transpositionTable:        util.NewConcurrentBoardMap(),
 		printer:                   make(chan string, 1000000),
 	}
 	if config.Get().UseOpenings {
@@ -128,6 +127,7 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 		thinking := make(chan bool)
 		go p.printThread(thinking)
 		defer close(thinking)
+		p.abort = false
 		// reset metrics for each move
 		p.Metrics = &Metrics{}
 
@@ -188,13 +188,17 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 	result += fmt.Sprintf("%s best move leads to score %d\n", p, m.Score)
 	p.printer <- fmt.Sprint(result)
 	result += fmt.Sprintf("Board evaluation metrics\n")
-	result += p.evaluationMap.PrintMetrics()
+	result += p.evaluationMap.String()
 	result += fmt.Sprintf("Transposition table metrics\n")
-	result += p.transpositionTable.PrintMetrics()
-	result += fmt.Sprintf("Move cache metrics\n")
-	result += b.MoveCache.PrintMetrics()
-	result += fmt.Sprintf("Attack Move cache metrics\n")
-	result += b.AttackableCache.PrintMetrics()
+	result += p.transpositionTable.String()
+	if b.MoveCache != nil {
+		result += fmt.Sprintf("Move cache metrics\n")
+		result += b.MoveCache.String()
+	}
+	if b.AttackableCache != nil {
+		result += fmt.Sprintf("Attack Move cache metrics\n")
+		result += b.AttackableCache.String()
+	}
 	result += fmt.Sprintf("\n\n")
 	_, _ = fmt.Fprint(file, result)
 }
@@ -202,7 +206,7 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 func (p *AIPlayer) ClearCaches() {
 	// TODO(Vadim) find better way to pick when to clear, based on size #49
 	p.evaluationMap = util.NewConcurrentBoardMap()
-	p.transpositionTable = transposition_table.NewTranspositionTable()
+	p.transpositionTable = util.NewConcurrentBoardMap()
 }
 
 func (p *AIPlayer) printThread(stop chan bool) {

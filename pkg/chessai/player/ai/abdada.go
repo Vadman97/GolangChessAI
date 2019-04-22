@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"log"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -25,8 +27,11 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		// generate moves while waiting for the answer ...
 		movesArr := root.GetAllMoves(currentPlayer, previousMove)
 
+		// this is a terminal node because we have no moves, either we lost or tied
 		if len(*movesArr) == 0 {
-			return best
+			return ScoredMove{
+				Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
+			}
 		}
 
 		// block and grab the answer
@@ -44,6 +49,9 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			iteration := 0
 			allDone := false
 			for iteration < 2 && alpha < beta && !allDone {
+				if ab.player.abort || ab.kill {
+					return best
+				}
 				iteration++
 				allDone = true
 				firstMove := true
@@ -51,6 +59,9 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				move := moves[0]
 				moves = moves[1:]
 				for alpha < beta {
+					if ab.player.abort || ab.kill {
+						return best
+					}
 					// On the first iteration, we want to be the only processor to evaluate young sons
 					exclusiveProbe = iteration == 1 && !firstMove
 
@@ -83,6 +94,90 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	}
 }
 
+func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMove *board.LastMove) ScoredMove {
+	ab.player.abort = false
+	var NumThreads = runtime.NumCPU()
+	moveChan := make(chan ScoredMove, NumThreads)
+	for i := 0; i < NumThreads; i++ {
+		go func(moveChan chan ScoredMove) {
+			moveChan <- ab.ABDADA(b, depth, alpha, beta, false, ab.player.PlayerColor, previousMove)
+		}(moveChan)
+	}
+
+	var bestMoves []ScoredMove
+
+	const AbortAfterFirst = true
+	if AbortAfterFirst {
+		// abort the other threads after the first move is retrieved
+		// get first thread's move
+		bestMoves = append(bestMoves, <-moveChan)
+		// abort the rest
+		ab.kill = true
+		for i := 0; i < NumThreads-1; i++ {
+			<-moveChan
+		}
+		ab.kill = false
+	} else {
+		for i := 0; i < NumThreads; i++ {
+			bestMoves = append(bestMoves, <-moveChan)
+		}
+	}
+
+	var bestMove ScoredMove
+	bestMove.Score = NegInf
+	for _, sm := range bestMoves {
+		if sm.Score >= bestMove.Score {
+			bestMove = sm
+		}
+		//ab.player.printer <- fmt.Sprintf("Thread #%d best move: %s %d\n", i, sm.Move, sm.Score)
+	}
+	return bestMove
+}
+
+func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) ScoredMove {
+	start := time.Now()
+	best := ScoredMove{
+		Score: NegInf,
+	}
+	iterativeIncrement := config.Get().IterativeIncrement
+	for ab.currentSearchDepth = iterativeIncrement; ab.currentSearchDepth <= ab.player.MaxSearchDepth; ab.currentSearchDepth += iterativeIncrement {
+		thinking, done := make(chan bool), make(chan bool, 1)
+		go ab.player.trackThinkTime(thinking, done, start)
+		newGuess := ab.getBestMove(b, ab.currentSearchDepth, NegInf, PosInf, previousMove)
+		close(thinking)
+		<-done
+		// MTDf returns a good move (did not abort search)
+		if !ab.player.abort {
+			best = newGuess
+			ab.lastSearchDepth = ab.currentSearchDepth
+			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", ab.lastSearchDepth, best.Move)
+		} else {
+			// -1 due to discard of current level due to hard abort
+			ab.lastSearchDepth = ab.currentSearchDepth - iterativeIncrement
+			ab.player.printer <- fmt.Sprintf("%s hard abort! evaluated to depth %d\n", AlgorithmABDADA, ab.lastSearchDepth)
+			break
+		}
+	}
+	ab.lastSearchTime = time.Now().Sub(start)
+	if best.Move.Start.Equals(best.Move.End) {
+		log.Printf("%s has no best move: %s", AlgorithmABDADA, best.Move)
+	}
+	return best
+}
+
+func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	ab.player = p
+	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {
+		log.Printf("WARNING: Trying to use %s with move caching enabled.\n", AlgorithmABDADA)
+		log.Println("WARNING: Disabling GetAllMoves, GetAllAttackableMoves caching.")
+		log.Printf("%s performs better without caching since it generates moves asynchronously\n", AlgorithmABDADA)
+		b.CacheGetAllMoves = false
+		b.CacheGetAllAttackableMoves = false
+	}
+	best := ab.iterativeABDADA(b, previousMove)
+	return &best
+}
+
 func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *board.Board, previousMove *board.LastMove) {
 	child = root.Copy()
 	previousMove = board.MakeMove(move, child)
@@ -92,6 +187,7 @@ func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *boa
 
 type ABDADA struct {
 	player             *AIPlayer
+	kill               bool
 	currentSearchDepth int
 	lastSearchDepth    int
 	lastSearchTime     time.Duration
@@ -99,35 +195,6 @@ type ABDADA struct {
 
 func (ab *ABDADA) GetName() string {
 	return fmt.Sprintf("%s,[D:%d;T:%s]", AlgorithmABDADA, ab.lastSearchDepth, ab.lastSearchTime)
-}
-
-func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
-	ab.player = p
-
-	// TODO(Vadim) make iterative
-	var NumThreads = runtime.NumCPU()
-	moveChan := make(chan ScoredMove, NumThreads)
-	for i := 0; i < NumThreads; i++ {
-		go func(moveChan chan ScoredMove) {
-			moveChan <- ab.ABDADA(b, p.MaxSearchDepth, NegInf, PosInf, false, p.PlayerColor, previousMove)
-		}(moveChan)
-	}
-
-	var bestMoves []ScoredMove
-	for i := 0; i < NumThreads; i++ {
-		bestMoves = append(bestMoves, <-moveChan)
-	}
-
-	var bestMove ScoredMove
-	bestMove.Score = NegInf
-	for i, sm := range bestMoves {
-		if sm.Score >= bestMove.Score {
-			bestMove = sm
-		}
-		ab.player.printer <- fmt.Sprintf("Thread #%d best move: %s %d\n", i, sm.Move, sm.Score)
-	}
-
-	return &bestMove
 }
 
 type TTAnswer struct {
@@ -156,9 +223,9 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 					entry.EntryType = transposition_table.UpperBound
 				} else {
 					entry.EntryType = transposition_table.TrueScore
-					entry.BestMove = sm.Move // TODO(Vadim) only if TrueScore?
 				}
 				entry.Score = sm.Score
+				entry.BestMove = sm.Move
 				entry.Depth = depth
 
 				entry.Lock.Unlock()
@@ -190,7 +257,6 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 						answer.score = entry.Score
 						answer.alpha = entry.Score
 						answer.beta = entry.Score
-						answer.bestMove = entry.BestMove // TODO(Vadim) only if TrueScore?
 					} else if entry.EntryType == transposition_table.UpperBound && entry.Score < beta {
 						answer.score = entry.Score
 						answer.beta = entry.Score
@@ -198,6 +264,7 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 						answer.score = entry.Score
 						answer.alpha = entry.Score
 					}
+					answer.bestMove = entry.BestMove // TODO(Vadim) only if TrueScore?
 
 					if entry.Depth == depth && answer.alpha < answer.beta {
 						// Increment the number of processors evaluating this node

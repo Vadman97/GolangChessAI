@@ -133,10 +133,10 @@ func TestBoardHashLookupParallel(t *testing.T) {
 				bo1.RandomizeIllegal()
 				hash := bo1.Hash()
 				r := bo1.TestRandGen.Int31()
-				_, ok := scoreMap.Read(&hash)
+				_, ok := scoreMap.Read(&hash, 0)
 				if !ok {
-					scoreMap.Store(&hash, r)
-					score, _ := scoreMap.Read(&hash)
+					scoreMap.Store(&hash, 0, r)
+					score, _ := scoreMap.Read(&hash, 0)
 					assert.Equal(t, r, score)
 					numStores++
 				}
@@ -154,7 +154,7 @@ func TestBoardHashLookupParallel(t *testing.T) {
 	pSuccess := 100.0 * float64(totalNumStores) / (NumOps * NumThreads)
 	log.Printf("Parallel randomize,hash,write,read %d ops with %d us/loop. %.1f%% stores successful (%d)\n",
 		NumOps*NumThreads, timePerOp, pSuccess, totalNumStores)
-	//scoreMap.PrintMetrics()
+	//scoreMap.String()
 }
 
 func TestBoardColorFromChar(t *testing.T) {
