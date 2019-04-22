@@ -138,28 +138,31 @@ func (g *Game) Loop(client *websocket.Conn) {
 	}
 
 	for i := 0; i < int(g.MoveLimit); i++ {
-		// TODO DEBUG (Remove below)
-		log.Printf("Turn %d", i)
-
-		// Send Pre-Move Information
-		if g.CurrentTurnColor == humanColor {
-			availableMovesJSON := api.CreateAvailableMovesJSON(g.CurrentBoard.GetAllAvailableMoves(humanColor))
-			g.SocketBroadcast <- api.CreateChessMessage(api.AvailablePlayerMoves, availableMovesJSON)
-		}
-		// TODO (Alex) have a separate goroutine to check for a quit status
-		//if <-g.quit {
-		//	break
-		//}
-
-		active := g.PlayTurn()
-
-		// Send Post-Move Information
-		if g.CurrentTurnColor != humanColor {
-			// TODO (Alex) Send AI Move
-		}
-
-		if !active {
+		select {
+		case <-g.quit:
 			break
+		default:
+			// TODO DEBUG (Remove below)
+			log.Printf("Turn %d", i)
+			CurrentTurnColor := g.CurrentTurnColor
+
+			// Send Pre-Move Information
+			if CurrentTurnColor == humanColor {
+				availableMovesJSON := api.CreateAvailableMovesJSON(g.CurrentBoard.GetAllAvailableMoves(humanColor))
+				g.SocketBroadcast <- api.CreateChessMessage(api.AvailablePlayerMoves, availableMovesJSON)
+			}
+
+			active := g.PlayTurn()
+
+			// Send Post-Move Information
+			if CurrentTurnColor != humanColor {
+				lastMoveJSON := api.CreateMoveJSON(g.PreviousMove)
+				g.SocketBroadcast <- api.CreateChessMessage(api.AIMove, lastMoveJSON)
+			}
+
+			if !active {
+				break
+			}
 		}
 	}
 }
@@ -266,21 +269,7 @@ func (g *Game) GetJSON() *api.GameStateJSON {
 
 	// Set PreviousMove
 	if g.PreviousMove != nil {
-		gameJSON.PreviousMove = &api.MoveJSON{
-			Start: [2]uint8{
-				g.PreviousMove.Move.GetStart().GetRow(),
-				g.PreviousMove.Move.GetStart().GetCol(),
-			},
-			End: [2] uint8{
-				g.PreviousMove.Move.GetEnd().GetRow(),
-				g.PreviousMove.Move.GetEnd().GetCol(),
-			},
-			IsCapture: g.PreviousMove.IsCapture,
-			Piece: api.PieceJSON{
-				PieceType: piece.TypeToName[(*g.PreviousMove.Piece).GetPieceType()],
-				Color: color.Names[(*g.PreviousMove.Piece).GetColor()],
-			},
-		}
+		gameJSON.PreviousMove = api.CreateMoveJSON(g.PreviousMove)
 	}
 
 	return gameJSON

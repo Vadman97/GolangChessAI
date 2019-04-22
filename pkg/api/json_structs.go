@@ -3,7 +3,9 @@ package api
 import (
 	"encoding/json"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"log"
 	"time"
 )
@@ -64,6 +66,24 @@ func CreateChessMessage(msgType string, data interface{}) ChessMessage {
 	}
 
 	return chessMessage
+}
+
+func CreateMoveJSON(m *board.LastMove) *MoveJSON {
+	return &MoveJSON{
+		Start: [2]uint8{
+			m.Move.GetStart().GetRow(),
+			m.Move.GetStart().GetCol(),
+		},
+		End: [2]uint8{
+			m.Move.GetEnd().GetRow(),
+			m.Move.GetEnd().GetCol(),
+		},
+		IsCapture: m.IsCapture,
+		Piece: PieceJSON{
+			PieceType: piece.TypeToName[(*m.Piece).GetPieceType()],
+			Color: color.Names[(*m.Piece).GetColor()],
+		},
+	}
 }
 
 func CreateAvailableMovesJSON(moveMap map[string]*[]location.Move) AvailableMovesJSON {

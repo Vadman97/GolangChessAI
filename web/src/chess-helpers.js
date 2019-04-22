@@ -23,7 +23,7 @@ const charToNumber = {
   h: 7,
 }
 
-const colorToChar = {
+export const colorToChar = {
   Black: 'b',
   White: 'w',
 };

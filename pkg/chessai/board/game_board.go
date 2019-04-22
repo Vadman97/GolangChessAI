@@ -447,7 +447,7 @@ func (b *Board) getAllAttackableMoves(color color.Color) AttackableBoard {
 
 /**
  * Return all available moves for a specific color
- * Defers from GetAllAttackableMoves() since no cache is involved and this returns an map of piece to moves
+ * Differs from GetAllAttackableMoves() since no cache is involved and this returns an map of piece to moves
  * The map key will be a stringified coordinate `(r,c)`
  */
 func (b *Board) GetAllAvailableMoves(color color.Color) map[string]*[]location.Move {

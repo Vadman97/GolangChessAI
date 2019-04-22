@@ -3,7 +3,10 @@ package api_handlers
 import (
 	"encoding/json"
 	"github.com/Vadman97/ChessAI3/pkg/api"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -113,12 +116,14 @@ func HandleMessages(g *game.Game) {
 				continue
 			}
 
-			HandlePlayerMove(moveJSON, client)
+			HandlePlayerMove(moveJSON)
 
 		// Server -> Client
 		case api.GameState:
 			fallthrough
 		case api.AvailablePlayerMoves:
+			fallthrough
+		case api.AIMove:
 			err := client.WriteJSON(msg)
 			if err != nil {
 				log.Printf("Unable to send to client - %v", err)
@@ -130,17 +135,19 @@ func HandleMessages(g *game.Game) {
 }
 
 
-func HandlePlayerMove(moveJSON api.MoveJSON, client *websocket.Conn) {
-	// TODO(Alex) Parse the Move and play it in the game
-	// Send move to player
-
-	//for c := color.White; c < color.NumColors; c++ {
-	//	humanPlayer, isHuman := getGame().Players[c].(*player.HumanPlayer)
-	//	if isHuman {
-	//		// humanPlayer.Move <-
-	//		return
-	//	}
-	//}
+func HandlePlayerMove(moveJSON api.MoveJSON) {
+	log.Print("Handling Player Move")
+	for c := color.White; c < color.NumColors; c++ {
+		humanPlayer, isHuman := getGame().Players[c].(*player.HumanPlayer)
+		if isHuman {
+			move := &location.Move{
+				Start: location.NewLocation(moveJSON.Start[0], moveJSON.Start[1]),
+				End: location.NewLocation(moveJSON.End[0], moveJSON.End[1]),
+			}
+			humanPlayer.Move <- move
+			return
+		}
+	}
 }
 
 
