@@ -2,7 +2,7 @@ codecov:
   notify:
     require_ci_to_pass: yes
   strict_yaml_branch: master
-  
+
 ignore:
   - "pkg/chessai/player/ai/performance_logger.go"
 
@@ -20,8 +20,9 @@ coverage:
       default: false  # TODO(Vadim) add this when we have more tests before going public
     patch:
       board:
-        target: 100%
-        paths: "pkg/chessai/board"
+#        target: 100%
+#        paths: "pkg/chessai/board"
+        enabled: no
       default: false  # TODO(Vadim) add this when we have more tests before going public
     changes: no
 
