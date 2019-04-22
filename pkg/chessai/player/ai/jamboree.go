@@ -38,6 +38,8 @@ type Jamboree struct {
 	threadNumber     int
 	activeThreads    int
 	activeThreadLock sync.Mutex
+	TTHitCount       int32
+	TTFullHitCount   int32
 }
 
 type TTAnswerJamboree struct {
@@ -63,6 +65,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 
 		// transposition table saved us work
 		if ttAnswer.Found && ttAnswer.Depth == uint16(depth) {
+			atomic.AddInt32(&j.TTFullHitCount, 1)
 			atomic.AddUint64(&j.player.Metrics.MovesPrunedTransposition, uint64(len(*moves)))
 			return ScoredMove{Score: ttAnswer.Score}
 		}
@@ -73,6 +76,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 
 		var firstMove location.Move
 		if ttAnswer.Found {
+			atomic.AddInt32(&j.TTHitCount, 1)
 			firstMove = ttAnswer.BestMove
 		} else {
 			firstMove = (*moves)[0]
@@ -148,6 +152,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 		childWaitGroup.Wait()
 
 		if result.ReturnThisMove {
+			j.syncTTWrite(root, currentPlayer, result.Score, uint16(depth), result.Move)
 			return result
 		} else {
 			// now, serially research any specific moves that we could possibly be better than firstChild
@@ -160,6 +165,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 				nextScoredMove := j.Jamboree(child, depth-1, -beta, -alpha, currentPlayer^1, prev, &dummyAbortFlag)
 				nextScoredMove.Score *= -1
 				if nextScoredMove.Score >= beta {
+					j.syncTTWrite(root, currentPlayer, nextScoredMove.Score, uint16(depth), movesToResearch[i])
 					return ScoredMove{Score: nextScoredMove.Score, Move: movesToResearch[i]}
 				}
 				if nextScoredMove.Score > alpha {
@@ -171,6 +177,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 				}
 			}
 		}
+		j.syncTTWrite(root, currentPlayer, b.Score, uint16(depth), b.Move)
 		return b
 	}
 }
@@ -207,8 +214,15 @@ func (j *Jamboree) syncTTWrite(root *board.Board, currentPlayer color.Color, sco
 	if j.player.TranspositionTableEnabled {
 		h := root.Hash()
 		e, ok := j.player.transpositionTable.Read(&h, currentPlayer)
-		entry := e.(*transposition_table.TranspositionTableEntryJamboree)
-		if !ok || entry.Depth < depth {
+		if !ok {
+			entry := transposition_table.TranspositionTableEntryJamboree{
+				Score:    score,
+				BestMove: move,
+				Depth:    depth,
+			}
+			j.player.transpositionTable.Store(&h, currentPlayer, &entry)
+		} else {
+			entry := e.(*transposition_table.TranspositionTableEntryJamboree)
 			entry.Lock.Lock()
 			// make a deep copy into the transposition table
 			entry.Score = score
