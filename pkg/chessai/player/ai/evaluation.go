@@ -56,16 +56,17 @@ var PieceValue = map[byte]int{
 }
 
 const (
-	PieceValueWeight      = 100
-	PawnStructureWeight   = 50
-	PieceAdvanceWeight    = 50
-	PieceNumMovesWeight   = 10
-	PieceNumAttacksWeight = 10
-	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
-	RookDisplacedWeight   = -1 * PieceValueWeight // neg 1 pawn
-	KingCastledWeight     = 3 * PieceValueWeight  // three pawn
-	KingCheckedWeight     = 1 * PieceValueWeight  // one pawn
-	Weight50Rule          = StalemateScore / 100  // neg 1 pawn if we do nothing in 50 moves
+	PawnValueWeight       = 100
+	PawnStructureWeight   = PawnValueWeight / 2
+	PieceAdvanceWeight    = PawnValueWeight / 2
+	PieceNumMovesWeight   = PawnValueWeight / 10
+	PieceNumAttacksWeight = PawnValueWeight / 10
+	KingDisplacedWeight   = -2 * PawnValueWeight
+	RookDisplacedWeight   = -1 * PawnValueWeight
+	KingCastledWeight     = 3 * PawnValueWeight
+	KingCheckedWeight     = 1 * PawnValueWeight
+	// neg 1 pawn if we do nothing in 50 moves
+	Weight50Rule = -PawnValueWeight / PawnValueWeight
 )
 
 const (
@@ -76,7 +77,7 @@ const (
 const (
 	WinScore       = PosInf
 	LossScore      = NegInf
-	StalemateScore = -9 * PieceValueWeight // neg queen
+	StalemateScore = NegInf / 2 // should only choose draw to avoid a loss
 )
 
 type evaluationPair struct {
@@ -157,7 +158,7 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 		for c := byte(0); c < color.NumColors; c++ {
 			score := 0
 			for pieceType, value := range PieceValue {
-				score += PieceValueWeight * value * int(eval.PieceCounts[c][pieceType])
+				score += PawnValueWeight * value * int(eval.PieceCounts[c][pieceType])
 				score += PieceAdvanceWeight * int(eval.PieceAdvanced[c][pieceType])
 			}
 			if b.GetFlag(board.FlagCastled, c) {

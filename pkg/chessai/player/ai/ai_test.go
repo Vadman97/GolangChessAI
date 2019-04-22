@@ -155,7 +155,7 @@ func evaluateScores(t *testing.T, c color.Color, gameBoard *board.Board, moves m
 	fmt.Printf("Difference: %d\n", diff)
 	// test that the moves are all good within a pawn
 	// TODO(Vadim) make more aggressive
-	assert.True(t, diff <= PieceValueWeight*PieceValue[piece.QueenType])
+	assert.True(t, diff <= PawnValueWeight*PieceValue[piece.QueenType])
 }
 
 func getBestMove(gameBoard *board.Board, c color.Color, algorithm Algorithm) *location.Move {

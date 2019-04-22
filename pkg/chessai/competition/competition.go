@@ -7,6 +7,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"math"
 	"math/rand"
 	"time"
 )
@@ -44,7 +45,7 @@ func (c *Competition) RunCompetition() {
 		// randomize color of players each game
 		c.randomizePlayers()
 		g := game.NewGame(c.players[c.whiteIndex], c.players[c.blackIndex])
-		c.disablePrinting(g)
+		//c.disablePrinting(g)
 		active := true
 		for active {
 			active = g.PlayTurn()
@@ -109,11 +110,11 @@ func (c *Competition) RunAICompetition() {
 	// TODO(Vadim) output this to file and keep history of AI performance
 	// TODO(Vadim) load ai from file
 	rand.Seed(config.Get().TestRandSeed)
-	c.players[color.White].Algorithm = &ai.MiniMax{}
-	c.players[color.White].MaxSearchDepth = 128
+	c.players[color.White].Algorithm = &ai.MTDf{}
+	c.players[color.White].MaxSearchDepth = math.MaxUint8
 	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.ABDADA{}
-	c.players[color.Black].MaxSearchDepth = 2
+	c.players[color.Black].MaxSearchDepth = math.MaxUint8
 	c.players[color.Black].MaxThinkTime = 100 * time.Millisecond
 	c.RunCompetition()
 }
