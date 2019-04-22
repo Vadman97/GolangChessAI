@@ -1,7 +1,6 @@
 package board
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 )
@@ -187,14 +186,6 @@ func (r *King) canCastle(m *location.Move, b *Board) bool {
  */
 func (r *King) underAttack(location location.Location, b *Board) bool {
 	var potentialAttackMoves AttackableBoard
-
-	if r.Color == color.Black {
-		potentialAttackMoves = b.GetAllAttackableMoves(color.White)
-	} else if r.Color == color.White {
-		potentialAttackMoves = b.GetAllAttackableMoves(color.Black)
-	} else {
-		return false
-	}
-
+	potentialAttackMoves = b.GetAllAttackableMoves(r.Color ^ 1)
 	return IsLocationUnderAttack(potentialAttackMoves, location)
 }

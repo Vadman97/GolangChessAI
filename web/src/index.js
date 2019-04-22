@@ -2,7 +2,7 @@ import $ from 'jquery'
 import fetcher from './fetcher';
 import SocketConstants from './socket/constants';
 import GameSocket from './socket/GameSocket'
-import { colorToChar, rowColToChess, chessToRowCol, boardMatrixToObj } from './chess-helpers';
+import {boardMatrixToObj, chessToRowCol, colorToChar, rowColToChess} from './chess-helpers';
 
 // window['jQuery'] is required for the chessboard to work (sadly)
 // ordering is also important
@@ -59,7 +59,7 @@ function messageHandler(event) {
       board.position(boardMatrixToObj(data.currentBoard), false);
       board.orientation(data.humanColor.toLowerCase());
       // NOTE: Our server records black on the bottom, and white on the top
-      board.flip();
+      // board.flip();
       break;
 
     case SocketConstants.AvailablePlayerMoves:

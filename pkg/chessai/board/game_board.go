@@ -46,19 +46,19 @@ var StartingRow = [...]Piece{
 }
 
 var StartingRowHex = [...]uint32{
-	0x3579B753,
-	0xDDDDDDDD,
-	0, 0, 0, 0,
-	0xCCCCCCCC,
 	0x2468A642,
+	0xCCCCCCCC,
+	0, 0, 0, 0,
+	0xDDDDDDDD,
+	0x3579B753,
 }
 
 var StartRow = map[color.Color]map[string]location.CoordinateType{
-	color.Black: {
+	color.White: {
 		"Piece": 0,
 		"Pawn":  1,
 	},
-	color.White: {
+	color.Black: {
 		"Pawn":  6,
 		"Piece": 7,
 	},
@@ -149,23 +149,16 @@ func (b *Board) Copy() *Board {
 }
 
 func (b *Board) ResetDefault() {
-	b.board[0] = StartingRowHex[0]
-	b.board[1] = StartingRowHex[1]
-	b.board[6] = StartingRowHex[6]
-	b.board[7] = StartingRowHex[7]
+	b.board = StartingRowHex
 	b.MoveCache = util.NewConcurrentBoardMap()
 	b.AttackableCache = util.NewConcurrentBoardMap()
 	b.KingLocations = [color.NumColors]location.Location{
-		location.NewLocation(7, 4),
 		location.NewLocation(0, 4),
+		location.NewLocation(7, 4),
 	}
 	b.MovesSinceNoDraw = 0
 	b.CacheGetAllMoves = config.Get().CacheGetAllMoves
 	b.CacheGetAllAttackableMoves = config.Get().CacheGetAllAttackableMoves
-	b.KingLocations = [color.NumColors]location.Location{
-		location.NewLocation(7, 4),
-		location.NewLocation(0, 4),
-	}
 	b.PreviousPositions = nil
 	b.PreviousPositionsSeen = 0
 }
@@ -174,13 +167,13 @@ func (b *Board) ResetDefaultSlow() {
 	b.ResetDefault()
 	for c := location.CoordinateType(0); c < Width; c++ {
 		StartingRow[c].SetPosition(location.NewLocation(0, c))
-		StartingRow[c].SetColor(color.Black)
-		b.SetPiece(location.NewLocation(0, c), StartingRow[c])
-		b.SetPiece(location.NewLocation(1, c), &Pawn{location.NewLocation(1, c), color.Black})
-
-		b.SetPiece(location.NewLocation(6, c), &Pawn{location.NewLocation(6, c), color.White})
-		StartingRow[c].SetPosition(location.NewLocation(7, c))
 		StartingRow[c].SetColor(color.White)
+		b.SetPiece(location.NewLocation(0, c), StartingRow[c])
+		b.SetPiece(location.NewLocation(1, c), &Pawn{location.NewLocation(1, c), color.White})
+
+		b.SetPiece(location.NewLocation(6, c), &Pawn{location.NewLocation(6, c), color.Black})
+		StartingRow[c].SetPosition(location.NewLocation(7, c))
+		StartingRow[c].SetColor(color.Black)
 		b.SetPiece(location.NewLocation(7, c), StartingRow[c])
 	}
 }
@@ -376,21 +369,15 @@ func (b *Board) getEnPassantMoves(c color.Color, previousMove *LastMove) *[]loca
 	}
 	var enPassantMoves []location.Move
 	lastPieceMoved := *previousMove.Piece
-	if (lastPieceMoved.GetColor() != c) && (lastPieceMoved.GetPieceType() == piece.PawnType) {
+	if pawn, isPawn := lastPieceMoved.(*Pawn); isPawn && (pawn.GetColor() != c) {
 		move := previousMove.Move
 		var captureLocation *location.Location = nil
 		startRow, _ := move.Start.Get()
 		endRow, _ := move.End.Get()
-		if lastPieceMoved.GetColor() == color.Black {
-			if (startRow == 1) && (endRow == 3) {
-				l, _ := move.End.AddRelative(location.UpMove)
-				captureLocation = &l
-			}
-		} else {
-			if (startRow == 6) && (endRow == 4) {
-				l, _ := move.End.AddRelative(location.DownMove)
-				captureLocation = &l
-			}
+		expectedEnd := StartRow[pawn.Color]["Pawn"] + location.CoordinateType(pawn.forward(2).Row)
+		if (startRow == StartRow[pawn.Color]["Pawn"]) && (endRow == expectedEnd) {
+			l, _ := move.End.AddRelative(pawn.forward(1))
+			captureLocation = &l
 		}
 		if captureLocation != nil {
 			for i := int8(-1); i <= 1; i += 2 {
@@ -480,7 +467,6 @@ func (b *Board) GetAllAvailableMoves(color color.Color) map[string]*[]location.M
 	return moveMap
 }
 
-
 /**
  * Determines if a king of color c is under attack by the opposite color.
  */
@@ -531,6 +517,9 @@ func (b *Board) UpdateDrawCounter(previousMove *LastMove) {
  * Load board from text for tests
  */
 func (b *Board) LoadBoardFromText(boardRows []string) {
+	for _, r := range boardRows {
+		fmt.Println(r)
+	}
 	for r := location.CoordinateType(0); r < Height; r++ {
 		pieces := strings.Split(boardRows[r], "|")
 		for c, pStr := range pieces {
@@ -549,6 +538,7 @@ func (b *Board) LoadBoardFromText(boardRows []string) {
 			b.SetPiece(l, p)
 		}
 	}
+	fmt.Println(*b)
 }
 
 func (b *Board) move(m *location.Move) {

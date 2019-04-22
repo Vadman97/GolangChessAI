@@ -62,12 +62,7 @@ func (r *Pawn) GetAttackableMoves(board *Board) AttackableBoard {
  * Determines if a pawn has moved based on its color (black in row one, white in row six).
  */
 func (r *Pawn) hasMoved() bool {
-	if r.GetColor() == color.Black {
-		return r.Location.GetRow() != 1
-	} else if r.GetColor() == color.White {
-		return r.Location.GetRow() != 6
-	}
-	return true
+	return r.Location.GetRow() != StartRow[r.GetColor()]["Pawn"]
 }
 
 /**
@@ -225,9 +220,9 @@ func (r *Pawn) Promote(b *Board, m *location.Move) {
 
 func (r *Pawn) forward(i int) location.RelativeLocation {
 	if r.GetColor() == color.Black {
-		return location.RelativeLocation{Row: int8(i)}
-	} else if r.GetColor() == color.White {
 		return location.RelativeLocation{Row: int8(-i)}
+	} else if r.GetColor() == color.White {
+		return location.RelativeLocation{Row: int8(i)}
 	}
 	panic("invalid color provided to forward")
 }
