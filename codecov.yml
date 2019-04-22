@@ -15,11 +15,11 @@ coverage:
         threshold: 0%
         paths: "pkg/chessai/board"
       default: yes
-    patch:
-      board: # board diff should have 100 percent cov
-        target: 100%
-        paths: "pkg/chessai/board"
-      default: false
+   # patch:
+   #   board: # board diff should have 100 percent cov
+   #     target: 100%
+   #     paths: "pkg/chessai/board"
+   #   default: false
     #        TODO(Vadim) add this when we have more tests before going public
     #        target: auto
     #        threshold: 3%
