@@ -38,8 +38,6 @@ type Jamboree struct {
 	threadNumber     int
 	activeThreads    int
 	activeThreadLock sync.Mutex
-	TTHitCount       int32
-	TTFullHitCount   int32
 }
 
 type TTAnswerJamboree struct {
@@ -65,7 +63,6 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 
 		// transposition table saved us work
 		if ttAnswer.Found && ttAnswer.Depth == uint16(depth) {
-			atomic.AddInt32(&j.TTFullHitCount, 1)
 			atomic.AddUint64(&j.player.Metrics.MovesPrunedTransposition, uint64(len(*moves)))
 			return ScoredMove{Score: ttAnswer.Score}
 		}
@@ -76,7 +73,6 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 
 		var firstMove location.Move
 		if ttAnswer.Found {
-			atomic.AddInt32(&j.TTHitCount, 1)
 			firstMove = ttAnswer.BestMove
 		} else {
 			firstMove = (*moves)[0]
