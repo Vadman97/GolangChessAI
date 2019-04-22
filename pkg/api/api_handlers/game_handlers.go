@@ -1,4 +1,4 @@
-package handlers
+package api_handlers
 
 import (
 	"encoding/json"
@@ -8,7 +8,8 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/game_config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
-	"github.com/gorilla/mux"
+	"github.com/bitly/go-simplejson"
+	"log"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -25,6 +26,21 @@ func setGame(gameToSet *game.Game) {
 }
 
 func GetGameStateHandler(w http.ResponseWriter, r *http.Request) {
+	if g == nil {
+		errorResponse := simplejson.New()
+		errorResponse.Set("error", "No Game is Available")
+
+		payload, err := errorResponse.MarshalJSON()
+		if err != nil {
+			log.Println(err)
+		}
+
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(payload)
+		return
+	}
+
 	gameJSON := g.GetJSON()
 
 	w.WriteHeader(http.StatusOK)
@@ -36,10 +52,24 @@ func GetGameStateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostGameCommandHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	command := strings.ToLower(vars["command"])
+	command := strings.ToLower(r.FormValue("command"))
 
 	if command == api.Start {
+		if g != nil {
+			errorResponse := simplejson.New()
+			errorResponse.Set("error", "Game is currently in progress...")
+
+			payload, err := errorResponse.MarshalJSON()
+			if err != nil {
+				log.Println(err)
+			}
+
+			w.WriteHeader(http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(payload)
+			return
+		}
+
 		// Coin Flip to determine colors
 		algorithmName := game_config.Get().Algorithm
 		playerIsWhite := rand.Intn(2)
@@ -67,12 +97,24 @@ func PostGameCommandHandler(w http.ResponseWriter, r *http.Request) {
 		g.MoveLimit = game_config.Get().MovesToPlay
 		g.TimeLimit = game_config.Get().TimeToPlay
 
-		go g.Loop(client)
-
 		// Initialize WebSocket Handler
 		go HandleMessages(g)
 
+		// NOTE: The Server WebSocket Listener waits to receive a client before a game is begun
 	} else if command == api.Restart {
 		// TODO (Alex) Implement
 	}
+
+	// Send Success Status
+	successResponse := simplejson.New()
+	successResponse.Set("success", true)
+
+	payload, err := successResponse.MarshalJSON()
+	if err != nil {
+		log.Println(err)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(payload)
 }

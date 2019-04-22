@@ -1,4 +1,4 @@
-package api
+package api_handlers
 
 import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"

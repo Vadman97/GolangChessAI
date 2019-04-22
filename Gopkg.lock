@@ -10,6 +10,14 @@
   version = "v1.4.1"
 
 [[projects]]
+  digest = "1:b520b55fc1146c5b0eea03b07233f7a3d4a9be985c037c91ea6b82ecb81bd521"
+  name = "github.com/bitly/go-simplejson"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "aabad6e819789e569bd6aabf444c935aa9ba1e44"
+  version = "v0.5.0"
+
+[[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -62,6 +70,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/360EntSecGroup-Skylar/excelize",
+    "github.com/bitly/go-simplejson",
     "github.com/gorilla/mux",
     "github.com/gorilla/websocket",
     "github.com/stretchr/testify/assert",

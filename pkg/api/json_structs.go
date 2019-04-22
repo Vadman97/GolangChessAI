@@ -21,10 +21,10 @@ type ChessMessage struct {
 	Data string `json:"data"`
 }
 
-
 type GameStateJSON struct {
 	CurrentBoard     [board.Height][board.Width]*PieceJSON  `json:"currentBoard"`
 	CurrentTurnColor string                                 `json:"currentTurn"`
+	HumanColor       string                                 `json:"humanColor"`
 	MovesPlayed      uint	                                `json:"movesPlayed"`
 	PreviousMove     *MoveJSON                              `json:"previousMove"`
 	GameStatus       string                                 `json:"gameStatus"`
@@ -47,6 +47,7 @@ type MoveJSON struct {
 type AvailableMovesJSON struct {
 	Moves []*MoveJSON
 }
+
 
 func CreateChessMessage(msgType string, data interface{}) ChessMessage {
 	dataBytes, err := json.Marshal(data)

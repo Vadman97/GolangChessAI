@@ -1,4 +1,4 @@
-package handlers
+package api_handlers
 
 import (
 	"encoding/json"
@@ -68,18 +68,26 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	clientMutex.Unlock()
 	log.Print("Client connected")
 
+	// Start Game
+	if client != nil && getGame() != nil {
+		go getGame().Loop(client)
+	}
+
 	// Wait for Messages (Loop Forever)
 	for {
 		var msg api.ChessMessage
 		err := client.ReadJSON(&msg)
 
 		if err != nil {
-			if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseNoStatusReceived,
+				websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Print("Client disconnected unexpectedly")
 
 				clientMutex.Lock()
 				client = nil
 				clientMutex.Unlock()
+
+				setGame(nil)
 			} else {
 				log.Printf("WebSocket Error - %v", err)
 			}

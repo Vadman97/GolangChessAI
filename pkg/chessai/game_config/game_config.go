@@ -14,7 +14,7 @@ type GameConfiguration struct {
 	TimeToPlay  time.Duration
 }
 
-const FilePath = "game_config.json"
+const FilePath = "game_conf.json"
 
 var cfg *GameConfiguration
 

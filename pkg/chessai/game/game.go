@@ -224,6 +224,13 @@ func (g *Game) GetJSON() *api.GameStateJSON {
 		TimeLimit:        g.TimeLimit,
 	}
 
+	// Set Human Color (if there is one)
+	for c := color.White; c < color.NumColors; c++ {
+		if _, isHuman := g.Players[c].(*player.HumanPlayer); isHuman {
+			gameJSON.HumanColor = color.Names[c]
+		}
+	}
+
 	// Set Board JSON
 	for r := uint8(0); r < board.Height; r++ {
 		for c := uint8(0); c < board.Width; c++ {

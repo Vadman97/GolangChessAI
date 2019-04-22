@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/api/handlers"
+	"github.com/Vadman97/ChessAI3/pkg/api/api_handlers"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/competition"
 	"github.com/gorilla/mux"
+	"time"
 	"log"
 	"net/http"
 	"os"
 	"path"
-	"time"
 )
 
 func main() {
@@ -25,20 +25,20 @@ func main() {
 	r.HandleFunc("/", HomeHandler).Methods("GET")
 
 	// WebSocket Route
-	r.HandleFunc("/ws", handlers.HandleConnections)
+	r.HandleFunc("/ws", api_handlers.HandleConnections)
 
 	// API Routes
 	gameApiRouter := r.PathPrefix("/api/game").Subrouter()
 	gameApiRouter.
-		Path("/").
+		Path("").
 		Methods("GET").
-		HandlerFunc(handlers.GetGameStateHandler)
+		HandlerFunc(api_handlers.GetGameStateHandler)
 
 	gameApiRouter.
-		Path("/").
+		Path("").
 		Methods("POST").
 		Queries("command", "{command}").
-		HandlerFunc(handlers.PostGameCommandHandler)
+		HandlerFunc(api_handlers.PostGameCommandHandler)
 
 
 	// Set Static Files (MUST be below routes otherwise it'll conflict)
@@ -60,6 +60,7 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
+
 	log.Fatal(server.ListenAndServe())
 }
 
