@@ -21,16 +21,6 @@ const (
 )
 
 const (
-	AlgorithmMiniMax             = "MiniMax"
-	AlgorithmAlphaBetaWithMemory = "α/β Memory"
-	AlgorithmMTDf                = "MTDf"
-	AlgorithmABDADA              = "ABDADA (α/β Parallel)"
-	AlgorithmNegaScout           = "NegaScout"
-	AlgorithmRandom              = "Random"
-	AlgorithmJamboree            = "Jamboree (α/β Parallel)"
-)
-
-const (
 	OpeningNone = -1
 )
 
