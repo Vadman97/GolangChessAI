@@ -53,7 +53,6 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 	if depth == 0 {
 		return ScoredMove{Score: j.player.EvaluateBoard(root, currentPlayer).TotalScore}
 	} else {
-
 		answerChan := j.asyncTTRead(root, currentPlayer)
 		moves := root.GetAllMoves(currentPlayer, previousMove)
 		ttAnswer := <-answerChan
@@ -95,19 +94,15 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 			return ScoredMove{Score: NegInf}
 		}
 
-		var childrenLock sync.Mutex
-		numChildrenSpawned := 0
-
-		moveChan := make(chan ScoredMove, len(*moves)-1)
-
 		nextLevelAbortFlag := false
-		foundBadMove := false
 
 		var movesToResearchLock sync.Mutex
 		var movesToResearch []location.Move
 
-		someoneAlreadyAborting := false
-		var someoneAlreadyAbortingLock sync.Mutex
+		var childWaitGroup sync.WaitGroup
+		var bLock sync.Mutex
+		var resultLock sync.Mutex
+		result := ScoredMove{ReturnThisMove: false}
 
 		for i := 0; i < len(*moves); i++ {
 			if *abortFlag {
@@ -117,71 +112,44 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 			if (*moves)[i].Equals(&firstMove) {
 				continue
 			}
-			childrenLock.Lock()
+
 			if !nextLevelAbortFlag {
-				go func(moveChan chan ScoredMove, nextLevelAbortFlag *bool, move location.Move, myThreadID int) {
-					j.threadNumber++
-					fmt.Printf("Thread #%d has started\n", myThreadID)
+				childWaitGroup.Add(1)
+				go func(abortFlag *bool, move location.Move) {
 					child, prev := j.player.applyMove(root, &move)
-					nextScoredMove := j.Jamboree(child, depth-1, -alpha-1, -alpha, currentPlayer^1, prev,
-						nextLevelAbortFlag)
+					nextScoredMove := j.Jamboree(child, depth-1, -alpha-1, -alpha, currentPlayer^1, prev, abortFlag)
 					nextScoredMove.Score *= -1
+					bLock.Lock()
 					if nextScoredMove.Score > b.Score {
 						b.Score = nextScoredMove.Score
 						b.Move = move
 					}
+					bLock.Unlock()
 					if nextScoredMove.Score >= beta {
-						fmt.Printf("I am the thread for %s and I found a score better than beta. Depth = %d \n", move, depth-1)
-
-						iGetToAbort := false
-						someoneAlreadyAbortingLock.Lock()
-						if !someoneAlreadyAborting {
-							fmt.Printf("Inside the already aborting lock at depth = %d and %s \n", depth-1, move)
-							iGetToAbort = true
-							someoneAlreadyAborting = true
-							fmt.Printf("I am the thread for %s and I will abort!\n", move)
-						}
-						someoneAlreadyAbortingLock.Unlock()
-
-						if iGetToAbort {
-							childrenLock.Lock()
-							fmt.Printf("I am the thread for %s and I am beginning the abort process\n", move)
-							*nextLevelAbortFlag = true
-							foundBadMove = true
-							childrenDeallocated := 0
-							for j := 0; j < numChildrenSpawned-1; j++ {
-								<-moveChan
-								childrenDeallocated++
-								fmt.Printf("Children Spawned = %d, Children deallocated = %d\n", numChildrenSpawned, childrenDeallocated)
-							}
-							fmt.Printf("I am the thread for %s and I have successfully aborted the other threads\n", move)
-							childrenLock.Unlock()
-						}
+						*abortFlag = true
+						resultLock.Lock()
+						result.ReturnThisMove = true
+						result.Move = move
+						result.Score = nextScoredMove.Score
+						resultLock.Unlock()
 					}
 					if nextScoredMove.Score > alpha {
 						movesToResearchLock.Lock()
 						movesToResearch = append(movesToResearch, move)
 						movesToResearchLock.Unlock()
 					}
-					moveChan <- ScoredMove{Score: nextScoredMove.Score, Move: move}
-					fmt.Printf("Thread #%d has finished.\n", myThreadID)
-				}(moveChan, &nextLevelAbortFlag, (*moves)[i], j.threadNumber)
-				fmt.Printf("Thread #%d is associated with child #%d\n", j.threadNumber, numChildrenSpawned)
+					childWaitGroup.Done()
+				}(&nextLevelAbortFlag, (*moves)[i])
 				j.threadNumber++
-				numChildrenSpawned++
+			} else {
+				break
 			}
-			childrenLock.Unlock()
 		}
-		if foundBadMove {
-			fmt.Println("A bad move was found!!!")
-			return <-moveChan
+		childWaitGroup.Wait()
+
+		if result.ReturnThisMove {
+			return result
 		} else {
-			// no one was >= beta so collect all data to end goroutines
-			childrenDeallocated := 0
-			for i := 0; i < numChildrenSpawned; i++ {
-				<-moveChan
-				childrenDeallocated++
-			}
 			// now, serially research any specific moves that we could possibly be better than firstChild
 			for i := 0; i < len(movesToResearch); i++ {
 				if *abortFlag {
