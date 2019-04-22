@@ -446,6 +446,34 @@ func (b *Board) getAllAttackableMoves(color color.Color) AttackableBoard {
 }
 
 /**
+ * Return all available moves for a specific color
+ * Differs from GetAllAttackableMoves() since no cache is involved and this returns an map of piece to moves
+ * The map key will be a stringified coordinate `(r,c)`
+ */
+func (b *Board) GetAllAvailableMoves(color color.Color) map[string]*[]location.Move {
+	var moveMap = make(map[string]*[]location.Move)
+
+	for r := 0; r < Height; r++ {
+		if b.board[r] == 0 {
+			continue
+		}
+		for c := 0; c < Width; c++ {
+			loc := location.NewLocation(location.CoordinateType(r), location.CoordinateType(c))
+			if !b.IsEmpty(loc) {
+				pieceOnLocation := b.GetPiece(loc)
+				if pieceOnLocation.GetColor() == color {
+					moves := pieceOnLocation.GetMoves(b, false)
+					moveMap[loc.String()] = moves
+				}
+			}
+		}
+	}
+
+	return moveMap
+}
+
+
+/**
  * Determines if a king of color c is under attack by the opposite color.
  */
 func (b *Board) IsKingInCheck(c color.Color) bool {
