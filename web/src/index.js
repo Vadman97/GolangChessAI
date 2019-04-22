@@ -130,6 +130,22 @@ function onChessboardDrop(source, target, piece) {
     return 'snapback';
   }
 
+  // Check if it's a Castle Move (King and moved 2 columns)
+  if (piece[1] == 'K') {
+    // Queen-side Castle
+    if (sourceCoord[1] - targetCoord[1] == 2) {
+      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] - 2);
+      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
+      setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+    }
+    // King-side Castle
+    else if (targetCoord[1] - sourceCoord[1] == 2) {
+      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
+      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
+      setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+    }
+  }
+
   if (target !== source) {
     clearBoard();
   }
