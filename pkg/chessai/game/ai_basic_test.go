@@ -56,7 +56,7 @@ func runAITest(t *testing.T, algorithm ai.Algorithm) {
 	if smartScore > dumbScore {
 		assert.True(t, smartScore > dumbScore)
 	} else {
-		assert.True(t, smartScore-dumbScore <= int64(ai.PieceValueWeight*ai.PieceValue[piece.PawnType]))
+		assert.True(t, smartScore-dumbScore <= int64(ai.PawnValueWeight*ai.PieceValue[piece.PawnType]))
 	}
 }
 

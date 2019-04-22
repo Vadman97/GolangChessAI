@@ -10,6 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -77,17 +78,14 @@ func (s ScoredMove) NegScore() ScoredMove {
 	return s
 }
 
-type Algorithm interface {
-	GetName() string
-	GetBestMove(*AIPlayer, *board.Board, *board.LastMove) *ScoredMove
-}
-
 type AIPlayer struct {
 	Algorithm                 Algorithm
 	TranspositionTableEnabled bool
 	PlayerColor               color.Color
 	MaxSearchDepth            int
 	MaxThinkTime              time.Duration
+	LastSearchDepth           int
+	LastSearchTime            time.Duration
 	TurnCount                 int
 	Opening                   int
 	Metrics                   *Metrics
@@ -156,7 +154,7 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 				logger.MarkPerformance(b, scoredMove, p)
 			}
 			if scoredMove.Move.Start.Equals(scoredMove.Move.End) {
-				p.printer <- fmt.Sprintf("%s resigns, no best move available. Picking random.\n", p)
+				log.Printf("%s resigns, no best move available. Picking random.\n", p)
 				return &(&Random{
 					Rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 				}).RandomMove(b, p.PlayerColor, previousMove).Move
@@ -219,10 +217,29 @@ func (p *AIPlayer) printMoveDebug(b *board.Board, m *ScoredMove) {
 	_, _ = fmt.Fprint(file, result)
 }
 
-func (p *AIPlayer) ClearCaches() {
-	// TODO(Vadim) find better way to pick when to clear, based on size #49
-	p.evaluationMap = util.NewConcurrentBoardMap()
-	p.transpositionTable = util.NewConcurrentBoardMap()
+func (p *AIPlayer) ClearCaches(force bool) {
+	cleared := false
+	if force {
+		log.Println("WARNING: Force clearing player caches (negative affects if during game)")
+		p.evaluationMap = util.NewConcurrentBoardMap()
+		p.transpositionTable = util.NewConcurrentBoardMap()
+		cleared = true
+	} else {
+		if p.evaluationMap.GetTotalWrites() > 1000000 {
+			log.Println("WARNING: Clearing player evaluation cache due to size")
+			p.evaluationMap = util.NewConcurrentBoardMap()
+			cleared = true
+		}
+		if p.transpositionTable.GetTotalWrites() > 1000000 {
+			log.Println("WARNING: Clearing player transposition table due to size")
+			p.transpositionTable = util.NewConcurrentBoardMap()
+			cleared = true
+		}
+	}
+	if cleared {
+		runtime.GC()
+		log.Println("Forcing garbage collection")
+	}
 }
 
 func (p *AIPlayer) printThread(stop chan bool) {
@@ -254,4 +271,8 @@ func (p *AIPlayer) trackThinkTime(stop, done chan bool, start time.Time) {
 		}
 	}
 	done <- true
+}
+
+func (p *AIPlayer) terminalNode(b *board.Board, moves *[]location.Move) bool {
+	return len(*moves) == 0 || b.PreviousPositionsSeen >= 3 || b.MovesSinceNoDraw >= 100
 }

@@ -27,17 +27,17 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		// generate moves while waiting for the answer ...
 		movesArr := root.GetAllMoves(currentPlayer, previousMove)
 
-		// this is a terminal node because we have no moves, either we lost or tied
-		if len(*movesArr) == 0 {
-			return ScoredMove{
-				Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
-			}
-		}
-
 		// block and grab the answer
 		ttAnswer := <-answerChan
 		alpha, beta = ttAnswer.alpha, ttAnswer.beta
 		best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
+
+		// this is a terminal node because we have no moves, either we lost or tied
+		if ab.player.terminalNode(root, movesArr) {
+			return ScoredMove{
+				Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
+			}
+		}
 
 		/* The current move is not evaluated if causing u a cutoff or
 		if we are in exclusive mode and another processor
@@ -96,9 +96,12 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 
 func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMove *board.LastMove) ScoredMove {
 	ab.player.abort = false
-	var NumThreads = runtime.NumCPU()
-	moveChan := make(chan ScoredMove, NumThreads)
-	for i := 0; i < NumThreads; i++ {
+	if ab.NumThreads == 0 {
+		ab.NumThreads = runtime.NumCPU()
+		log.Printf("ABDADA runs in parallel, defaulting to #%d threads (# cpu cores)\n", ab.NumThreads)
+	}
+	moveChan := make(chan ScoredMove, ab.NumThreads)
+	for i := 0; i < ab.NumThreads; i++ {
 		go func(moveChan chan ScoredMove) {
 			moveChan <- ab.ABDADA(b, depth, alpha, beta, false, ab.player.PlayerColor, previousMove)
 		}(moveChan)
@@ -113,12 +116,12 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 		bestMoves = append(bestMoves, <-moveChan)
 		// abort the rest
 		ab.kill = true
-		for i := 0; i < NumThreads-1; i++ {
+		for i := 0; i < ab.NumThreads-1; i++ {
 			<-moveChan
 		}
 		ab.kill = false
 	} else {
-		for i := 0; i < NumThreads; i++ {
+		for i := 0; i < ab.NumThreads; i++ {
 			bestMoves = append(bestMoves, <-moveChan)
 		}
 	}
@@ -149,18 +152,17 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 		// MTDf returns a good move (did not abort search)
 		if !ab.player.abort {
 			best = newGuess
-			ab.lastSearchDepth = ab.currentSearchDepth
-			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", ab.lastSearchDepth, best.Move)
+			ab.player.LastSearchDepth = ab.currentSearchDepth
+			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", ab.player.LastSearchDepth, best.Move)
 		} else {
 			// -1 due to discard of current level due to hard abort
-			ab.lastSearchDepth = ab.currentSearchDepth - iterativeIncrement
-			ab.player.printer <- fmt.Sprintf("%s hard abort! evaluated to depth %d\n", AlgorithmABDADA, ab.lastSearchDepth)
+			ab.player.LastSearchDepth = ab.currentSearchDepth - iterativeIncrement
+			ab.player.printer <- fmt.Sprintf("%s hard abort! evaluated to depth %d\n", ab.GetName(), ab.player.LastSearchDepth)
 			break
 		}
 	}
-	ab.lastSearchTime = time.Now().Sub(start)
 	if best.Move.Start.Equals(best.Move.End) {
-		log.Printf("%s has no best move: %s", AlgorithmABDADA, best.Move)
+		log.Printf("%s has no best move: %s", ab.GetName(), best.Move)
 	}
 	return best
 }
@@ -168,9 +170,9 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
 	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {
-		log.Printf("WARNING: Trying to use %s with move caching enabled.\n", AlgorithmABDADA)
-		log.Println("WARNING: Disabling GetAllMoves, GetAllAttackableMoves caching.")
-		log.Printf("%s performs better without caching since it generates moves asynchronously\n", AlgorithmABDADA)
+		log.Printf("Trying to use %s with move caching enabled.\n", ab.GetName())
+		log.Println("Disabling GetAllMoves, GetAllAttackableMoves caching.")
+		log.Printf("%s performs better without caching since it generates moves asynchronously\n", ab.GetName())
 		b.CacheGetAllMoves = false
 		b.CacheGetAllAttackableMoves = false
 	}
@@ -189,12 +191,11 @@ type ABDADA struct {
 	player             *AIPlayer
 	kill               bool
 	currentSearchDepth int
-	lastSearchDepth    int
-	lastSearchTime     time.Duration
+	NumThreads         int
 }
 
 func (ab *ABDADA) GetName() string {
-	return fmt.Sprintf("%s,[D:%d;T:%s]", AlgorithmABDADA, ab.lastSearchDepth, ab.lastSearchTime)
+	return AlgorithmABDADA
 }
 
 type TTAnswer struct {
@@ -264,7 +265,7 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 						answer.score = entry.Score
 						answer.alpha = entry.Score
 					}
-					answer.bestMove = entry.BestMove // TODO(Vadim) only if TrueScore?
+					answer.bestMove = entry.BestMove
 
 					if entry.Depth == depth && answer.alpha < answer.beta {
 						// Increment the number of processors evaluating this node

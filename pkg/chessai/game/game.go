@@ -2,13 +2,17 @@ package game
 
 import (
 	"fmt"
+	"github.com/Vadman97/ChessAI3/pkg/api"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"github.com/gorilla/websocket"
+	"log"
 	"math"
 	"runtime"
 	"time"
@@ -16,11 +20,12 @@ import (
 
 type Game struct {
 	CurrentBoard      *board.Board
-	CurrentTurnColor  byte
-	Players           map[byte]player.Player
-	CurrentMoveTime   map[byte]time.Duration
-	LastMoveTime      map[byte]time.Duration
-	TotalMoveTime     map[byte]time.Duration
+	CurrentTurnColor  color.Color
+	Players           map[color.Color]player.Player
+	CurrentMoveTime   map[color.Color]time.Duration
+	LastMoveTime      map[color.Color]time.Duration
+	TotalMoveTime     map[color.Color]time.Duration
+	TotalSearchDepth  map[color.Color]int
 	MovesPlayed       uint
 	PreviousMove      *board.LastMove
 	GameStatus        byte
@@ -29,7 +34,9 @@ type Game struct {
 	TimeLimit         time.Duration
 	PerformanceLogger *ai.PerformanceLogger
 	PrintInfo         bool
+	SocketBroadcast   chan api.ChessMessage
 	printer           chan string
+	quit			  chan bool
 }
 
 type Outcome struct {
@@ -70,7 +77,7 @@ func (g *Game) PlayTurn() bool {
 		var move *location.Move
 		switch p := g.Players[g.CurrentTurnColor].(type) {
 		case *player.HumanPlayer:
-			move = nil
+			move = p.WaitForMove()
 		case *ai.AIPlayer:
 			move = p.GetBestMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
 		}
@@ -98,6 +105,9 @@ func (g *Game) PlayTurn() bool {
 		} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
 			// 50 Move Rule (50 moves per color)
 			g.GameStatus = FiftyMoveDraw
+		} else if g.CurrentBoard.PreviousPositionsSeen >= 3 {
+			// 3-position repetition
+			g.GameStatus = RepeatedActionThreeTimeDraw
 		}
 
 		if g.GameStatus == Active {
@@ -118,7 +128,53 @@ func (g *Game) PlayTurn() bool {
 		g.PerformanceLogger.CompletePerformanceLog(aiPlayers)
 		g.printThread()
 	}
+	// perform player cleanup
+	for c := color.White; c < color.NumColors; c++ {
+		if aiPlayer, isAI := g.Players[c].(*ai.AIPlayer); isAI {
+			aiPlayer.ClearCaches(false)
+		}
+	}
 	return g.GameStatus == Active
+}
+
+func (g *Game) Loop(client *websocket.Conn) {
+	g.SocketBroadcast <- api.CreateChessMessage(api.GameState, g.GetJSON())
+
+	var humanColor color.Color
+	for c := color.White; c < color.NumColors; c++ {
+		if _, isHuman := g.Players[c].(*player.HumanPlayer); isHuman {
+			humanColor = c
+		}
+	}
+
+	for i := 0; i < int(g.MoveLimit); i++ {
+		select {
+		case <-g.quit:
+			break
+		default:
+			// TODO DEBUG (Remove below)
+			log.Printf("Turn %d", i)
+			CurrentTurnColor := g.CurrentTurnColor
+
+			// Send Pre-Move Information
+			if CurrentTurnColor == humanColor {
+				availableMovesJSON := api.CreateAvailableMovesJSON(g.CurrentBoard.GetAllAvailableMoves(humanColor))
+				g.SocketBroadcast <- api.CreateChessMessage(api.AvailablePlayerMoves, availableMovesJSON)
+			}
+
+			active := g.PlayTurn()
+
+			// Send Post-Move Information
+			if CurrentTurnColor != humanColor {
+				lastMoveJSON := api.CreateMoveJSON(g.PreviousMove)
+				g.SocketBroadcast <- api.CreateChessMessage(api.AIMove, lastMoveJSON)
+			}
+
+			if !active {
+				break
+			}
+		}
+	}
 }
 
 func (g Game) String() (result string) {
@@ -131,6 +187,12 @@ func (g Game) String() (result string) {
 		result += fmt.Sprintf("Average move time:\n")
 		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
 		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
+
+		whiteAvg = float64(g.TotalSearchDepth[color.White]) / float64(g.MovesPlayed/2)
+		blackAvg = float64(g.TotalSearchDepth[color.Black]) / float64(g.MovesPlayed/2)
+		result += fmt.Sprintf("Average search depth:\n")
+		result += fmt.Sprintf("\t White: %f\n", whiteAvg)
+		result += fmt.Sprintf("\t Black: %f\n", blackAvg)
 	}
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
 	result += fmt.Sprintf("Total game turns: %d\n", (g.MovesPlayed-1)/2+1)
@@ -171,6 +233,9 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 func (g *Game) UpdateTime(start time.Time) {
 	g.LastMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
 	g.TotalMoveTime[g.CurrentTurnColor] += g.LastMoveTime[g.CurrentTurnColor]
+	if aiPlayer, isAi := g.Players[g.CurrentTurnColor].(*ai.AIPlayer); isAi {
+		g.TotalSearchDepth[g.CurrentTurnColor] += aiPlayer.LastSearchDepth
+	}
 }
 
 func (g *Game) ClearCaches(clearPlayers bool) {
@@ -179,7 +244,7 @@ func (g *Game) ClearCaches(clearPlayers bool) {
 	if clearPlayers {
 		for c := color.White; c < color.NumColors; c++ {
 			if aiPlayer, isAI := g.Players[c].(*ai.AIPlayer); isAI {
-				aiPlayer.ClearCaches()
+				aiPlayer.ClearCaches(true)
 			}
 		}
 	}
@@ -187,6 +252,46 @@ func (g *Game) ClearCaches(clearPlayers bool) {
 
 func (g *Game) GetTotalPlayTime() time.Duration {
 	return g.TotalMoveTime[color.White] + g.TotalMoveTime[color.Black]
+}
+
+func (g *Game) GetJSON() *api.GameStateJSON {
+	gameJSON := &api.GameStateJSON{
+		CurrentBoard:     [board.Height][board.Width]*api.PieceJSON{},
+		CurrentTurnColor: color.Names[g.CurrentTurnColor],
+		MovesPlayed:      g.MovesPlayed,
+		GameStatus:       StatusStrings[g.GameStatus],
+		MoveLimit:        g.MoveLimit,
+		TimeLimit:        g.TimeLimit,
+	}
+
+	// Set Human Color (if there is one)
+	for c := color.White; c < color.NumColors; c++ {
+		if _, isHuman := g.Players[c].(*player.HumanPlayer); isHuman {
+			gameJSON.HumanColor = color.Names[c]
+		}
+	}
+
+	// Set Board JSON
+	for r := uint8(0); r < board.Height; r++ {
+		for c := uint8(0); c < board.Width; c++ {
+			pieceFromLoc := g.CurrentBoard.GetPiece(location.NewLocation(r, c))
+			if pieceFromLoc == nil {
+				continue
+			}
+
+			gameJSON.CurrentBoard[r][c] = &api.PieceJSON{
+				Color: color.Names[pieceFromLoc.GetColor()],
+				PieceType: piece.TypeToName[pieceFromLoc.GetPieceType()],
+			}
+		}
+	}
+
+	// Set PreviousMove
+	if g.PreviousMove != nil {
+		gameJSON.PreviousMove = api.CreateMoveJSON(g.PreviousMove)
+	}
+
+	return gameJSON
 }
 
 func (g *Game) memoryThread() {
@@ -225,6 +330,10 @@ func NewGame(whitePlayer, blackPlayer player.Player) *Game {
 			color.White: 0,
 			color.Black: 0,
 		},
+		TotalSearchDepth: map[byte]int{
+			color.White: 0,
+			color.Black: 0,
+		},
 		CurrentMoveTime: map[byte]time.Duration{
 			color.White: 0,
 			color.Black: 0,
@@ -241,7 +350,9 @@ func NewGame(whitePlayer, blackPlayer player.Player) *Game {
 		TimeLimit:         math.MaxInt64,
 		PerformanceLogger: performanceLogger,
 		PrintInfo:         true,
+		SocketBroadcast:   make(chan api.ChessMessage, 10),
 		printer:           make(chan string, 100000),
+		quit:              make(chan bool),
 	}
 	g.CurrentBoard.ResetDefault()
 	go g.memoryThread()

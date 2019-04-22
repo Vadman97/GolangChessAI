@@ -1,7 +1,6 @@
 package ai
 
 import (
-	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
@@ -42,7 +41,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	var best ScoredMove
 	moves := root.GetAllMoves(currentPlayer, previousMove)
 	// max recursion or terminal node
-	if depth == 0 || len(*moves) == 0 {
+	if depth == 0 || ab.player.terminalNode(root, moves) {
 		best = ScoredMove{
 			Score: ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore,
 		}
@@ -58,12 +57,12 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		}
 		for i, m := range *moves {
 			if maximizingPlayer {
-				if best.Score > beta {
+				if best.Score >= beta {
 					ab.player.Metrics.MovesPrunedAB += uint64(len(*moves) - i)
 					break
 				}
 			} else {
-				if best.Score < alpha {
+				if best.Score <= alpha {
 					ab.player.Metrics.MovesPrunedAB += uint64(len(*moves) - i)
 					break
 				}
@@ -119,17 +118,16 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 }
 
 type AlphaBetaWithMemory struct {
-	player          *AIPlayer
-	lastSearchDepth int
+	player *AIPlayer
 }
 
 func (ab *AlphaBetaWithMemory) GetName() string {
-	return fmt.Sprintf("%s,[depth:%d]", AlgorithmAlphaBetaWithMemory, ab.lastSearchDepth)
+	return AlgorithmAlphaBetaWithMemory
 }
 
 func (ab *AlphaBetaWithMemory) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
 	ab.player.abort = false
-	ab.lastSearchDepth = p.MaxSearchDepth
+	ab.player.LastSearchDepth = p.MaxSearchDepth
 	return ab.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
 }

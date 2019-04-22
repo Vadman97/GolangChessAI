@@ -1,4 +1,4 @@
-package api
+package api_handlers
 
 import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
@@ -209,7 +209,8 @@ func TestGetGameState(t *testing.T) {
 	  "previousMove": null,
 	  "gameStatus": "Active",
 	  "moveLimit": 0,
-	  "timeLimit": 0
+	  "timeLimit": 0,
+	  "humanColor": ""
 	}`
 
 	assert.JSONEq(t, expectedBody, rr.Body.String())

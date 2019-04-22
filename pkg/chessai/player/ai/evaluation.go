@@ -56,16 +56,17 @@ var PieceValue = map[byte]int{
 }
 
 const (
-	PieceValueWeight      = 100
-	PawnStructureWeight   = 50
-	PieceAdvanceWeight    = 50
-	PieceNumMovesWeight   = 10
-	PieceNumAttacksWeight = 10
-	KingDisplacedWeight   = -2 * PieceValueWeight // neg 2 pawns
-	RookDisplacedWeight   = -1 * PieceValueWeight // neg 1 pawn
-	KingCastledWeight     = 3 * PieceValueWeight  // three pawn
-	KingCheckedWeight     = 1 * PieceValueWeight  // one pawn
-	Weight50Rule          = StalemateScore / 100  // neg 1 pawn if we do nothing in 50 moves
+	PawnValueWeight       = 100
+	PawnStructureWeight   = PawnValueWeight / 2
+	PieceAdvanceWeight    = PawnValueWeight / 2
+	PieceNumMovesWeight   = PawnValueWeight / 10
+	PieceNumAttacksWeight = PawnValueWeight / 10
+	KingDisplacedWeight   = -2 * PawnValueWeight
+	RookDisplacedWeight   = -1 * PawnValueWeight
+	KingCastledWeight     = 3 * PawnValueWeight
+	KingCheckedWeight     = 1 * PawnValueWeight
+	// neg 1 pawn if we do nothing in 50 moves
+	Weight50Rule = -PawnValueWeight / PawnValueWeight
 )
 
 const (
@@ -76,7 +77,7 @@ const (
 const (
 	WinScore       = PosInf
 	LossScore      = NegInf
-	StalemateScore = -9 * PieceValueWeight // neg queen
+	StalemateScore = NegInf / 2 // should only choose draw to avoid a loss
 )
 
 type evaluationPair struct {
@@ -92,6 +93,8 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 		// Vadim: >= instead of == because AI simulation will go beyond 100, it will know no win is possible
 		// Alex: This value may change, but AI right now prevents draws
 		eval.TotalScore = StalemateScore
+	} else if b.PreviousPositionsSeen >= 3 {
+		eval.TotalScore = StalemateScore
 	} else {
 		eval = p.evaluateBoardCached(b, whoMoves)
 		eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw
@@ -105,6 +108,7 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
  */
 func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Evaluation {
 	hash := b.Hash()
+	var eval *Evaluation
 	if p.evaluationMap != nil {
 		if value, ok := p.evaluationMap.Read(&hash, 0); ok {
 			entry := value.(*evaluationPair)
@@ -118,7 +122,18 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 			}
 		}
 	}
+	eval = EvaluateBoardNoCache(b, whoMoves)
 
+	if p.evaluationMap != nil {
+		p.evaluationMap.Store(&hash, 0, &evaluationPair{
+			score:    eval.TotalScore,
+			whoMoves: whoMoves,
+		})
+	}
+	return eval
+}
+
+func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
 	if b.IsInCheckmate(whoMoves^1, nil) {
@@ -157,7 +172,7 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 		for c := byte(0); c < color.NumColors; c++ {
 			score := 0
 			for pieceType, value := range PieceValue {
-				score += PieceValueWeight * value * int(eval.PieceCounts[c][pieceType])
+				score += PawnValueWeight * value * int(eval.PieceCounts[c][pieceType])
 				score += PieceAdvanceWeight * int(eval.PieceAdvanced[c][pieceType])
 			}
 			if b.GetFlag(board.FlagCastled, c) {
@@ -202,13 +217,5 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 			}
 		}
 	}
-
-	if p.evaluationMap != nil {
-		p.evaluationMap.Store(&hash, 0, &evaluationPair{
-			score:    eval.TotalScore,
-			whoMoves: whoMoves,
-		})
-	}
-
 	return eval
 }

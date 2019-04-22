@@ -22,7 +22,7 @@ func (miniMax *MiniMax) MiniMaxRecurse(b *board.Board, m location.Move, depth in
 func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
 	moves := b.GetAllMoves(currentPlayer, previousMove)
 	// max recursion or terminal node
-	if depth == 0 || len(*moves) == 0 {
+	if depth == 0 || miniMax.player.terminalNode(b, moves) {
 		return &ScoredMove{
 			Score: miniMax.player.EvaluateBoard(b, miniMax.player.PlayerColor).TotalScore,
 		}
@@ -63,28 +63,25 @@ func (miniMax *MiniMax) IterativeMiniMax(b *board.Board, previousMove *board.Las
 		// did not abort search, good value
 		if !miniMax.player.abort {
 			best = newBest
-			miniMax.lastSearchDepth = miniMax.currentSearchDepth
-			miniMax.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", miniMax.lastSearchDepth, best.Move)
+			miniMax.player.LastSearchDepth = miniMax.currentSearchDepth
+			miniMax.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", miniMax.player.LastSearchDepth, best.Move)
 		} else {
 			// -1 due to discard of current level due to hard abort
-			miniMax.lastSearchDepth = miniMax.currentSearchDepth - 1
-			miniMax.player.printer <- fmt.Sprintf("MiniMax hard abort! evaluated to depth %d\n", miniMax.lastSearchDepth)
+			miniMax.player.LastSearchDepth = miniMax.currentSearchDepth - 1
+			miniMax.player.printer <- fmt.Sprintf("MiniMax hard abort! evaluated to depth %d\n", miniMax.player.LastSearchDepth)
 			break
 		}
 	}
-	miniMax.lastSearchTime = time.Now().Sub(start)
 	return best
 }
 
 type MiniMax struct {
 	player             *AIPlayer
-	lastSearchDepth    int
 	currentSearchDepth int
-	lastSearchTime     time.Duration
 }
 
 func (miniMax *MiniMax) GetName() string {
-	return fmt.Sprintf("%s,[D:%d;T:%s]", AlgorithmMiniMax, miniMax.lastSearchDepth, miniMax.lastSearchTime)
+	return AlgorithmMiniMax
 }
 
 func (miniMax *MiniMax) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
@@ -94,7 +91,7 @@ func (miniMax *MiniMax) GetBestMove(p *AIPlayer, b *board.Board, previousMove *b
 		return miniMax.IterativeMiniMax(b, previousMove)
 	} else {
 		// strict depth mode
-		miniMax.lastSearchDepth = p.MaxSearchDepth
+		miniMax.player.LastSearchDepth = p.MaxSearchDepth
 		return miniMax.MiniMax(b, p.MaxSearchDepth, p.PlayerColor, previousMove)
 	}
 }

@@ -77,11 +77,15 @@ type Board struct {
 	MoveCache, AttackableCache *util.ConcurrentBoardMap
 	KingLocations              [color.NumColors]location.Location
 
+	CacheGetAllMoves, CacheGetAllAttackableMoves bool
+
 	// MovesSinceNoDraw stores the number of moves since no draw conditions have occurred
 	// draw conditions: pawn hasn't moved or piece hasn't been captured for 50 turns each side
 	MovesSinceNoDraw int
-
-	CacheGetAllMoves, CacheGetAllAttackableMoves bool
+	// previous boards that we have encountered for 3-move-repetition
+	PreviousPositions []util.BoardHash
+	// number of previous positions we have seen
+	PreviousPositionsSeen int
 }
 
 func (b *Board) Hash() (result util.BoardHash) {
@@ -139,6 +143,8 @@ func (b *Board) Copy() *Board {
 	newBoard.MovesSinceNoDraw = b.MovesSinceNoDraw
 	newBoard.CacheGetAllMoves = b.CacheGetAllMoves
 	newBoard.CacheGetAllAttackableMoves = b.CacheGetAllAttackableMoves
+	newBoard.PreviousPositions = b.PreviousPositions
+	newBoard.PreviousPositionsSeen = b.PreviousPositionsSeen
 	return &newBoard
 }
 
@@ -160,6 +166,8 @@ func (b *Board) ResetDefault() {
 		location.NewLocation(7, 4),
 		location.NewLocation(0, 4),
 	}
+	b.PreviousPositions = nil
+	b.PreviousPositionsSeen = 0
 }
 
 func (b *Board) ResetDefaultSlow() {
@@ -444,6 +452,34 @@ func (b *Board) getAllAttackableMoves(color color.Color) AttackableBoard {
 	}
 	return attackable
 }
+
+/**
+ * Return all available moves for a specific color
+ * Differs from GetAllAttackableMoves() since no cache is involved and this returns an map of piece to moves
+ * The map key will be a stringified coordinate `(r,c)`
+ */
+func (b *Board) GetAllAvailableMoves(color color.Color) map[string]*[]location.Move {
+	var moveMap = make(map[string]*[]location.Move)
+
+	for r := 0; r < Height; r++ {
+		if b.board[r] == 0 {
+			continue
+		}
+		for c := 0; c < Width; c++ {
+			loc := location.NewLocation(location.CoordinateType(r), location.CoordinateType(c))
+			if !b.IsEmpty(loc) {
+				pieceOnLocation := b.GetPiece(loc)
+				if pieceOnLocation.GetColor() == color {
+					moves := pieceOnLocation.GetMoves(b, false)
+					moveMap[loc.String()] = moves
+				}
+			}
+		}
+	}
+
+	return moveMap
+}
+
 
 /**
  * Determines if a king of color c is under attack by the opposite color.

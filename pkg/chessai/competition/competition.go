@@ -7,6 +7,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"math"
 	"math/rand"
 	"time"
 )
@@ -48,8 +49,9 @@ func (c *Competition) RunCompetition() {
 		active := true
 		for active {
 			active = g.PlayTurn()
-			fmt.Printf("#%d, T: %s, P: %s, memory: %s",
-				g.MovesPlayed, g.GetTotalPlayTime(),
+			evalScore := ai.EvaluateBoardNoCache(g.CurrentBoard, g.CurrentTurnColor^1).TotalScore
+			fmt.Printf("#%d, T: %s, S: %d, P: %s, memory: %s",
+				g.MovesPlayed, g.GetTotalPlayTime(), evalScore,
 				c.players[g.CurrentTurnColor^1], util.GetMemStatString())
 		}
 		fmt.Println(g)
@@ -109,8 +111,8 @@ func (c *Competition) RunAICompetition() {
 	// TODO(Vadim) output this to file and keep history of AI performance
 	// TODO(Vadim) load ai from file
 	rand.Seed(config.Get().TestRandSeed)
-	c.players[color.White].Algorithm = &ai.MiniMax{}
-	c.players[color.White].MaxSearchDepth = 128
+	c.players[color.White].Algorithm = &ai.MTDf{}
+	c.players[color.White].MaxSearchDepth = math.MaxUint8
 	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.Jamboree{}
 	c.players[color.Black].MaxSearchDepth = 3

@@ -20,10 +20,10 @@ import (
 	"time"
 )
 
-var algorithmsToTest = map[string]Algorithm{
-	AlgorithmMiniMax: &MiniMax{},
-	AlgorithmMTDf:    &MTDf{},
-	AlgorithmABDADA:  &ABDADA{},
+var algorithmsToTest = [...]string{
+	AlgorithmMiniMax,
+	AlgorithmMTDf,
+	AlgorithmABDADA,
 }
 
 type competitionBoard struct {
@@ -57,7 +57,8 @@ func TestAIBestMovesSame(t *testing.T) {
 			fmt.Printf("Best move: %s\n\n\n", entry.bestMove)
 
 			moves := map[string]location.Move{}
-			for algorithmName, algorithm := range algorithmsToTest {
+			for _, algorithmName := range algorithmsToTest {
+				algorithm := NameToAlgorithm[algorithmName]
 				fmt.Printf("\n\n===== ALGORITHM %s =====\n", algorithmName)
 				moves[algorithmName] = *getBestMove(entry.board, c, algorithm)
 				fmt.Printf("===== ALGORITHM %s =====\n\n", algorithm.GetName())
@@ -154,7 +155,7 @@ func evaluateScores(t *testing.T, c color.Color, gameBoard *board.Board, moves m
 	fmt.Printf("Difference: %d\n", diff)
 	// test that the moves are all good within a pawn
 	// TODO(Vadim) make more aggressive
-	assert.True(t, diff <= PieceValueWeight*PieceValue[piece.QueenType])
+	assert.True(t, diff <= PawnValueWeight*PieceValue[piece.QueenType])
 }
 
 func getBestMove(gameBoard *board.Board, c color.Color, algorithm Algorithm) *location.Move {
