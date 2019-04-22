@@ -12,10 +12,33 @@ const numberToChar = {
   7: 'h',
 };
 
+const charToNumber = {
+  a: 0,
+  b: 1,
+  c: 2,
+  d: 3,
+  e: 4,
+  f: 5,
+  g: 6,
+  h: 7,
+}
+
 const colorToChar = {
   Black: 'b',
   White: 'w',
 };
+
+/*
+  Converts (2, 1) to 'a2'
+  Row & Col are zero indexed
+*/
+export function rowColToChess(row, col) {
+  return `${numberToChar[col]}${row + 1}`;
+}
+
+export function chessToRowCol(chessLoc) {
+  return [parseInt(chessLoc[1]) - 1, charToNumber[chessLoc[0]]];
+}
 
 /*
   Converts a board state received from the server to a object parsable by the chessboard gui
@@ -32,7 +55,7 @@ export function boardMatrixToObj(boardMatrix) {
 
       // NOTE: Row needs to be inverted since the top starts from Row 8
       const pieceStr = `${colorToChar[piece.color]}${piece.type}`;
-      boardObj[`${numberToChar[c]}${7 - r + 1}`] = pieceStr;
+      boardObj[rowColToChess(r, c)] = pieceStr;
     }
   }
 

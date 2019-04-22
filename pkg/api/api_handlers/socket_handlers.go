@@ -87,6 +87,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 				client = nil
 				clientMutex.Unlock()
 
+				getGame().GameStatus = game.Aborted
 				setGame(nil)
 			} else {
 				log.Printf("WebSocket Error - %v", err)
@@ -116,9 +117,11 @@ func HandleMessages(g *game.Game) {
 
 		// Server -> Client
 		case api.GameState:
+			fallthrough
+		case api.AvailablePlayerMoves:
 			err := client.WriteJSON(msg)
 			if err != nil {
-				log.Printf("Unable to send Game State - %v", err)
+				log.Printf("Unable to send to client - %v", err)
 				continue
 			}
 		}

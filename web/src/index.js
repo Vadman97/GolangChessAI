@@ -2,7 +2,7 @@ import $ from 'jquery'
 import fetcher from './fetcher';
 import SocketConstants from './socket/constants';
 import GameSocket from './socket/GameSocket'
-import { boardMatrixToObj } from './chess-helpers';
+import { rowColToChess, chessToRowCol, boardMatrixToObj } from './chess-helpers';
 
 // window['jQuery'] is required for the chessboard to work (sadly)
 // ordering is also important
@@ -11,12 +11,14 @@ require('oakmac-chessboard');
 
 const boardConfig = {
   draggable: true,
-  position: '',
-  pieceTheme: 'img/chesspieces/wikipedia-svg/{piece}.svg'
+  pieceTheme: 'img/chesspieces/wikipedia-svg/{piece}.svg',
+  onDragStart: onChessboardDragStart,
+  onDrop: onChessboardDrop,
 };
 const board = ChessBoard('board', boardConfig);
 
 let gameSocket;
+let availableMoves;
 
 // BUTTON FOR POST REQUEST
 // CrEATE SOCKET
@@ -55,6 +57,11 @@ function messageHandler(event) {
       // TODO: Update rest of other states (num of moves, etc..)
       board.position(boardMatrixToObj(data.currentBoard), false);
       board.orientation(data.humanColor.toLowerCase());
+      // NOTE: Our server records black on the bottom, and white on the top
+      board.flip();
+      break;
+    case SocketConstants.AvailablePlayerMoves:
+      availableMoves = data.availableMoves;
       break;
     case SocketConstants.GameFull:
       // TODO: Update UI
@@ -62,5 +69,35 @@ function messageHandler(event) {
       break;
     default:
       return;
+  }
+}
+
+function clearBoard() {
+  $('.square-highlight-move').removeClass('square-highlight-move');
+  $('.square-active').removeClass('square-active');
+}
+
+/* Chessboard Events */
+function onChessboardDragStart(source, piece) {
+  clearBoard();
+
+  const sourceCoord = chessToRowCol(source);
+  const movesForPiece = availableMoves[`(${sourceCoord[0]}, ${sourceCoord[1]})`];
+
+  $('.square-' + source).addClass('square-active');
+
+  if (!movesForPiece) {
+    return;
+  }
+
+  movesForPiece.forEach(move => {
+    const endChessLoc = rowColToChess(move.end[0], move.end[1]);
+    $('.square-' + endChessLoc).addClass('square-highlight-move');
+  });
+}
+
+function onChessboardDrop(source, target, piece) {
+  if (target !== source) {
+    clearBoard();
   }
 }

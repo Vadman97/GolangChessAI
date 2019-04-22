@@ -17,7 +17,7 @@ func NewHumanPlayer(c color.Color) *HumanPlayer {
 	p := &HumanPlayer{
 		PlayerColor: c,
 		TurnCount: 0,
-		Move: make(chan *location.Move),
+		Move: make(chan *location.Move, 1),
 	}
 
 	return p

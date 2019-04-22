@@ -76,7 +76,35 @@ button:hover, .button:hover {
   width: 500px;
 }
 
+.square-active.white-1e1d7 {
+  background-color: #679df3;
+}
+
+.square-active.black-3c85d {
+  background-color: #4885e2;
+}
+
+.square-highlight-move {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.square-highlight-move:after {
+  background-color: #424242;
+  border-radius: 10px;
+  content: "";
+  height: 20px;
+  opacity: 0.9;
+  position: absolute;
+  width: 20px;
+}
+
 /* Chessboard CSS Override */
 .highlight1-32417,.highlight2-9c5d2 {
   box-shadow: none;
+}
+
+.chessboard-63f37:hover {
+  cursor: grab;
 }

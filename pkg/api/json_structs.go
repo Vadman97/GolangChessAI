@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"log"
 	"time"
 )
@@ -45,7 +46,7 @@ type MoveJSON struct {
 }
 
 type AvailableMovesJSON struct {
-	Moves []*MoveJSON
+	AvailableMoves map[string][]MoveJSON  `json:"availableMoves"`
 }
 
 
@@ -63,4 +64,30 @@ func CreateChessMessage(msgType string, data interface{}) ChessMessage {
 	}
 
 	return chessMessage
+}
+
+func CreateAvailableMovesJSON(moveMap map[string]*[]location.Move) AvailableMovesJSON {
+	var jsonMoveMap = make(map[string][]MoveJSON)
+
+	for coord, movesForPiece := range moveMap {
+		var movesJSON []MoveJSON
+		for _, move := range *movesForPiece {
+			movesJSON = append(movesJSON, MoveJSON{
+				Start: [2]uint8{
+					move.GetStart().GetRow(),
+					move.GetStart().GetCol(),
+				},
+				End: [2] uint8{
+					move.GetEnd().GetRow(),
+					move.GetEnd().GetCol(),
+				},
+			})
+		}
+
+		jsonMoveMap[coord] = movesJSON
+	}
+
+	return AvailableMovesJSON{
+		AvailableMoves: jsonMoveMap,
+	}
 }
