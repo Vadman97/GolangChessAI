@@ -128,19 +128,35 @@ func (g *Game) PlayTurn() bool {
 }
 
 func (g *Game) Loop(client *websocket.Conn) {
-	for i := 0; i < int(g.MoveLimit); i++ {
-		g.SocketBroadcast <- api.CreateChessMessage(api.GameState, g.GetJSON())
+	g.SocketBroadcast <- api.CreateChessMessage(api.GameState, g.GetJSON())
 
+	var humanColor color.Color
+	for c := color.White; c < color.NumColors; c++ {
+		if _, isHuman := g.Players[c].(*player.HumanPlayer); isHuman {
+			humanColor = c
+		}
+	}
+
+	for i := 0; i < int(g.MoveLimit); i++ {
 		// TODO DEBUG (Remove below)
 		log.Printf("Turn %d", i)
-		if <-g.quit {
-			break
+
+		// Send Pre-Move Information
+		if g.CurrentTurnColor == humanColor {
+			availableMovesJSON := api.CreateAvailableMovesJSON(g.CurrentBoard.GetAllAvailableMoves(humanColor))
+			g.SocketBroadcast <- api.CreateChessMessage(api.AvailablePlayerMoves, availableMovesJSON)
 		}
+		// TODO (Alex) have a separate goroutine to check for a quit status
+		//if <-g.quit {
+		//	break
+		//}
 
 		active := g.PlayTurn()
 
-		// Send Status over Websockets
-		// g.SocketBroadcast <-
+		// Send Post-Move Information
+		if g.CurrentTurnColor != humanColor {
+			// TODO (Alex) Send AI Move
+		}
 
 		if !active {
 			break
