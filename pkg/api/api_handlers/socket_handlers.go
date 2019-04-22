@@ -136,7 +136,6 @@ func HandleMessages(g *game.Game) {
 
 
 func HandlePlayerMove(moveJSON api.MoveJSON) {
-	log.Print("Handling Player Move")
 	for c := color.White; c < color.NumColors; c++ {
 		humanPlayer, isHuman := getGame().Players[c].(*player.HumanPlayer)
 		if isHuman {
@@ -149,5 +148,3 @@ func HandlePlayerMove(moveJSON api.MoveJSON) {
 		}
 	}
 }
-
-
