@@ -87,6 +87,8 @@ func PostGameCommandHandler(w http.ResponseWriter, r *http.Request) {
 
 		humanPlayer := player.NewHumanPlayer(humanColor)
 		aiPlayer := ai.NewAIPlayer(aiColor, ai.NameToAlgorithm[algorithmName])
+		aiPlayer.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
+		aiPlayer.MaxThinkTime = game_config.Get().AIMaxThinkTimeMs * time.Millisecond
 
 		// Create game and start game loop
 		if playerIsWhite == 0 {

@@ -92,12 +92,12 @@ function clearBoard() {
 function onChessboardDragStart(source, piece) {
   clearBoard();
 
-  const sourceCoord = chessToRowCol(source);
-  const movesForPiece = availableMoves[`(${sourceCoord[0]}, ${sourceCoord[1]})`];
-
   if (colorToChar[humanColor] !== piece[0]) {
     return false;
   }
+
+  const sourceCoord = chessToRowCol(source);
+  const movesForPiece = availableMoves[`(${sourceCoord[0]}, ${sourceCoord[1]})`];
 
   $('.square-' + source).addClass('square-active');
 
@@ -118,11 +118,13 @@ function onChessboardDrop(source, target, piece) {
   const movesForPiece = availableMoves[`(${sourceCoord[0]}, ${sourceCoord[1]})`];
 
   let isValidMove = false;
-  movesForPiece.forEach(move => {
-    if (targetCoord[0] == move.end[0] && targetCoord[1] == move.end[1]) {
-      isValidMove = true;
-    }
-  });
+  if (movesForPiece) {
+    movesForPiece.forEach(move => {
+      if (targetCoord[0] == move.end[0] && targetCoord[1] == move.end[1]) {
+        isValidMove = true;
+      }
+    });
+  }
 
   if (!isValidMove) {
     return 'snapback';
