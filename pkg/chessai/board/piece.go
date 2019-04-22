@@ -23,10 +23,10 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 	// easier to store copy of board before making move
 	end := m.GetEnd()
 	start := m.GetStart()
-	// TODO(Vadim) verify that you can take the piece based on Color - here or in getMoves?
 	if end.Equals(start) {
 		panic(fmt.Sprintf("Invalid move attempted! Start and End same: %+v", start))
 	} else {
+		b.PreviousPositions = append(b.PreviousPositions, b.Hash())
 		// piece holds information about its location for convenience
 		// game tree stores as compressed game board -> have way to hash compressed game board fast
 		// location stored in board coordinates but can be expanded to piece objects
@@ -42,6 +42,19 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		}
 		// here, not in game so that AI can keep track of FiftyMoveDraw condition
 		b.UpdateDrawCounter(lm)
+
+		h := b.Hash()
+		// check the current position
+		for i := len(b.PreviousPositions) - 1; i >= 0; i-- {
+			// iterate in reverse because it is faster: more likely to have seen previous position recently
+			hash := b.PreviousPositions[i]
+			if h == hash {
+				// increment keeps track of previous seen count to reduce work - no need to do from scratch
+				b.PreviousPositionsSeen++
+				break
+			}
+		}
+
 		return lm
 	}
 }

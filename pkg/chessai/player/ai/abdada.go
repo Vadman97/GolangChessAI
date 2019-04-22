@@ -33,7 +33,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
 
 		// this is a terminal node because we have no moves, either we lost or tied
-		if len(*movesArr) == 0 {
+		if ab.player.terminalNode(root, movesArr) {
 			return ScoredMove{
 				Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
 			}
@@ -96,9 +96,12 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 
 func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMove *board.LastMove) ScoredMove {
 	ab.player.abort = false
-	var NumThreads = runtime.NumCPU()
-	moveChan := make(chan ScoredMove, NumThreads)
-	for i := 0; i < NumThreads; i++ {
+	if ab.NumThreads == 0 {
+		ab.NumThreads = runtime.NumCPU()
+		log.Printf("ABDADA runs in parallel, defaulting to #%d threads (# cpu cores)\n", ab.NumThreads)
+	}
+	moveChan := make(chan ScoredMove, ab.NumThreads)
+	for i := 0; i < ab.NumThreads; i++ {
 		go func(moveChan chan ScoredMove) {
 			moveChan <- ab.ABDADA(b, depth, alpha, beta, false, ab.player.PlayerColor, previousMove)
 		}(moveChan)
@@ -113,12 +116,12 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 		bestMoves = append(bestMoves, <-moveChan)
 		// abort the rest
 		ab.kill = true
-		for i := 0; i < NumThreads-1; i++ {
+		for i := 0; i < ab.NumThreads-1; i++ {
 			<-moveChan
 		}
 		ab.kill = false
 	} else {
-		for i := 0; i < NumThreads; i++ {
+		for i := 0; i < ab.NumThreads; i++ {
 			bestMoves = append(bestMoves, <-moveChan)
 		}
 	}
@@ -188,6 +191,7 @@ type ABDADA struct {
 	player             *AIPlayer
 	kill               bool
 	currentSearchDepth int
+	NumThreads         int
 }
 
 func (ab *ABDADA) GetName() string {

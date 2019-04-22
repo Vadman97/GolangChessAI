@@ -393,3 +393,62 @@ func TestBoard_GetAllMovesUnShuffled(t *testing.T) {
 	moves := bo1.GetAllMovesUnShuffled(color.Black, nil)
 	assert.Equal(t, *moves, *bo1.GetAllMovesUnShuffled(color.Black, nil))
 }
+
+func TestBoard_ThreeMoveRepetitionDraw(t *testing.T) {
+	b := &Board{}
+	b.ResetDefault()
+
+	// Initialize two pawns in a capture position
+	simulateGameMove(&location.Move{
+		Start: location.NewLocation(1, 4),
+		End:   location.NewLocation(3, 4),
+	}, b)
+	simulateGameMove(&location.Move{
+		Start: location.NewLocation(6, 3),
+		End:   location.NewLocation(4, 3),
+	}, b)
+
+	assert.Equal(t, 0, b.PreviousPositionsSeen)
+
+	simulateGameMove(&location.Move{
+		Start: location.NewLocation(0, 6),
+		End:   location.NewLocation(2, 5),
+	}, b)
+
+	assert.Equal(t, 0, b.PreviousPositionsSeen)
+
+	simulateGameMove(&location.Move{
+		Start: location.NewLocation(7, 6),
+		End:   location.NewLocation(5, 5),
+	}, b)
+
+	assert.Equal(t, 0, b.PreviousPositionsSeen)
+
+	simulateGameMove(&location.Move{
+		Start: location.NewLocation(2, 5),
+		End:   location.NewLocation(0, 6),
+	}, b)
+
+	assert.Equal(t, 0, b.PreviousPositionsSeen)
+
+	simulateGameMove(&location.Move{
+		Start: location.NewLocation(5, 5),
+		End:   location.NewLocation(7, 6),
+	}, b)
+
+	assert.Equal(t, 1, b.PreviousPositionsSeen)
+
+	simulateGameMove(&location.Move{
+		Start: location.NewLocation(0, 6),
+		End:   location.NewLocation(2, 5),
+	}, b)
+
+	assert.Equal(t, 2, b.PreviousPositionsSeen)
+
+	simulateGameMove(&location.Move{
+		Start: location.NewLocation(7, 6),
+		End:   location.NewLocation(5, 5),
+	}, b)
+
+	assert.Equal(t, 3, b.PreviousPositionsSeen)
+}

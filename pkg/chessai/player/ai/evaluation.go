@@ -93,6 +93,8 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 		// Vadim: >= instead of == because AI simulation will go beyond 100, it will know no win is possible
 		// Alex: This value may change, but AI right now prevents draws
 		eval.TotalScore = StalemateScore
+	} else if b.PreviousPositionsSeen >= 3 {
+		eval.TotalScore = StalemateScore
 	} else {
 		eval = p.evaluateBoardCached(b, whoMoves)
 		eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw
@@ -106,6 +108,7 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
  */
 func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Evaluation {
 	hash := b.Hash()
+	var eval *Evaluation
 	if p.evaluationMap != nil {
 		if value, ok := p.evaluationMap.Read(&hash, 0); ok {
 			entry := value.(*evaluationPair)
@@ -119,7 +122,18 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 			}
 		}
 	}
+	eval = EvaluateBoardNoCache(b, whoMoves)
 
+	if p.evaluationMap != nil {
+		p.evaluationMap.Store(&hash, 0, &evaluationPair{
+			score:    eval.TotalScore,
+			whoMoves: whoMoves,
+		})
+	}
+	return eval
+}
+
+func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
 	if b.IsInCheckmate(whoMoves^1, nil) {
@@ -203,13 +217,5 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 			}
 		}
 	}
-
-	if p.evaluationMap != nil {
-		p.evaluationMap.Store(&hash, 0, &evaluationPair{
-			score:    eval.TotalScore,
-			whoMoves: whoMoves,
-		})
-	}
-
 	return eval
 }
