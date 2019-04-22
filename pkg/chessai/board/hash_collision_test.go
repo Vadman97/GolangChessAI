@@ -8,7 +8,7 @@ import (
 )
 
 func TestBoardHashLookup(t *testing.T) {
-	const N = 100000
+	const N = 10000
 	scoreMap := util.NewConcurrentBoardMap()
 	bo1 := Board{}
 	bo1.ResetDefault()

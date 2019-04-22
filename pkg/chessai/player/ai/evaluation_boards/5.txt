@@ -1,9 +1,9 @@
 Black -41
-B_R|   |B_B|   |B_K|B_B|B_N|B_R
-B_P|B_P|B_P|   |   |B_P|B_P|B_P
-   |   |B_N|   |   |B_Q|   |
-   |   |   |B_P|B_P|   |   |
-   |   |   |   |   |   |W_Q|
-   |   |   |   |W_P|W_N|   |
-W_P|W_P|W_P|W_P|W_B|W_P|W_P|W_P
 W_R|W_N|W_B|   |W_K|   |   |W_R
+W_P|W_P|W_P|W_P|W_B|W_P|W_P|W_P
+   |   |   |   |W_P|W_N|   |
+   |   |   |   |   |   |W_Q|
+   |   |   |B_P|B_P|   |   |
+   |   |B_N|   |   |B_Q|   |
+B_P|B_P|B_P|   |   |B_P|B_P|B_P
+B_R|   |B_B|   |B_K|B_B|B_N|B_R

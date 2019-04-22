@@ -1,9 +1,9 @@
 White 5,4-2,7
-B_R|   |B_B|B_Q|B_K|   |   |B_R
-B_P|   |   |B_N|B_P|B_P|B_B|B_P
-   |   |B_P|B_P|   |B_N|B_P|
-   |B_P|   |   |   |   |   |
-   |   |   |W_P|W_P|   |   |
-   |   |W_N|   |W_B|W_P|   |
-W_P|W_P|W_P|W_Q|W_N|   |W_P|W_P
 W_R|   |   |   |W_K|W_B|   |W_R
+W_P|W_P|W_P|W_Q|W_N|   |W_P|W_P
+   |   |W_N|   |W_B|W_P|   |
+   |   |   |W_P|W_P|   |   |
+   |B_P|   |   |   |   |   |
+   |   |B_P|B_P|   |B_N|B_P|
+B_P|   |   |B_N|B_P|B_P|B_B|B_P
+B_R|   |B_B|B_Q|B_K|   |   |B_R
