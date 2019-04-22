@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
+	"time"
 )
 
 var g *game.Game
@@ -86,6 +87,8 @@ func PostGameCommandHandler(w http.ResponseWriter, r *http.Request) {
 
 		humanPlayer := player.NewHumanPlayer(humanColor)
 		aiPlayer := ai.NewAIPlayer(aiColor, ai.NameToAlgorithm[algorithmName])
+		aiPlayer.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
+		aiPlayer.MaxThinkTime = game_config.Get().AIMaxThinkTimeMs * time.Millisecond
 
 		// Create game and start game loop
 		if playerIsWhite == 0 {
@@ -95,7 +98,7 @@ func PostGameCommandHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		g.MoveLimit = game_config.Get().MovesToPlay
-		g.TimeLimit = game_config.Get().TimeToPlay
+		g.TimeLimit = game_config.Get().SecondsToPlay * time.Second
 
 		// Initialize WebSocket Handler
 		go HandleMessages(g)
