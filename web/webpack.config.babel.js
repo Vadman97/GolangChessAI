@@ -91,6 +91,8 @@ module.exports = {
     ],
   },
   optimization: {
+    namedModules: true,
+    namedChunks: true,
     runtimeChunk: false,
     splitChunks: {
       cacheGroups: {

@@ -33,6 +33,10 @@ class GameSocket {
     this.socket.send(JSON.stringify(payload));
   }
 
+  close() {
+    this.socket.close();
+  }
+
   // WebSocket EventHandlers
   onOpen = () => {
     while (this.messageQueue.length > 0) {

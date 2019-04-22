@@ -1,9 +1,82 @@
-@import url('https://fonts.googleapis.com/css?family=Roboto');
+@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Sans:100,400,700');
 
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'IBM Plex Sans', sans-serif;
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5 {
+  font-weight: normal;
+  margin-top: 0;
+}
+
+button, .button {
+  background: #2e80fd;
+  background: linear-gradient(to right, #2e80fd, #4f93fb);
+  border: none;
+  border-radius: 3px;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,.12);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin: 5px;
+  min-width: 125px;
+  padding: 10px 30px;
+  transition: all 100ms ease-in-out;
+  text-transform: uppercase;
+}
+
+button.light, .button.light {
+  background: #f9f9f9;
+  background: linear-gradient(to right, #f9f9f9, #f7f7f7);
+  color: #212121
+}
+
+button:hover, .button:hover {
+  cursor: pointer;
+  box-shadow: 0 2px 3px 0 rgba(0,0,0,.12);
+  transform: translateY(1px);
+}
+
+.hidden {
+  display: none;
+}
+
+.banner {
+  background: #0668fe;
+  background: linear-gradient(to right, #0668fe, #0148da);
+  box-shadow: 0 2px 3px 0 rgba(0,0,0,.12);
+  text-align: center;
+  padding: 30px 10px;
+}
+
+.title {
+  color: #fff;
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.content {
+  align-items: center;
+  background-color: #f9f9f9;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
 #board {
+  margin: 20px;
   width: 500px;
+}
+
+/* Chessboard CSS Override */
+.highlight1-32417,.highlight2-9c5d2 {
+  box-shadow: none;
 }

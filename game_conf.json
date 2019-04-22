@@ -1,0 +1,5 @@
+{
+  "Algorithm": "MiniMax",
+  "MovesToPlay": 1000,
+  "TimeToPlay": 120
+}

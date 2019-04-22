@@ -20,15 +20,6 @@ const (
 )
 
 const (
-	AlgorithmMiniMax             = "MiniMax"
-	AlgorithmAlphaBetaWithMemory = "α/β Memory"
-	AlgorithmMTDf                = "MTDf"
-	AlgorithmABDADA              = "ABDADA (α/β Parallel)"
-	AlgorithmNegaScout           = "NegaScout"
-	AlgorithmRandom              = "Random"
-)
-
-const (
 	OpeningNone = -1
 )
 
@@ -73,11 +64,6 @@ type ScoredMove struct {
 func (s ScoredMove) NegScore() ScoredMove {
 	s.Score = -s.Score
 	return s
-}
-
-type Algorithm interface {
-	GetName() string
-	GetBestMove(*AIPlayer, *board.Board, *board.LastMove) *ScoredMove
 }
 
 type AIPlayer struct {
