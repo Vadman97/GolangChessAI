@@ -68,11 +68,103 @@ button:hover, .button:hover {
   background-color: #f9f9f9;
   display: flex;
   flex-direction: column;
+  margin-top: 30px;
   height: 100vh;
 }
 
+.game-status {
+  font-size: 1rem;
+}
+
+.game-status.alert {
+  background-color: #f8c291;
+  border: #b71540 1px solid;
+  border-radius: 5px;
+  color: #b71540;
+  padding: 10px;
+}
+
+/* Popper.js */
+.popper {
+  background-color: #f3e4c8;
+}
+.popper .popper__arrow {
+  border-color: #f3e4c8;
+  border-style: solid;
+  height: 0;
+  position: absolute;
+  width: 0;
+}
+
+.popper[x-placement^="top"] {
+  margin-bottom: 5px;
+}
+.popper[x-placement^="top"] .popper__arrow {
+  border-width: 5px 5px 0 5px;
+  border-left-color: transparent;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  bottom: -5px;
+  left: calc(50% - 5px);
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.popper[x-placement^="bottom"] {
+  margin-top: 5px;
+}
+.popper[x-placement^="bottom"] .popper__arrow {
+  border-width: 0 5px 5px 5px;
+  border-left-color: transparent;
+  border-right-color: transparent;
+  border-top-color: transparent;
+  top: -5px;
+  left: calc(50% - 5px);
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.popper[x-placement^="right"] {
+  margin-left: 5px;
+}
+.popper[x-placement^="right"] .popper__arrow {
+  border-width: 5px 5px 5px 0;
+  border-left-color: transparent;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  left: -5px;
+  top: calc(50% - 5px);
+  margin-left: 0;
+  margin-right: 0;
+}
+.popper[x-placement^="left"] {
+  margin-right: 5px;
+}
+.popper[x-placement^="left"] .popper__arrow {
+  border-width: 5px 0 5px 5px;
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  right: -5px;
+  top: calc(50% - 5px);
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Chessboard */
 #board {
-  margin: 20px;
+  margin: 20px 30px 30px;
+  width: 500px;
+}
+
+.chessboard-63f37.inactive {
+  display: flex;
+}
+
+.chessboard-63f37.inactive:after {
+  background-color: #424242;
+  content: '';
+  height: 500px;
+  opacity: 0.5;
+  position: absolute;
   width: 500px;
 }
 
@@ -98,6 +190,26 @@ button:hover, .button:hover {
   opacity: 0.9;
   position: absolute;
   width: 20px;
+}
+
+.pawn-promotion {
+  border-radius: 5px;
+  box-shadow: 0 4px 3px 0 rgba(0,0,0,.12);
+  padding: 3px 2px;
+}
+
+.white-promotion, .black-promotion {
+  display: flex;
+}
+
+.promotion-piece {
+  margin: 2px;
+  transition: transform 100ms ease-in-out;
+}
+
+.promotion-piece:hover {
+  cursor: pointer;
+  transform: translateY(-1.2px);
 }
 
 /* Chessboard CSS Override */

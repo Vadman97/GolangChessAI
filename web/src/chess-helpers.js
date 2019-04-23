@@ -1,4 +1,4 @@
-const BOARD_SIZE = 8;
+export const BOARD_SIZE = 8;
 
 // Could use String.fromCharCode but this is faster
 const numberToChar = {
@@ -26,6 +26,11 @@ const charToNumber = {
 export const colorToChar = {
   Black: 'b',
   White: 'w',
+};
+
+export const charToColor = {
+  b: 'Black',
+  w: 'White',
 };
 
 /*
