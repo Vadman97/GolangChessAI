@@ -48,7 +48,7 @@ func main() {
 	// Start HTTP Server
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "80"
+		port = "8080"
 		log.Printf("Defaulting to port %s", port)
 	}
 
