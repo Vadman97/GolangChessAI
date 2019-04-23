@@ -149,11 +149,12 @@ func (g *Game) Loop(client *websocket.Conn) {
 	}
 
 	for i := 0; i < int(g.MoveLimit); i++ {
+		g.SocketBroadcast <- api.CreateChessMessage(api.GameStatus, g.GetStatusJSON())
+
 		select {
 		case <-g.quit:
 			break
 		default:
-			// TODO DEBUG (Remove below)
 			log.Printf("Turn %d", i)
 			CurrentTurnColor := g.CurrentTurnColor
 
@@ -293,6 +294,15 @@ func (g *Game) GetJSON() *api.GameStateJSON {
 	}
 
 	return gameJSON
+}
+
+func (g *Game) GetStatusJSON() *api.GameStatusJSON {
+	return &api.GameStatusJSON{
+		CurrentTurnColor: color.Names[g.CurrentTurnColor],
+		MovesPlayed: g.MovesPlayed,
+		GameStatus: StatusStrings[g.GameStatus],
+		KingInCheck: g.CurrentBoard.IsKingInCheck(g.CurrentTurnColor),
+	}
 }
 
 func (g *Game) memoryThread() {
