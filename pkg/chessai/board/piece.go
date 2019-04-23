@@ -40,6 +40,14 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 			Move:      m,
 			IsCapture: pieceCaptured != nil,
 		}
+
+		// Check for Pawn Promotion
+		if hasPromotion, promoteType := end.GetPawnPromotion(); hasPromotion {
+			piece := PieceFromType(promoteType)
+			piece.SetColor(pieceMoved.GetColor())
+			lm.PromotionPiece = &piece
+		}
+
 		// here, not in game so that AI can keep track of FiftyMoveDraw condition
 		b.UpdateDrawCounter(lm)
 

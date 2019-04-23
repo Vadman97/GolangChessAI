@@ -147,8 +147,8 @@ func HandlePlayerMove(moveJSON api.MoveJSON) {
 			}
 
 			// Add Pawn Promotion Information if it exists
-			if moveJSON.Piece != (api.PieceJSON{}) {
-				pieceType := rune(moveJSON.Piece.PieceType[0])
+			if moveJSON.PromotionPiece != (api.PieceJSON{}) {
+				pieceType := rune(moveJSON.PromotionPiece.PieceType[0])
 				move.End = move.End.CreatePawnPromotion(piece.NameToType[pieceType])
 			}
 			humanPlayer.Move <- move

@@ -243,6 +243,10 @@ button:hover, .button:hover {
   width: 500px;
 }
 
+.chessboard-63f37.inactive:hover {
+  cursor: not-allowed;
+}
+
 .square-active.white-1e1d7 {
   background-color: #679df3;
 }
