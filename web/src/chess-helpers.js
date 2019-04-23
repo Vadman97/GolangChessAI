@@ -24,13 +24,13 @@ const charToNumber = {
 };
 
 export const colorToChar = {
-  Black: 'b',
-  White: 'w',
+  black: 'b',
+  white: 'w',
 };
 
 export const charToColor = {
-  b: 'Black',
-  w: 'White',
+  b: 'black',
+  w: 'white',
 };
 
 /*
@@ -59,7 +59,7 @@ export function boardMatrixToObj(boardMatrix) {
       }
 
       // NOTE: Row needs to be inverted since the top starts from Row 8
-      const pieceStr = `${colorToChar[piece.color]}${piece.type}`;
+      const pieceStr = `${colorToChar[piece.color.toLowerCase()]}${piece.type}`;
       boardObj[rowColToChess(r, c)] = pieceStr;
     }
   }

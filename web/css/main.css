@@ -72,16 +72,91 @@ button:hover, .button:hover {
   height: 100vh;
 }
 
-.game-status {
-  font-size: 1rem;
+.game {
+  align-items: flex-start;
+  display: flex;
+  margin: 20px 30px 30px;
 }
 
-.game-status.alert {
-  background-color: #f8c291;
+.game-status {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  height: 500px;
+  margin-left: 30px;
+}
+
+.status-title {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.status-title:after {
+  background-color: #000000;
+  content: "";
+  height: 3px;
+  margin-top: 5px;
+  width: 70%;
+}
+
+.status-content {
+  display: flex;
+}
+
+.status-content .column {
+  margin: 10px;
+}
+
+.status-content .column div {
+  margin: 5px;
+  min-width: 20px;
+}
+
+.ai-thinking {
+  margin-top: 20px;
+}
+
+.ai-thinking:before {
+  animation: thinking-text 3s linear infinite;
+  content: "The AI is thinking";
+}
+
+.status-alert {
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-top: 20px;
+  margin-bottom: 0;
+  text-transform: uppercase;
+}
+
+.board-content {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.game-error {
+  background-color: #ffcaca;
   border: #b71540 1px solid;
   border-radius: 5px;
   color: #b71540;
+  margin-top: 10px;
   padding: 10px;
+}
+
+#start-btn {
+  font-size: 1.5rem;
+  position: absolute;
+}
+
+#concede-btn {
+  margin-top: auto;
+  margin-bottom: 30px;
 }
 
 /* Popper.js */
@@ -151,8 +226,8 @@ button:hover, .button:hover {
 
 /* Chessboard */
 #board {
-  margin: 20px 30px 30px;
   width: 500px;
+  margin-bottom: 30px;
 }
 
 .chessboard-63f37.inactive {
@@ -219,4 +294,17 @@ button:hover, .button:hover {
 
 .chessboard-63f37:hover {
   cursor: grab;
+}
+
+/* Animations */
+@keyframes thinking-text {
+  0% {
+    content: "The AI is thinking."
+  }
+  33% {
+    content: "The AI is thinking.."
+  }
+  67% {
+    content: "The AI is thinking..."
+  }
 }

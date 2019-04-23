@@ -15,6 +15,7 @@ const (
 	AIMove                = "aiMove"
 	AvailablePlayerMoves  = "availablePlayerMoves"
 	GameState             = "gameState"
+	GameStatus            = "gameStatus"
 	GameFull              = "gameFull"
 	GameNotAvailable      = "gameNotAvailable"
 )
@@ -33,6 +34,13 @@ type GameStateJSON struct {
 	GameStatus       string                                 `json:"gameStatus"`
 	MoveLimit        int32                                  `json:"moveLimit"`
 	TimeLimit        time.Duration                          `json:"timeLimit"`
+}
+
+type GameStatusJSON struct {
+	CurrentTurnColor string `json:"currentTurn"`
+	MovesPlayed      uint   `json:"movesPlayed"`
+	GameStatus       string `json:"gameStatus"`
+	KingInCheck      bool   `json:"kingInCheck"`
 }
 
 type PieceJSON struct {

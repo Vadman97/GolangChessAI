@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import Popper from 'popper.js';
 import fetcher from './fetcher';
+import Game, {GameStatus} from './Game';
 import SocketConstants from './socket/constants';
 import GameSocket from './socket/GameSocket'
 import {BOARD_SIZE, boardMatrixToObj, charToColor, chessToRowCol, colorToChar, rowColToChess} from './chess-helpers';
@@ -23,8 +24,8 @@ const board = ChessBoard('board', boardConfig);
 let pawnPromotionPopper;
 let promotionMove;
 
+let game;
 let gameSocket;
-let humanColor;
 let availableMoves;
 
 // TODO: Keep track of other stats
@@ -48,6 +49,52 @@ function setup() {
   $('.black-promotion').hide();
   $('#concede-btn').hide();
   $('.chessboard-63f37').addClass('inactive');
+  $('.game-error').hide();
+  $('.game-status').hide();
+  $('.game-status .status-alert').hide();
+  $('.ai-thinking').hide();
+}
+
+function updateGameStatus() {
+  $('.game-status .status span').text(game.status);
+  $('.game-status .current-turn span').text(game.currentTurn);
+  $('.game-status .moves-played span').text(game.movesPlayed);
+  $('.game-status .move-limit span').text(game.moveLimit);
+
+  // Show AI Thinking Animation
+  if (game.currentTurn.toLowerCase() !== game.humanColor) {
+    $('.ai-thinking').show();
+  }
+  else {
+    $('.ai-thinking').hide();
+  }
+
+  // Update Game based on Game Status (Active, Stalemate)
+  if (game.status !== GameStatus.Active) {
+    let alertText;
+
+    switch (game.status) {
+      case GameStatus.WhiteWin:
+      case GameStatus.BlackWin:
+        alertText = 'Checkmate!';
+        break;
+      case GameStatus.Stalemate:
+      case GameStatus.FiftyMoveDraw:
+      case GameStatus.RepeatActionDraw:
+        alertText = 'Draw';
+        break;
+      case GameStatus.Aborted:
+        alertText = 'Aborted';
+    }
+
+    $('.game-status .status-alert').text(alertText).show();
+    $('.chessboard-63f37').addClass('inactive');
+
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(alertText));
+    if (game.status !== GameStatus.Aborted) {
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(game.status));
+    }
+  }
 }
 
 function clearBoard() {
@@ -57,19 +104,21 @@ function clearBoard() {
 
 /* Button Events */
 $('#start-btn').click(() => {
-  fetcher.post(`http://${window.location.host}/api/game?command=start`).then(response => {
-      gameSocket = new GameSocket(messageHandler);
+  fetcher.post(`http://${window.location.host}/api/game?command=start`)
+  .then(response => {
+    gameSocket = new GameSocket(messageHandler);
 
-      $('.chessboard-63f37').removeClass('inactive');
-      $('#concede-btn').show();
-      $('#start-btn').hide();
-      console.log(response);
-    })
-    .catch(err => {
-      $('.game-status').addClass('alert').text(err.error);
-      $('#start-btn').prop('disabled', true);
-      console.error(err);
-    })
+    $('.game-status').show();
+    $('#concede-btn').show();
+    $('#start-btn').hide();
+    $('.chessboard-63f37').removeClass('inactive');
+    console.log(response);
+  })
+  .catch(err => {
+    $('.game-error').text(err.error);
+    $('#start-btn').prop('disabled', true);
+    console.error(err);
+  })
 });
 
 $('.promotion-piece').click((event) => {
@@ -107,13 +156,36 @@ function messageHandler(event) {
 
   switch (message.type) {
     case SocketConstants.GameState:
-      // TODO: Update rest of other states (num of moves, etc..)
-      humanColor = data.humanColor;
+      game = new Game(
+        data.humanColor.toLowerCase(),
+        data.gameStatus,
+        data.moveLimit,
+        data.timeLimit,
+      );
+      game.currentTurn = data.currentTurn;
+      game.movesPlayed = data.movesPlayed;
 
       board.position(boardMatrixToObj(data.currentBoard), false);
-      board.orientation(data.humanColor.toLowerCase());
-      // NOTE: Our server records black on the bottom, and white on the top
+      board.orientation(game.humanColor);
+      // DEPRECATED: Our server records black on the bottom, and white on the top
       // board.flip();
+      updateGameStatus();
+      break;
+
+    case SocketConstants.GameStatus:
+      game.currentTurn = data.currentTurn;
+      game.movesPlayed = data.movesPlayed;
+      game.status = data.gameStatus;
+
+      if (game.status === GameStatus.Active && data.kingInCheck) {
+        $('.game-status .status-alert').text('Check!').show();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance('Check'));
+      }
+      else {
+        $('.game-status .status-alert').hide();
+      }
+
+      updateGameStatus();
       break;
 
     case SocketConstants.AvailablePlayerMoves:
@@ -125,9 +197,10 @@ function messageHandler(event) {
       break;
 
     case SocketConstants.GameFull:
-      $('.game-status').addClass('alert').text('A game is currently in progress...');
+      $('.game-error').text('A game is currently in progress...')
       $("#start-btn").attr("disabled", true);
       break;
+
     default:
       return;
   }
@@ -152,14 +225,18 @@ function makeAIMove(start, end, piece) {
   const startChessLoc = rowColToChess(start[0], start[1]);
   const endChessLoc = rowColToChess(end[0], end[1]);
   // For some weird reason, timing out the move fixes a UI glitch
-  setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 250);
+  setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 150);
+  window.speechSynthesis.speak(new SpeechSynthesisUtterance(`${startChessLoc} to ${endChessLoc}`));
 }
 
 /* Chessboard Events */
 function onChessboardDragStart(source, piece) {
   clearBoard();
 
-  if (colorToChar[humanColor] !== piece[0]) {
+  if (
+    colorToChar[game.humanColor] !== piece[0] ||
+    game.currentTurn.toLowerCase() !== game.humanColor
+  ) {
     return false;
   }
 
@@ -230,7 +307,7 @@ function onChessboardDrop(source, target, piece) {
         placement: 'top',
       });
 
-      $(`.${humanColor.toLowerCase()}-promotion`).show();
+      $(`.${game.humanColor.toLowerCase()}-promotion`).show();
       $('.pawn-promotion').show();
 
       // Save Move Data (before we lose it)

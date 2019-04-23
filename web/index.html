@@ -11,9 +11,56 @@
     <span class="subtitle">Devan Adhia, Vadim Korolik, Alex Lee, Suveena Thanawala</span>
   </div>
   <div class="content">
-    <div id="board"></div>
-    <button id="start-btn">Start</button>
-    <button class="light">Concede</button>
+    <div class="game-error"></div>
+    <div class="game">
+      <div class="board-content">
+        <div id="board"></div>
+        <button id="start-btn">Start</button>
+      </div>
+      <div class="game-status">
+        <h3 class="status-title">Game Information</h3>
+        <div class="status-content">
+          <div class="column">
+            <div class="status">
+              <strong>Status: </strong>
+              <span>?</span>
+            </div>
+            <div class="current-turn">
+              <strong>Current Turn: </strong>
+              <span>?</span>
+            </div>
+          </div>
+          <div class="column">
+            <div class="moves-played">
+              <strong>Moves Played: </strong>
+              <span>?</span>
+            </div>
+            <div class="move-limit">
+              <strong>Move Limit: </strong>
+              <span>?</span>
+            </div>
+          </div>
+        </div>
+        <div class="ai-thinking"></div>
+        <h3 class="status-alert">Check!</h3>
+        <button id="concede-btn" class="light">Concede</button>
+      </div>
+    </div>
+  </div>
+  <div class="popper pawn-promotion">
+    <div class="white-promotion">
+      <img class="promotion-piece" data-piece="wN" src="img/chesspieces/wikipedia-svg/wN.svg"/>
+      <!-- <img class="promotion-piece" data-piece="wB" src="img/chesspieces/wikipedia-svg/wB.svg"/>
+      <img class="promotion-piece" data-piece="wR" src="img/chesspieces/wikipedia-svg/wR.svg"/> -->
+      <img class="promotion-piece" data-piece="wQ" src="img/chesspieces/wikipedia-svg/wQ.svg"/>
+    </div>
+    <div class="black-promotion">
+      <img class="promotion-piece" data-piece="bN" src="img/chesspieces/wikipedia-svg/bN.svg"/>
+      <!-- <img class="promotion-piece" data-piece="bB" src="img/chesspieces/wikipedia-svg/bB.svg"/>
+      <img class="promotion-piece" data-piece="bR" src="img/chesspieces/wikipedia-svg/bR.svg"/> -->
+      <img class="promotion-piece" data-piece="bQ" src="img/chesspieces/wikipedia-svg/bQ.svg"/>
+    </div>
+    <div class="popper__arrow" x-arrow></div>
   </div>
 </body>
 <script type="text/javascript" src="dist/main.js"></script>

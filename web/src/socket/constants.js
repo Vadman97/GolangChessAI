@@ -3,6 +3,7 @@ export default {
 	AIMove: 'aiMove',
 	AvailablePlayerMoves: 'availablePlayerMoves',
 	GameState: 'gameState',
+  GameStatus: 'gameStatus',
 	GameFull: 'gameFull',
   GameNotAvailable: 'gameNotAvailable',
 };
