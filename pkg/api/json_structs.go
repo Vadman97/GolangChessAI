@@ -49,10 +49,11 @@ type PieceJSON struct {
 }
 
 type MoveJSON struct {
-	Start     [2]uint8   `json:"start"`
-	End       [2]uint8   `json:"end"`
-	IsCapture bool       `json:"isCapture"`
-	Piece     PieceJSON  `json:"piece"`
+	Start          [2]uint8   `json:"start"`
+	End            [2]uint8   `json:"end"`
+	IsCapture      bool       `json:"isCapture"`
+	Piece          PieceJSON  `json:"piece"`
+	PromotionPiece PieceJSON  `json:"promotionPiece"`
 }
 
 type AvailableMovesJSON struct {
@@ -77,7 +78,7 @@ func CreateChessMessage(msgType string, data interface{}) ChessMessage {
 }
 
 func CreateMoveJSON(m *board.LastMove) *MoveJSON {
-	return &MoveJSON{
+	moveJSON := &MoveJSON{
 		Start: [2]uint8{
 			m.Move.GetStart().GetRow(),
 			m.Move.GetStart().GetCol(),
@@ -92,6 +93,15 @@ func CreateMoveJSON(m *board.LastMove) *MoveJSON {
 			Color: color.Names[(*m.Piece).GetColor()],
 		},
 	}
+
+	if m.PromotionPiece != nil {
+		moveJSON.PromotionPiece = PieceJSON{
+			PieceType: piece.TypeToName[(*m.PromotionPiece).GetPieceType()],
+			Color: color.Names[(*m.PromotionPiece).GetColor()],
+		}
+	}
+
+	return moveJSON
 }
 
 func CreateAvailableMovesJSON(moveMap map[string]*[]location.Move) AvailableMovesJSON {

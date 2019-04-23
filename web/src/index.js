@@ -89,6 +89,7 @@ function updateGameStatus() {
 
     $('.game-status .status-alert').text(alertText).show();
     $('.chessboard-63f37').addClass('inactive');
+    $('.ai-thinking').hide();
 
     window.speechSynthesis.speak(new SpeechSynthesisUtterance(alertText));
     if (game.status !== GameStatus.Aborted) {
@@ -109,14 +110,14 @@ $('#start-btn').click(() => {
     gameSocket = new GameSocket(messageHandler);
 
     $('.game-status').show();
+    $('.game-error').text('').hide();
     $('#concede-btn').show();
     $('#start-btn').hide();
     $('.chessboard-63f37').removeClass('inactive');
     console.log(response);
   })
   .catch(err => {
-    $('.game-error').text(err.error);
-    $('#start-btn').prop('disabled', true);
+    $('.game-error').text(err.error).show();
     console.error(err);
   })
 });
@@ -129,7 +130,7 @@ $('.promotion-piece').click((event) => {
 
   // Send Move with Promotion Piece over Socket
   const {piece} = event.target.dataset;
-  promotionMove.piece = {
+  promotionMove.promotionPiece = {
     color: charToColor[piece[0]],
     type: piece[1],
   };
@@ -193,7 +194,7 @@ function messageHandler(event) {
       break;
 
     case SocketConstants.AIMove:
-      makeAIMove(data.start, data.end, data.piece);
+      makeAIMove(data.start, data.end, data.piece, data.promotionPiece);
       break;
 
     case SocketConstants.GameFull:
@@ -206,7 +207,18 @@ function messageHandler(event) {
   }
 }
 
-function makeAIMove(start, end, piece) {
+function makeAIMove(start, end, piece, promotionPiece) {
+  if (promotionPiece.type && promotionPiece.color) {
+    const endLoc = rowColToChess(end[0], end[1]);
+    const currentBoard = board.position();
+    board.position({
+      ...currentBoard,
+      [endLoc]: `${colorToChar[promotionPiece.color.toLowerCase()]}${promotionPiece.type}`,
+    }, false);
+
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance('Pawn Promotion'));
+    return;
+  }
   // Check if it's a Castle Move (King and moved 2 columns)
   if (piece.type === 'K') {
     // Queen-side Castle
@@ -214,12 +226,14 @@ function makeAIMove(start, end, piece) {
       const rookStartLoc = rowColToChess(end[0], end[1] + 2);
       const rookEndLoc = rowColToChess(end[0], end[1] - 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance('Queen-side Castle'));
     }
     // King-side Castle
     else if (start[1] - end[1] === 2) {
       const rookStartLoc = rowColToChess(end[0], end[1] - 1);
       const rookEndLoc = rowColToChess(end[0], end[1] + 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance('King-side Castle'));
     }
   }
   const startChessLoc = rowColToChess(start[0], start[1]);
@@ -285,12 +299,14 @@ function onChessboardDrop(source, target, piece) {
       const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] + 2);
       const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance('Queen-side Castle'));
     }
     // King-side Castle
     else if (sourceCoord[1] - targetCoord[1] == 2) {
       const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
       const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance('King-side Castle'));
     }
   }
 
