@@ -161,9 +161,11 @@ func (r *King) canCastle(m *location.Move, b *Board) bool {
 	if m.End.GetCol() < m.Start.GetCol() {
 		leftLocation = m.End
 		rightLocation = m.Start
+		leftLocation, _ = leftLocation.AddRelative(location.LeftMove)
 	} else {
 		leftLocation = m.Start
 		rightLocation = m.End
+		rightLocation, _ = rightLocation.AddRelative(location.RightMove)
 	}
 	llRow, llCol := leftLocation.Get()
 	for c := llCol; c <= rightLocation.GetCol(); c++ {
@@ -171,8 +173,10 @@ func (r *King) canCastle(m *location.Move, b *Board) bool {
 		if r.underAttack(loc, b) {
 			return false
 		}
-		if !b.IsEmpty(loc) && b.GetPiece(loc).GetPieceType() != piece.KingType {
-			return false
+		if !b.IsEmpty(loc) {
+			if b.GetPiece(loc).GetPieceType() != piece.KingType && b.GetPiece(loc).GetPieceType() != piece.RookType {
+				return false
+			}
 		}
 	}
 	return true

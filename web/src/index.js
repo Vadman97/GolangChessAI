@@ -36,13 +36,13 @@ $(document).ready(() => {
 
 $("#start-btn").click(() => {
   fetcher.post(`http://${window.location.host}/api/game?command=start`)
-  .then(response => {
-    gameSocket = new GameSocket(messageHandler);
-    console.log(response);
-  })
-  .catch(err => {
-    console.error(err);
-  })
+    .then(response => {
+      gameSocket = new GameSocket(messageHandler);
+      console.log(response);
+    })
+    .catch(err => {
+      console.error(err);
+    })
 });
 
 function messageHandler(event) {
@@ -67,11 +67,7 @@ function messageHandler(event) {
       break;
 
     case SocketConstants.AIMove:
-      const startChessLoc = rowColToChess(data.start[0], data.start[1]);
-      const endChessLoc = rowColToChess(data.end[0], data.end[1]);
-
-      // For some weird reason, timing out the move fixes a UI glitch
-      setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 250);
+      makeAIMove(data.start, data.end, data.piece);
       break;
 
     case SocketConstants.GameFull:
@@ -81,6 +77,28 @@ function messageHandler(event) {
     default:
       return;
   }
+}
+
+function makeAIMove(start, end, piece) {
+  // Check if it's a Castle Move (King and moved 2 columns)
+  if (piece.type === 'K') {
+    // Queen-side Castle
+    if (end[1] - start[1] === 2) {
+      const rookStartLoc = rowColToChess(end[0], end[1] + 2);
+      const rookEndLoc = rowColToChess(end[0], end[1] - 1);
+      setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+    }
+    // King-side Castle
+    else if (start[1] - end[1] === 2) {
+      const rookStartLoc = rowColToChess(end[0], end[1] - 1);
+      const rookEndLoc = rowColToChess(end[0], end[1] + 1);
+      setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+    }
+  }
+  const startChessLoc = rowColToChess(start[0], start[1]);
+  const endChessLoc = rowColToChess(end[0], end[1]);
+  // For some weird reason, timing out the move fixes a UI glitch
+  setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 250);
 }
 
 function clearBoard() {
@@ -133,15 +151,15 @@ function onChessboardDrop(source, target, piece) {
   // Check if it's a Castle Move (King and moved 2 columns)
   if (piece[1] == 'K') {
     // Queen-side Castle
-    if (sourceCoord[1] - targetCoord[1] == 2) {
-      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] - 2);
-      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
+    if (targetCoord[1] - sourceCoord[1] == 2) {
+      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] + 2);
+      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
     }
     // King-side Castle
-    else if (targetCoord[1] - sourceCoord[1] == 2) {
-      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
-      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
+    else if (sourceCoord[1] - targetCoord[1] == 2) {
+      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
+      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
     }
   }

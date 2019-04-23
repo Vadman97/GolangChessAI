@@ -33,15 +33,11 @@ export const colorToChar = {
   Row & Col are zero indexed
 */
 export function rowColToChess(row, col) {
-    console.log(numberToChar[col]);
-    console.log(numberToChar[Math.abs(col - 7)]);
-    console.log(col);
-    console.log(Math.abs(col - 7));
-    return `${numberToChar[Math.abs(col - 7)]}${row + 1}`;
+  return `${numberToChar[7 - col]}${row + 1}`;
 }
 
 export function chessToRowCol(chessLoc) {
-    return [parseInt(chessLoc[1]) - 1, Math.abs(charToNumber[chessLoc[0]] - 7)];
+  return [parseInt(chessLoc[1]) - 1, 7 - charToNumber[chessLoc[0]]];
 }
 
 /*
