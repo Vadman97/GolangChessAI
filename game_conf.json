@@ -1,5 +1,5 @@
 {
-  "Algorithm": "MTDf",
+  "Algorithm": "ABDADA (α/β Parallel)",
   "MovesToPlay": 1000,
   "SecondsToPlay": 7200,
   "AIMaxSearchDepth": 100,
