@@ -57,8 +57,7 @@ function clearBoard() {
 
 /* Button Events */
 $('#start-btn').click(() => {
-  fetcher.post(`http://${window.location.host}/api/game?command=start`)
-    .then(response => {
+  fetcher.post(`http://${window.location.host}/api/game?command=start`).then(response => {
       gameSocket = new GameSocket(messageHandler);
 
       $('.chessboard-63f37').removeClass('inactive');
