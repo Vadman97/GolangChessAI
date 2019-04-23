@@ -212,7 +212,7 @@ func (r *Pawn) checkEnPassant(l location.Location, b *Board) Piece {
 }
 
 func (r *Pawn) Promote(b *Board, m *location.Move) {
-	// allows chosing a piece  in the location object
+	// allows chosing a piece in the location object
 	promoted, newType := m.End.GetPawnPromotion()
 	if !promoted {
 		panic("trying to promote pawn but move was not a promotion")
