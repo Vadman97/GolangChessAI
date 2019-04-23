@@ -69,11 +69,11 @@ func TestGetGameState(t *testing.T) {
 	        "color": "White"
 	      },
 	      {
-	        "type": "Q",
+	        "type": "K",
 	        "color": "White"
 	      },
 	      {
-	        "type": "K",
+	        "type": "Q",
 	        "color": "White"
 	      },
 	      {
@@ -183,11 +183,11 @@ func TestGetGameState(t *testing.T) {
 	        "color": "Black"
 	      },
 	      {
-	        "type": "Q",
+	        "type": "K",
 	        "color": "Black"
 	      },
 	      {
-	        "type": "K",
+	        "type": "Q",
 	        "color": "Black"
 	      },
 	      {
