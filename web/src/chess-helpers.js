@@ -21,7 +21,7 @@ const charToNumber = {
   f: 5,
   g: 6,
   h: 7,
-}
+};
 
 export const colorToChar = {
   Black: 'b',
@@ -38,11 +38,11 @@ export const charToColor = {
   Row & Col are zero indexed
 */
 export function rowColToChess(row, col) {
-  return `${numberToChar[col]}${row + 1}`;
+  return `${numberToChar[7 - col]}${row + 1}`;
 }
 
 export function chessToRowCol(chessLoc) {
-  return [parseInt(chessLoc[1]) - 1, charToNumber[chessLoc[0]]];
+  return [parseInt(chessLoc[1]) - 1, 7 - charToNumber[chessLoc[0]]];
 }
 
 /*

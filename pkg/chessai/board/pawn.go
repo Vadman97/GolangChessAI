@@ -62,12 +62,7 @@ func (r *Pawn) GetAttackableMoves(board *Board) AttackableBoard {
  * Determines if a pawn has moved based on its color (black in row one, white in row six).
  */
 func (r *Pawn) hasMoved() bool {
-	if r.GetColor() == color.Black {
-		return r.Location.GetRow() != 1
-	} else if r.GetColor() == color.White {
-		return r.Location.GetRow() != 6
-	}
-	return true
+	return r.Location.GetRow() != StartRow[r.GetColor()]["Pawn"]
 }
 
 /**
@@ -169,46 +164,26 @@ func (r *Pawn) getForwardMoves(board *Board, onlyFirstMove bool) *[]location.Mov
 }
 
 func (r *Pawn) canPromote(l location.Location) bool {
-	return r.Color == color.Black && l.GetRow() == 7 || r.Color == color.White && l.GetRow() == 0
+	return l.GetRow() == StartRow[r.Color^1]["Piece"]
 }
 
 func (r *Pawn) Move(m *location.Move, b *Board) {
-	if r.Color == color.Black {
-		if m.End.GetRow() == 7 {
-			r.Promote(b, m)
-		}
-		// move put us above enemy (enPassant pawn)
-		l, inBounds := r.GetPosition().AddRelative(location.UpMove)
-		if inBounds {
-			if eP := r.checkEnPassant(l, b); eP != nil {
-				b.SetPiece(eP.GetPosition(), nil)
-			}
-		}
-	} else if r.Color == color.White {
-		if m.End.GetRow() == 0 {
-			r.Promote(b, m)
-		}
-		// move put us above enemy (enPassant pawn)
-		l, inBounds := r.GetPosition().AddRelative(location.DownMove)
-		if inBounds {
-			if eP := r.checkEnPassant(l, b); eP != nil {
-				b.SetPiece(eP.GetPosition(), nil)
+	if m.End.GetRow() == StartRow[r.Color^1]["Piece"] {
+		r.Promote(b, m)
+	}
+	// move put us above enemy (enPassant pawn)
+	l, inBounds := r.GetPosition().AddRelative(r.forward(-1))
+	if inBounds {
+		enPassantPawn := b.GetPiece(l)
+		if enPassantPawn != nil {
+			pawn, ok := enPassantPawn.(*Pawn)
+			if ok {
+				if r.Color != pawn.GetColor() {
+					b.SetPiece(pawn.GetPosition(), nil)
+				}
 			}
 		}
 	}
-}
-
-func (r *Pawn) checkEnPassant(l location.Location, b *Board) Piece {
-	enPassantPawn := b.GetPiece(l)
-	if enPassantPawn != nil {
-		pawn, ok := enPassantPawn.(*Pawn)
-		if ok {
-			if r.Color != pawn.GetColor() {
-				return enPassantPawn
-			}
-		}
-	}
-	return nil
 }
 
 func (r *Pawn) Promote(b *Board, m *location.Move) {
@@ -225,9 +200,9 @@ func (r *Pawn) Promote(b *Board, m *location.Move) {
 
 func (r *Pawn) forward(i int) location.RelativeLocation {
 	if r.GetColor() == color.Black {
-		return location.RelativeLocation{Row: int8(i)}
-	} else if r.GetColor() == color.White {
 		return location.RelativeLocation{Row: int8(-i)}
+	} else if r.GetColor() == color.White {
+		return location.RelativeLocation{Row: int8(i)}
 	}
 	panic("invalid color provided to forward")
 }

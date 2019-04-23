@@ -36,7 +36,7 @@ type Game struct {
 	PrintInfo         bool
 	SocketBroadcast   chan api.ChessMessage
 	printer           chan string
-	quit			  chan bool
+	quit              chan bool
 }
 
 type Outcome struct {
@@ -61,7 +61,8 @@ func (g *Game) GetGameOutcome() (outcome Outcome) {
 
 func (g *Game) PlayTurn() bool {
 	if g.GameStatus != Active {
-		panic("Game is not active!")
+		log.Println("Game is not active!")
+		return false
 	}
 
 	if g.MovesPlayed%2 == 0 && g.GetTotalPlayTime() > g.TimeLimit {
@@ -280,7 +281,7 @@ func (g *Game) GetJSON() *api.GameStateJSON {
 			}
 
 			gameJSON.CurrentBoard[r][c] = &api.PieceJSON{
-				Color: color.Names[pieceFromLoc.GetColor()],
+				Color:     color.Names[pieceFromLoc.GetColor()],
 				PieceType: piece.TypeToName[pieceFromLoc.GetPieceType()],
 			}
 		}

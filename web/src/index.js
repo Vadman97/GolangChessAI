@@ -3,14 +3,7 @@ import Popper from 'popper.js';
 import fetcher from './fetcher';
 import SocketConstants from './socket/constants';
 import GameSocket from './socket/GameSocket'
-import {
-  BOARD_SIZE,
-  colorToChar,
-  charToColor,
-  rowColToChess,
-  chessToRowCol,
-  boardMatrixToObj
-} from './chess-helpers';
+import {BOARD_SIZE, boardMatrixToObj, charToColor, chessToRowCol, colorToChar, rowColToChess} from './chess-helpers';
 
 // window['jQuery'] is required for the chessboard to work (sadly)
 // ordering is also important
@@ -64,20 +57,19 @@ function clearBoard() {
 
 /* Button Events */
 $('#start-btn').click(() => {
-  fetcher.post(`http://${window.location.host}/api/game?command=start`)
-  .then(response => {
-    gameSocket = new GameSocket(messageHandler);
+  fetcher.post(`http://${window.location.host}/api/game?command=start`).then(response => {
+      gameSocket = new GameSocket(messageHandler);
 
-    $('.chessboard-63f37').removeClass('inactive');
-    $('#concede-btn').show();
-    $('#start-btn').hide();
-    console.log(response);
-  })
-  .catch(err => {
-    $('.game-status').addClass('alert').text(err.error);
-    $('#start-btn').prop('disabled', true);
-    console.error(err);
-  })
+      $('.chessboard-63f37').removeClass('inactive');
+      $('#concede-btn').show();
+      $('#start-btn').hide();
+      console.log(response);
+    })
+    .catch(err => {
+      $('.game-status').addClass('alert').text(err.error);
+      $('#start-btn').prop('disabled', true);
+      console.error(err);
+    })
 });
 
 $('.promotion-piece').click((event) => {
@@ -87,7 +79,7 @@ $('.promotion-piece').click((event) => {
   }
 
   // Send Move with Promotion Piece over Socket
-  const { piece } = event.target.dataset;
+  const {piece} = event.target.dataset;
   promotionMove.piece = {
     color: charToColor[piece[0]],
     type: piece[1],
@@ -105,7 +97,7 @@ $('.promotion-piece').click((event) => {
   // Clean up
   promotionMove = null;
   $('.pawn-promotion').hide();
-})
+});
 
 function messageHandler(event) {
   const message = JSON.parse(event.data);
@@ -121,7 +113,7 @@ function messageHandler(event) {
       board.position(boardMatrixToObj(data.currentBoard), false);
       board.orientation(data.humanColor.toLowerCase());
       // NOTE: Our server records black on the bottom, and white on the top
-      board.flip();
+      // board.flip();
       break;
 
     case SocketConstants.AvailablePlayerMoves:
@@ -129,20 +121,38 @@ function messageHandler(event) {
       break;
 
     case SocketConstants.AIMove:
-      const startChessLoc = rowColToChess(data.start[0], data.start[1]);
-      const endChessLoc = rowColToChess(data.end[0], data.end[1]);
-
-      // For some weird reason, timing out the move fixes a UI glitch
-      setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 250);
+      makeAIMove(data.start, data.end, data.piece);
       break;
 
     case SocketConstants.GameFull:
-      $('.game-status').addClass('alert').text('A game is currently in progress...')
+      $('.game-status').addClass('alert').text('A game is currently in progress...');
       $("#start-btn").attr("disabled", true);
       break;
     default:
       return;
   }
+}
+
+function makeAIMove(start, end, piece) {
+  // Check if it's a Castle Move (King and moved 2 columns)
+  if (piece.type === 'K') {
+    // Queen-side Castle
+    if (end[1] - start[1] === 2) {
+      const rookStartLoc = rowColToChess(end[0], end[1] + 2);
+      const rookEndLoc = rowColToChess(end[0], end[1] - 1);
+      setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+    }
+    // King-side Castle
+    else if (start[1] - end[1] === 2) {
+      const rookStartLoc = rowColToChess(end[0], end[1] - 1);
+      const rookEndLoc = rowColToChess(end[0], end[1] + 1);
+      setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
+    }
+  }
+  const startChessLoc = rowColToChess(start[0], start[1]);
+  const endChessLoc = rowColToChess(end[0], end[1]);
+  // For some weird reason, timing out the move fixes a UI glitch
+  setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 250);
 }
 
 /* Chessboard Events */
@@ -194,15 +204,15 @@ function onChessboardDrop(source, target, piece) {
   // Check if it's a Castle Move (King and moved 2 columns)
   if (piece[1] == 'K') {
     // Queen-side Castle
-    if (sourceCoord[1] - targetCoord[1] == 2) {
-      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] - 2);
-      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
+    if (targetCoord[1] - sourceCoord[1] == 2) {
+      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] + 2);
+      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
     }
     // King-side Castle
-    else if (targetCoord[1] - sourceCoord[1] == 2) {
-      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
-      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
+    else if (sourceCoord[1] - targetCoord[1] == 2) {
+      const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
+      const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
     }
   }

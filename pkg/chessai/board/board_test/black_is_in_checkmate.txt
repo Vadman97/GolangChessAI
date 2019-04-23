@@ -1,8 +1,8 @@
-   |   |B_K|W_Q|W_N|   |   |
-B_P|B_P|   |   |W_B|   |   |B_R
-   |   |   |   |   |   |   |
-   |   |   |   |W_N|   |   |B_P
-   |   |B_P|   |   |   |   |
-W_P|   |W_N|W_P|   |   |   |
-   |W_P|W_P|   |   |W_P|W_P|W_P
    |   |W_K|W_R|   |   |   |W_R
+   |W_P|W_P|   |   |W_P|W_P|W_P
+W_P|   |W_N|W_P|   |   |   |
+   |   |B_P|   |   |   |   |
+   |   |   |   |W_N|   |   |B_P
+   |   |   |   |   |   |   |
+B_P|B_P|   |   |W_B|   |   |B_R
+   |   |B_K|W_Q|W_N|   |   |

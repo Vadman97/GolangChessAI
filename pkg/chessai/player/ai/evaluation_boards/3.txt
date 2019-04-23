@@ -1,10 +1,9 @@
-skip TODO(Vadim) figure out why it wants negative eval for black
-Black 50
-B_R|B_N|B_B|B_Q|B_K|B_B|   |B_R
-B_P|B_P|   |B_P|B_P|B_P|B_P|B_P
-   |   |B_P|   |   |B_N|   |
-   |   |   |   |   |   |   |
-   |   |   |   |   |   |   |
-   |   |   |   |W_P|   |   |
-W_P|W_P|W_P|W_P|   |W_P|W_P|W_P
+Black -90 negative because W_P opens more moves than B_P
 W_R|W_N|W_B|W_Q|W_K|W_B|W_N|W_R
+W_P|W_P|W_P|W_P|   |W_P|W_P|W_P
+   |   |   |   |W_P|   |   |
+   |   |   |   |   |   |   |
+   |   |   |   |   |   |   |
+   |   |B_P|   |   |   |   |
+B_P|B_P|   |B_P|B_P|B_P|B_P|B_P
+B_R|B_N|B_B|B_Q|B_K|B_B|B_N|B_R

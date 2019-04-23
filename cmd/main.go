@@ -5,11 +5,12 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/api/api_handlers"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/competition"
 	"github.com/gorilla/mux"
-	"time"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path"
+	"time"
 )
 
 func main() {
@@ -18,6 +19,7 @@ func main() {
 		comp.RunAICompetition()
 		return
 	}
+	rand.Seed(time.Now().UnixNano())
 
 	// Setup HTTP Routes
 	r := mux.NewRouter()
@@ -39,7 +41,6 @@ func main() {
 		Methods("POST").
 		Queries("command", "{command}").
 		HandlerFunc(api_handlers.PostGameCommandHandler)
-
 
 	// Set Static Files (MUST be below routes otherwise it'll conflict)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))

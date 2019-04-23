@@ -1,6 +1,7 @@
 package board
 
 import (
+	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ func TestPawn_GetChar(t *testing.T) {
 func TestPawn_hasMovedBlack(t *testing.T) {
 	bo1 := &Board{}
 	bo1.ResetDefault()
-	pawn := bo1.GetPiece(location.NewLocation(1, 1)).(*Pawn)
+	pawn := bo1.GetPiece(location.NewLocation(StartRow[color.Black]["Pawn"], 1)).(*Pawn)
 	assert.False(t, pawn.hasMoved())
 }
 
@@ -27,12 +28,6 @@ func TestPawn_hasMovedWhite(t *testing.T) {
 		},
 	})
 	pawn := bo1.GetPiece(location.NewLocation(5, 3)).(*Pawn)
-	assert.True(t, pawn.hasMoved())
-}
-
-func TestPawn_hasMovedInvalidColor(t *testing.T) {
-	pawn := PieceFromType(piece.PawnType).(*Pawn)
-	pawn.SetColor(4)
 	assert.True(t, pawn.hasMoved())
 }
 

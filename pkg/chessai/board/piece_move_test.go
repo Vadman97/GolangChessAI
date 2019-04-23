@@ -1,6 +1,7 @@
 package board
 
 import (
+	"fmt"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
@@ -22,9 +23,9 @@ func buildBoardWithInitialMoves(initialMove *[]location.Move) (*Board, *LastMove
 
 func testPieceGetMoves(t *testing.T, l location.Location, initialMove *[]location.Move, expectedMoves int) {
 	bo1, _ := buildBoardWithInitialMoves(initialMove)
-	if l.GetRow() == 0 {
+	if l.GetRow() == StartRow[color.Black]["Piece"] {
 		assert.Equal(t, color.Black, bo1.GetPiece(l).GetColor())
-	} else if l.GetRow() == 7 {
+	} else if l.GetRow() == StartRow[color.White]["Piece"] {
 		assert.Equal(t, color.White, bo1.GetPiece(l).GetColor())
 	}
 	moves := bo1.GetPiece(l).GetMoves(bo1, false)
@@ -42,7 +43,7 @@ func testPieceGetMoves(t *testing.T, l location.Location, initialMove *[]locatio
 }
 
 func TestBishopGetMovesStart(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(7, 2), nil, 0)
+	testPieceGetMoves(t, location.NewLocation(StartRow[color.White]["Piece"], 2), nil, 0)
 }
 
 func TestBishopGetMoves(t *testing.T) {
@@ -53,7 +54,7 @@ func TestBishopGetMoves(t *testing.T) {
 }
 
 func TestBishopGetMovesStartBlack(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(0, 2), nil, 0)
+	testPieceGetMoves(t, location.NewLocation(StartRow[color.Black]["Piece"], 2), nil, 0)
 }
 
 func TestBishopGetMovesBlack(t *testing.T) {
@@ -64,13 +65,13 @@ func TestBishopGetMovesBlack(t *testing.T) {
 }
 
 func TestQueenGetMovesStart(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(7, 3), nil, 0)
+	testPieceGetMoves(t, location.NewLocation(StartRow[color.White]["Piece"], 3), nil, 0)
 }
 
 func TestQueenGetMoves(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(5, 3), &[]location.Move{{
-		Start: location.NewLocation(7, 3),
-		End:   location.NewLocation(5, 3),
+	testPieceGetMoves(t, location.NewLocation(5, 4), &[]location.Move{{
+		Start: location.NewLocation(7, 4),
+		End:   location.NewLocation(5, 4),
 	}}, 18)
 }
 
@@ -79,9 +80,9 @@ func TestQueenGetMovesStartBlack(t *testing.T) {
 }
 
 func TestQueenGetMovesBlack(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(2, 3), &[]location.Move{{
-		Start: location.NewLocation(0, 3),
-		End:   location.NewLocation(2, 3),
+	testPieceGetMoves(t, location.NewLocation(2, 4), &[]location.Move{{
+		Start: location.NewLocation(0, 4),
+		End:   location.NewLocation(2, 4),
 	}}, 18)
 }
 
@@ -141,9 +142,9 @@ func TestPawnGetMoves(t *testing.T) {
 }
 
 func TestPawnGetMovesAttack(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(2, 3), &[]location.Move{{
-		Start: location.NewLocation(6, 3),
-		End:   location.NewLocation(2, 3),
+	testPieceGetMoves(t, location.NewLocation(5, 3), &[]location.Move{{
+		Start: location.NewLocation(1, 3),
+		End:   location.NewLocation(5, 3),
 	}}, 2)
 }
 
@@ -232,9 +233,9 @@ func TestKingGetMovesStart(t *testing.T) {
 }
 
 func TestKingGetMoves(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(4, 4), &[]location.Move{{
-		Start: location.NewLocation(7, 4),
-		End:   location.NewLocation(4, 4),
+	testPieceGetMoves(t, location.NewLocation(4, 3), &[]location.Move{{
+		Start: location.NewLocation(7, 3),
+		End:   location.NewLocation(4, 3),
 	}}, 8)
 }
 
@@ -243,28 +244,28 @@ func TestKingGetMovesStartBlack(t *testing.T) {
 }
 
 func TestKingGetMovesBlack(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(3, 4), &[]location.Move{{
-		Start: location.NewLocation(0, 4),
-		End:   location.NewLocation(3, 4),
+	testPieceGetMoves(t, location.NewLocation(3, 3), &[]location.Move{{
+		Start: location.NewLocation(0, 3),
+		End:   location.NewLocation(3, 3),
 	}}, 8)
 }
 
 func TestKingGetMovesDefended(t *testing.T) {
-	testPieceGetMoves(t, location.NewLocation(4, 4), &[]location.Move{{
-		Start: location.NewLocation(0, 4),
-		End:   location.NewLocation(4, 4),
+	testPieceGetMoves(t, location.NewLocation(4, 3), &[]location.Move{{
+		Start: location.NewLocation(0, 3),
+		End:   location.NewLocation(4, 3),
 	}}, 5)
 }
 
 func TestKingCannotMoveIntoCheck(t *testing.T) {
 	b, previousMove := buildBoardWithInitialMoves(&[]location.Move{{
-		Start: location.NewLocation(0, 4),
-		End:   location.NewLocation(4, 4),
+		Start: location.NewLocation(7, 3),
+		End:   location.NewLocation(3, 3),
 	}})
 	moves := b.GetAllMoves(color.Black, previousMove)
 	numKingMoves := 0
 	for _, m := range *moves {
-		if m.Start.GetRow() == 4 && m.Start.GetCol() == 4 {
+		if m.Start.GetRow() == 3 && m.Start.GetCol() == 3 {
 			numKingMoves++
 		}
 	}
@@ -273,61 +274,62 @@ func TestKingCannotMoveIntoCheck(t *testing.T) {
 
 func TestKingGetMovesCastleLeft(t *testing.T) {
 	bo1, _ := buildBoardWithInitialMoves(&[]location.Move{{
-		Start: location.NewLocation(0, 3),
-		End:   location.NewLocation(3, 3),
-	}, {
 		Start: location.NewLocation(0, 2),
 		End:   location.NewLocation(3, 2),
 	}, {
 		Start: location.NewLocation(0, 1),
 		End:   location.NewLocation(3, 1),
 	}})
-	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, true)
+	moves := bo1.GetPiece(location.NewLocation(0, 3)).GetMoves(bo1, true)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 1, len(*moves))
 	}
-	moves = bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, false)
+	moves = bo1.GetPiece(location.NewLocation(0, 3)).GetMoves(bo1, false)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 2, len(*moves))
 		MakeMove(&(*moves)[1], bo1)
-		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 2)))
+		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 1)))
 		assert.Equal(t, piece.KingType,
-			bo1.GetPiece(location.NewLocation(0, 2)).GetPieceType(),
+			bo1.GetPiece(location.NewLocation(0, 1)).GetPieceType(),
 		)
-		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 3)))
+		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 2)))
 		assert.Equal(t, piece.RookType,
-			bo1.GetPiece(location.NewLocation(0, 3)).GetPieceType(),
+			bo1.GetPiece(location.NewLocation(0, 2)).GetPieceType(),
 		)
 	}
 }
 
 func TestKingGetMovesCastleRight(t *testing.T) {
 	bo1, _ := buildBoardWithInitialMoves(&[]location.Move{{
+		Start: location.NewLocation(0, 4),
+		End:   location.NewLocation(3, 4),
+	}, {
 		Start: location.NewLocation(0, 5),
 		End:   location.NewLocation(3, 5),
 	}, {
 		Start: location.NewLocation(0, 6),
 		End:   location.NewLocation(3, 6),
 	}})
-	moves := bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, true)
+	moves := bo1.GetPiece(location.NewLocation(0, 3)).GetMoves(bo1, true)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 1, len(*moves))
 	}
-	moves = bo1.GetPiece(location.NewLocation(0, 4)).GetMoves(bo1, false)
+	moves = bo1.GetPiece(location.NewLocation(0, 3)).GetMoves(bo1, false)
 	assert.NotNil(t, moves)
 	if moves != nil {
 		assert.Equal(t, 2, len(*moves))
 		MakeMove(&(*moves)[1], bo1)
-		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 6)))
-		assert.Equal(t, piece.KingType,
-			bo1.GetPiece(location.NewLocation(0, 6)).GetPieceType(),
-		)
+		fmt.Println(*bo1)
 		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 5)))
-		assert.Equal(t, piece.RookType,
+		assert.Equal(t, piece.KingType,
 			bo1.GetPiece(location.NewLocation(0, 5)).GetPieceType(),
+		)
+		assert.False(t, bo1.IsEmpty(location.NewLocation(0, 4)))
+		assert.Equal(t, piece.RookType,
+			bo1.GetPiece(location.NewLocation(0, 4)).GetPieceType(),
 		)
 	}
 }

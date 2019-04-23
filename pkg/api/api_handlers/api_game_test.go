@@ -58,120 +58,6 @@ func TestGetGameState(t *testing.T) {
 	    [
 	      {
 	        "type": "R",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "N",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "B",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "Q",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "K",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "B",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "N",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "R",
-	        "color": "Black"
-	      }
-	    ],
-	    [
-	      {
-	        "type": "P",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "P",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "P",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "P",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "P",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "P",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "P",
-	        "color": "Black"
-	      },
-	      {
-	        "type": "P",
-	        "color": "Black"
-	      }
-	    ],
-	    [
-	      null, null, null, null, null, null, null, null
-	    ],
-	    [
-	      null, null, null, null, null, null, null, null
-	    ],
-	    [
-	      null, null, null, null, null, null, null, null
-	    ],
-	    [
-	      null, null, null, null, null, null, null, null
-	    ],
-	    [
-	      {
-	        "type": "P",
-	        "color": "White"
-	      },
-	      {
-	        "type": "P",
-	        "color": "White"
-	      },
-	      {
-	        "type": "P",
-	        "color": "White"
-	      },
-	      {
-	        "type": "P",
-	        "color": "White"
-	      },
-	      {
-	        "type": "P",
-	        "color": "White"
-	      },
-	      {
-	        "type": "P",
-	        "color": "White"
-	      },
-	      {
-	        "type": "P",
-	        "color": "White"
-	      },
-	      {
-	        "type": "P",
-	        "color": "White"
-	      }
-	    ],
-	    [
-	      {
-	        "type": "R",
 	        "color": "White"
 	      },
 	      {
@@ -180,10 +66,6 @@ func TestGetGameState(t *testing.T) {
 	      },
 	      {
 	        "type": "B",
-	        "color": "White"
-	      },
-	      {
-	        "type": "Q",
 	        "color": "White"
 	      },
 	      {
@@ -191,6 +73,10 @@ func TestGetGameState(t *testing.T) {
 	        "color": "White"
 	      },
 	      {
+	        "type": "Q",
+	        "color": "White"
+	      },
+	      {
 	        "type": "B",
 	        "color": "White"
 	      },
@@ -201,6 +87,120 @@ func TestGetGameState(t *testing.T) {
 	      {
 	        "type": "R",
 	        "color": "White"
+	      }
+	    ],
+	    [
+	      {
+	        "type": "P",
+	        "color": "White"
+	      },
+	      {
+	        "type": "P",
+	        "color": "White"
+	      },
+	      {
+	        "type": "P",
+	        "color": "White"
+	      },
+	      {
+	        "type": "P",
+	        "color": "White"
+	      },
+	      {
+	        "type": "P",
+	        "color": "White"
+	      },
+	      {
+	        "type": "P",
+	        "color": "White"
+	      },
+	      {
+	        "type": "P",
+	        "color": "White"
+	      },
+	      {
+	        "type": "P",
+	        "color": "White"
+	      }
+	    ],
+	    [
+	      null, null, null, null, null, null, null, null
+	    ],
+	    [
+	      null, null, null, null, null, null, null, null
+	    ],
+	    [
+	      null, null, null, null, null, null, null, null
+	    ],
+	    [
+	      null, null, null, null, null, null, null, null
+	    ],
+	    [
+	      {
+	        "type": "P",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "P",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "P",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "P",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "P",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "P",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "P",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "P",
+	        "color": "Black"
+	      }
+	    ],
+	    [
+	      {
+	        "type": "R",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "N",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "B",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "K",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "Q",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "B",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "N",
+	        "color": "Black"
+	      },
+	      {
+	        "type": "R",
+	        "color": "Black"
 	      }
 	    ]
 	  ],
