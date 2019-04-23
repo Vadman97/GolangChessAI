@@ -135,18 +135,16 @@ func (r *King) Move(m *location.Move, b *Board) {
 	endCol := m.End.GetCol()
 	right, _ := m.End.AddRelative(location.RightMove)
 	left, _ := m.End.AddRelative(location.LeftMove)
-	if startCol == 4 && startCol-2 == endCol {
+	if startCol == 3 && startCol-2 == endCol {
 		// left castle
-		// piece right of king set to the rook from left of dest
-		leftTwo, _ := left.AddRelative(location.LeftMove)
-		b.SetPiece(right, b.GetPiece(leftTwo))
-		b.SetPiece(leftTwo, nil)
+		b.SetPiece(right, b.GetPiece(left))
+		b.SetPiece(left, nil)
 		b.SetFlag(FlagCastled, r.GetColor(), true)
-	} else if startCol == 4 && startCol+2 == endCol {
+	} else if startCol == 3 && startCol+2 == endCol {
 		// right castle
-		// piece right of king set to the rook from left of dest
-		b.SetPiece(left, b.GetPiece(right))
-		b.SetPiece(right, nil)
+		rightTwo, _ := right.AddRelative(location.RightMove)
+		b.SetPiece(left, b.GetPiece(rightTwo))
+		b.SetPiece(rightTwo, nil)
 		b.SetFlag(FlagCastled, r.GetColor(), true)
 	}
 	b.SetFlag(FlagKingMoved, r.GetColor(), true)

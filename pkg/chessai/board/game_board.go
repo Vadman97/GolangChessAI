@@ -38,19 +38,19 @@ var StartingRow = [...]Piece{
 	&Rook{},
 	&Knight{},
 	&Bishop{},
-	&Queen{},
 	&King{},
+	&Queen{},
 	&Bishop{},
 	&Knight{},
 	&Rook{},
 }
 
 var StartingRowHex = [...]uint32{
-	0x2468A642,
+	0x246A8642,
 	0xCCCCCCCC,
 	0, 0, 0, 0,
 	0xDDDDDDDD,
-	0x3579B753,
+	0x357B9753,
 }
 
 var StartRow = map[color.Color]map[string]location.CoordinateType{
@@ -153,8 +153,8 @@ func (b *Board) ResetDefault() {
 	b.MoveCache = util.NewConcurrentBoardMap()
 	b.AttackableCache = util.NewConcurrentBoardMap()
 	b.KingLocations = [color.NumColors]location.Location{
-		location.NewLocation(0, 4),
-		location.NewLocation(7, 4),
+		location.NewLocation(0, 3),
+		location.NewLocation(7, 3),
 	}
 	b.MovesSinceNoDraw = 0
 	b.CacheGetAllMoves = config.Get().CacheGetAllMoves
