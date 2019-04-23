@@ -9,6 +9,7 @@ const (
 	AlgorithmABDADA              = "ABDADA (α/β Parallel)"
 	AlgorithmNegaScout           = "NegaScout"
 	AlgorithmRandom              = "Random"
+	AlgorithmJamboree            = "Jamboree"
 )
 
 type Algorithm interface {
@@ -17,10 +18,11 @@ type Algorithm interface {
 }
 
 var NameToAlgorithm = map[string]Algorithm{
-	AlgorithmMiniMax: &MiniMax{},
+	AlgorithmMiniMax:             &MiniMax{},
 	AlgorithmAlphaBetaWithMemory: &AlphaBetaWithMemory{},
-	AlgorithmMTDf: &MTDf{},
-	AlgorithmABDADA: &ABDADA{},
-	AlgorithmNegaScout: &NegaScout{},
-	AlgorithmRandom: &Random{},
+	AlgorithmMTDf:                &MTDf{},
+	AlgorithmABDADA:              &ABDADA{},
+	AlgorithmNegaScout:           &NegaScout{},
+	AlgorithmRandom:              &Random{},
+	AlgorithmJamboree:            &Jamboree{},
 }
