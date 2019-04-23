@@ -57,9 +57,10 @@ var OpeningMoves = map[color.Color][][]*location.Move{
 }
 
 type ScoredMove struct {
-	Move         location.Move
-	MoveSequence []location.Move
-	Score        int
+	Move           location.Move
+	MoveSequence   []location.Move
+	Score          int
+	ReturnThisMove bool
 }
 
 func (s ScoredMove) NegScore() ScoredMove {
