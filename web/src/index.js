@@ -1,7 +1,7 @@
 import $ from 'jquery'
 import Popper from 'popper.js';
 import fetcher from './fetcher';
-import Game from './Game';
+import Game, {GameStatus} from './Game';
 import SocketConstants from './socket/constants';
 import GameSocket from './socket/GameSocket'
 import {BOARD_SIZE, boardMatrixToObj, charToColor, chessToRowCol, colorToChar, rowColToChess} from './chess-helpers';
@@ -50,6 +50,51 @@ function setup() {
   $('#concede-btn').hide();
   $('.chessboard-63f37').addClass('inactive');
   $('.game-error').hide();
+  $('.game-status').hide();
+  $('.game-status .status-alert').hide();
+  $('.ai-thinking').hide();
+}
+
+function updateGameStatus() {
+  $('.game-status .status span').text(game.status);
+  $('.game-status .current-turn span').text(game.currentTurn);
+  $('.game-status .moves-played span').text(game.movesPlayed);
+  $('.game-status .move-limit span').text(game.moveLimit);
+
+  // Show AI Thinking Animation
+  if (game.currentTurn.toLowerCase() !== game.humanColor) {
+    $('.ai-thinking').show();
+  }
+  else {
+    $('.ai-thinking').hide();
+  }
+
+  // Update Game based on Game Status (Active, Stalemate)
+  if (game.status !== GameStatus.Active) {
+    let alertText;
+
+    switch (game.status) {
+      case GameStatus.WhiteWin:
+      case GameStatus.BlackWin:
+        alertText = 'Checkmate!';
+        break;
+      case GameStatus.Stalemate:
+      case GameStatus.FiftyMoveDraw:
+      case GameStatus.RepeatActionDraw:
+        alertText = 'Draw';
+        break;
+      case GameStatus.Aborted:
+        alertText = 'Aborted';
+    }
+
+    $('.game-status .status-alert').text(alertText).show();
+    $('.chessboard-63f37').addClass('inactive');
+
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(alertText));
+    if (game.status !== GameStatus.Aborted) {
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(game.status));
+    }
+  }
 }
 
 function clearBoard() {
@@ -63,9 +108,10 @@ $('#start-btn').click(() => {
   .then(response => {
     gameSocket = new GameSocket(messageHandler);
 
-    $('.chessboard-63f37').removeClass('inactive');
+    $('.game-status').show();
     $('#concede-btn').show();
     $('#start-btn').hide();
+    $('.chessboard-63f37').removeClass('inactive');
     console.log(response);
   })
   .catch(err => {
@@ -117,15 +163,29 @@ function messageHandler(event) {
         data.timeLimit,
       );
       game.currentTurn = data.currentTurn;
+      game.movesPlayed = data.movesPlayed;
 
       board.position(boardMatrixToObj(data.currentBoard), false);
       board.orientation(game.humanColor);
-      // NOTE: Our server records black on the bottom, and white on the top
+      // DEPRECATED: Our server records black on the bottom, and white on the top
       // board.flip();
+      updateGameStatus();
       break;
 
     case SocketConstants.GameStatus:
+      game.currentTurn = data.currentTurn;
+      game.movesPlayed = data.movesPlayed;
+      game.status = data.gameStatus;
 
+      if (game.status === GameStatus.Active && data.kingInCheck) {
+        $('.game-status .status-alert').text('Check!').show();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance('Check'));
+      }
+      else {
+        $('.game-status .status-alert').hide();
+      }
+
+      updateGameStatus();
       break;
 
     case SocketConstants.AvailablePlayerMoves:
@@ -165,14 +225,18 @@ function makeAIMove(start, end, piece) {
   const startChessLoc = rowColToChess(start[0], start[1]);
   const endChessLoc = rowColToChess(end[0], end[1]);
   // For some weird reason, timing out the move fixes a UI glitch
-  setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 250);
+  setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 150);
+  window.speechSynthesis.speak(new SpeechSynthesisUtterance(`${startChessLoc} to ${endChessLoc}`));
 }
 
 /* Chessboard Events */
 function onChessboardDragStart(source, piece) {
   clearBoard();
 
-  if (colorToChar[game.humanColor] !== piece[0]) {
+  if (
+    colorToChar[game.humanColor] !== piece[0] ||
+    game.currentTurn.toLowerCase() !== game.humanColor
+  ) {
     return false;
   }
 

@@ -141,6 +141,8 @@ func (g *Game) PlayTurn() bool {
 func (g *Game) Loop(client *websocket.Conn) {
 	g.SocketBroadcast <- api.CreateChessMessage(api.GameState, g.GetJSON())
 
+	var gameActive = true
+
 	var humanColor color.Color
 	for c := color.White; c < color.NumColors; c++ {
 		if _, isHuman := g.Players[c].(*player.HumanPlayer); isHuman {
@@ -149,6 +151,10 @@ func (g *Game) Loop(client *websocket.Conn) {
 	}
 
 	for i := 0; i < int(g.MoveLimit); i++ {
+		if !gameActive {
+			break
+		}
+
 		g.SocketBroadcast <- api.CreateChessMessage(api.GameStatus, g.GetStatusJSON())
 
 		select {
@@ -164,19 +170,17 @@ func (g *Game) Loop(client *websocket.Conn) {
 				g.SocketBroadcast <- api.CreateChessMessage(api.AvailablePlayerMoves, availableMovesJSON)
 			}
 
-			active := g.PlayTurn()
+			gameActive = g.PlayTurn()
 
 			// Send Post-Move Information
 			if CurrentTurnColor != humanColor {
 				lastMoveJSON := api.CreateMoveJSON(g.PreviousMove)
 				g.SocketBroadcast <- api.CreateChessMessage(api.AIMove, lastMoveJSON)
 			}
-
-			if !active {
-				break
-			}
 		}
 	}
+
+	g.SocketBroadcast <- api.CreateChessMessage(api.GameStatus, g.GetStatusJSON())
 }
 
 func (g Game) String() (result string) {

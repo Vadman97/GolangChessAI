@@ -14,4 +14,14 @@ class Game {
   }
 }
 
+export const GameStatus = {
+  Active: 'Active',
+  WhiteWin: 'White Win',
+  BlackWin: 'Black Win',
+  Stalemate: 'Stalemate',
+  FiftyMoveDraw: 'Fifty Move Draw',
+  RepeatActionDraw: 'Repeated Action Three Times Draw',
+  Aborted: 'Aborted',
+};
+
 export default Game;

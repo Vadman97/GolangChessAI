@@ -37,7 +37,7 @@ type GameStateJSON struct {
 }
 
 type GameStatusJSON struct {
-	CurrentTurnColor string `json:currentTurn`
+	CurrentTurnColor string `json:"currentTurn"`
 	MovesPlayed      uint   `json:"movesPlayed"`
 	GameStatus       string `json:"gameStatus"`
 	KingInCheck      bool   `json:"kingInCheck"`

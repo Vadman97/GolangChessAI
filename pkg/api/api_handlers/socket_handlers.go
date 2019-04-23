@@ -116,11 +116,12 @@ func HandleMessages(g *game.Game) {
 				log.Printf("Invalid Player Move - %v", err)
 				continue
 			}
-
 			HandlePlayerMove(moveJSON)
 
 		// Server -> Client
 		case api.GameState:
+			fallthrough
+		case api.GameStatus:
 			fallthrough
 		case api.AvailablePlayerMoves:
 			fallthrough
