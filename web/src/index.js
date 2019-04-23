@@ -1,8 +1,16 @@
 import $ from 'jquery'
+import Popper from 'popper.js';
 import fetcher from './fetcher';
 import SocketConstants from './socket/constants';
 import GameSocket from './socket/GameSocket'
-import { colorToChar, rowColToChess, chessToRowCol, boardMatrixToObj } from './chess-helpers';
+import {
+  BOARD_SIZE,
+  colorToChar,
+  charToColor,
+  rowColToChess,
+  chessToRowCol,
+  boardMatrixToObj
+} from './chess-helpers';
 
 // window['jQuery'] is required for the chessboard to work (sadly)
 // ordering is also important
@@ -18,6 +26,10 @@ const boardConfig = {
 };
 const board = ChessBoard('board', boardConfig);
 
+
+let pawnPromotionPopper;
+let promotionMove;
+
 let gameSocket;
 let humanColor;
 let availableMoves;
@@ -25,25 +37,75 @@ let availableMoves;
 // TODO: Keep track of other stats
 // CurrentTurn, MoveCount, Think Time
 
+// Initial UI
+setup();
+
 $(document).ready(() => {
-  // gameSocket.send(SocketConstants.PlayerMove, {
-  //   start: [0, 0],
-  //   end: [0, 1],
-  //   isCapture: false,
-  //   piece: null,
+  // const reference = document.querySelector('.test');
+  // const popper = document.querySelector('.popper');
+  // pawnPromotionPopper = new Popper(reference, popper, {
+  //   placement: 'top',
   // });
 });
 
-$("#start-btn").click(() => {
+/* UI Functions */
+function setup() {
+  $('.pawn-promotion').hide();
+  $('.white-promotion').hide();
+  $('.black-promotion').hide();
+  $('#concede-btn').hide();
+  $('.chessboard-63f37').addClass('inactive');
+}
+
+function clearBoard() {
+  $('.square-highlight-move').removeClass('square-highlight-move');
+  $('.square-active').removeClass('square-active');
+}
+
+/* Button Events */
+$('#start-btn').click(() => {
   fetcher.post(`http://${window.location.host}/api/game?command=start`)
   .then(response => {
     gameSocket = new GameSocket(messageHandler);
+
+    $('.chessboard-63f37').removeClass('inactive');
+    $('#concede-btn').show();
+    $('#start-btn').hide();
     console.log(response);
   })
   .catch(err => {
+    $('.game-status').addClass('alert').text(err.error);
+    $('#start-btn').prop('disabled', true);
     console.error(err);
   })
 });
+
+$('.promotion-piece').click((event) => {
+  if (!promotionMove) {
+    console.warn('Promotion was called without a move saved');
+    return;
+  }
+
+  // Send Move with Promotion Piece over Socket
+  const { piece } = event.target.dataset;
+  promotionMove.piece = {
+    color: charToColor[piece[0]],
+    type: piece[1],
+  };
+  gameSocket.send(SocketConstants.PlayerMove, promotionMove);
+
+  // Update Promotion Piece on Game Board
+  const endLoc = rowColToChess(promotionMove.end[0], promotionMove.end[1]);
+  const currentBoard = board.position();
+  board.position({
+    ...currentBoard,
+    [endLoc]: piece,
+  }, false);
+
+  // Clean up
+  promotionMove = null;
+  $('.pawn-promotion').hide();
+})
 
 function messageHandler(event) {
   const message = JSON.parse(event.data);
@@ -75,17 +137,12 @@ function messageHandler(event) {
       break;
 
     case SocketConstants.GameFull:
-      // TODO: Update UI
-      alert('Game is currently in progress!');
+      $('.game-status').addClass('alert').text('A game is currently in progress...')
+      $("#start-btn").attr("disabled", true);
       break;
     default:
       return;
   }
-}
-
-function clearBoard() {
-  $('.square-highlight-move').removeClass('square-highlight-move');
-  $('.square-active').removeClass('square-active');
 }
 
 /* Chessboard Events */
@@ -130,6 +187,10 @@ function onChessboardDrop(source, target, piece) {
     return 'snapback';
   }
 
+  if (target !== source) {
+    clearBoard();
+  }
+
   // Check if it's a Castle Move (King and moved 2 columns)
   if (piece[1] == 'K') {
     // Queen-side Castle
@@ -146,8 +207,30 @@ function onChessboardDrop(source, target, piece) {
     }
   }
 
-  if (target !== source) {
-    clearBoard();
+  // Check for Pawn Promotion
+  if (piece[1] == 'P') {
+    // NOTE: Don't need any other checks since pawns can only move forward
+    if (targetCoord[0] == 0 || targetCoord[0] == BOARD_SIZE - 1) {
+      console.log('Pawn Promotion');
+
+      // Show Popper (Popover)
+      const reference = document.querySelector('.square-' + target);
+      const popper = document.querySelector('.popper');
+      pawnPromotionPopper = new Popper(reference, popper, {
+        placement: 'top',
+      });
+
+      $(`.${humanColor.toLowerCase()}-promotion`).show();
+      $('.pawn-promotion').show();
+
+      // Save Move Data (before we lose it)
+      promotionMove = {
+        start: sourceCoord,
+        end: targetCoord,
+      };
+
+      return;
+    }
   }
 
   gameSocket.send(SocketConstants.PlayerMove, {

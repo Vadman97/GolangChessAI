@@ -6,6 +6,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
 	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
 	"github.com/gorilla/websocket"
 	"log"
@@ -142,6 +143,12 @@ func HandlePlayerMove(moveJSON api.MoveJSON) {
 			move := &location.Move{
 				Start: location.NewLocation(moveJSON.Start[0], moveJSON.Start[1]),
 				End: location.NewLocation(moveJSON.End[0], moveJSON.End[1]),
+			}
+
+			// Add Pawn Promotion Information if it exists
+			if moveJSON.Piece != (api.PieceJSON{}) {
+				pieceType := rune(moveJSON.Piece.PieceType[0])
+				move.End = move.End.CreatePawnPromotion(piece.NameToType[pieceType])
 			}
 			humanPlayer.Move <- move
 			return
