@@ -1,19 +1,21 @@
 {
-  "MemoryLimit": 8196,
-  "TestRandSeed": 12435,
   "UseOpenings": false,
+  "RandomMoveOrder": true,
+  "MemoryLimit": 29490,
   "CacheGetAllMoves": true,
   "CacheGetAllAttackableMoves": true,
+  "CacheMaxPlayerElements": 10000000,
+  "IterativeIncrement": 1,
   "TranspositionTableEnabled": true,
+
   "LogDebug": true,
-  "DebugLogFileName": "moveDebug.log",
   "LogPerformance": true,
-  "PerformanceLogFileName": "performance.log",
   "LogPerformanceToExcel": true,
-  "ExcelPerformanceFileName": "./performance.xlsx",
   "PrintPlayerInfo": true,
-  "NumberOfCompetitionGames": 100,
+  "DebugLogFileName": "moveDebug.log",
+  "PerformanceLogFileName": "performance.log",
+  "ExcelPerformanceFileName": "./performance.xlsx",
   "StartingElo": 1200,
-  "RandomMoveOrder": true,
-  "IterativeIncrement": 1
+  "NumberOfCompetitionGames": 100,
+  "TestRandSeed": 12435
 }

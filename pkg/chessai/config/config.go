@@ -13,6 +13,7 @@ type Configuration struct {
 	UseOpenings                bool
 	CacheGetAllMoves           bool
 	CacheGetAllAttackableMoves bool
+	CacheMaxPlayerElements     uint64
 	TranspositionTableEnabled  bool
 	LogDebug                   bool
 	DebugLogFileName           string

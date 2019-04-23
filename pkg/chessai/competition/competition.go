@@ -45,7 +45,9 @@ func (c *Competition) RunCompetition() {
 		// randomize color of players each game
 		c.randomizePlayers()
 		g := game.NewGame(c.players[c.whiteIndex], c.players[c.blackIndex])
-		//c.disablePrinting(g)
+		if !config.Get().LogDebug {
+			c.disablePrinting(g)
+		}
 		active := true
 		for active {
 			active = g.PlayTurn()
@@ -111,11 +113,11 @@ func (c *Competition) RunAICompetition() {
 	// TODO(Vadim) output this to file and keep history of AI performance
 	// TODO(Vadim) load ai from file
 	rand.Seed(config.Get().TestRandSeed)
-	c.players[color.White].Algorithm = &ai.MTDf{}
+	c.players[color.White].Algorithm = &ai.ABDADA{}
 	c.players[color.White].MaxSearchDepth = math.MaxUint8
-	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
-	c.players[color.Black].Algorithm = &ai.Jamboree{}
-	c.players[color.Black].MaxSearchDepth = 3
-	c.players[color.Black].MaxThinkTime = 100 * time.Millisecond
+	c.players[color.White].MaxThinkTime = 15000 * time.Millisecond
+	c.players[color.Black].Algorithm = &ai.MTDf{}
+	c.players[color.Black].MaxSearchDepth = math.MaxUint8
+	c.players[color.Black].MaxThinkTime = 15000 * time.Millisecond
 	c.RunCompetition()
 }

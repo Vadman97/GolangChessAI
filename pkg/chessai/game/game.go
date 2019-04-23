@@ -303,9 +303,9 @@ func (g *Game) GetJSON() *api.GameStateJSON {
 func (g *Game) GetStatusJSON() *api.GameStatusJSON {
 	return &api.GameStatusJSON{
 		CurrentTurnColor: color.Names[g.CurrentTurnColor],
-		MovesPlayed: g.MovesPlayed,
-		GameStatus: StatusStrings[g.GameStatus],
-		KingInCheck: g.CurrentBoard.IsKingInCheck(g.CurrentTurnColor),
+		MovesPlayed:      g.MovesPlayed,
+		GameStatus:       StatusStrings[g.GameStatus],
+		KingInCheck:      g.CurrentBoard.IsKingInCheck(g.CurrentTurnColor),
 	}
 }
 
