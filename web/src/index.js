@@ -3,14 +3,7 @@ import Popper from 'popper.js';
 import fetcher from './fetcher';
 import SocketConstants from './socket/constants';
 import GameSocket from './socket/GameSocket'
-import {
-  BOARD_SIZE,
-  colorToChar,
-  charToColor,
-  rowColToChess,
-  chessToRowCol,
-  boardMatrixToObj
-} from './chess-helpers';
+import {BOARD_SIZE, boardMatrixToObj, charToColor, chessToRowCol, colorToChar, rowColToChess} from './chess-helpers';
 
 // window['jQuery'] is required for the chessboard to work (sadly)
 // ordering is also important
@@ -65,19 +58,19 @@ function clearBoard() {
 /* Button Events */
 $('#start-btn').click(() => {
   fetcher.post(`http://${window.location.host}/api/game?command=start`)
-  .then(response => {
-    gameSocket = new GameSocket(messageHandler);
+    .then(response => {
+      gameSocket = new GameSocket(messageHandler);
 
-    $('.chessboard-63f37').removeClass('inactive');
-    $('#concede-btn').show();
-    $('#start-btn').hide();
-    console.log(response);
-  })
-  .catch(err => {
-    $('.game-status').addClass('alert').text(err.error);
-    $('#start-btn').prop('disabled', true);
-    console.error(err);
-  })
+      $('.chessboard-63f37').removeClass('inactive');
+      $('#concede-btn').show();
+      $('#start-btn').hide();
+      console.log(response);
+    })
+    .catch(err => {
+      $('.game-status').addClass('alert').text(err.error);
+      $('#start-btn').prop('disabled', true);
+      console.error(err);
+    })
 });
 
 $('.promotion-piece').click((event) => {
@@ -87,7 +80,7 @@ $('.promotion-piece').click((event) => {
   }
 
   // Send Move with Promotion Piece over Socket
-  const { piece } = event.target.dataset;
+  const {piece} = event.target.dataset;
   promotionMove.piece = {
     color: charToColor[piece[0]],
     type: piece[1],
@@ -105,7 +98,7 @@ $('.promotion-piece').click((event) => {
   // Clean up
   promotionMove = null;
   $('.pawn-promotion').hide();
-})
+});
 
 function messageHandler(event) {
   const message = JSON.parse(event.data);
@@ -133,7 +126,7 @@ function messageHandler(event) {
       break;
 
     case SocketConstants.GameFull:
-      $('.game-status').addClass('alert').text('A game is currently in progress...')
+      $('.game-status').addClass('alert').text('A game is currently in progress...');
       $("#start-btn").attr("disabled", true);
       break;
     default:
@@ -161,11 +154,6 @@ function makeAIMove(start, end, piece) {
   const endChessLoc = rowColToChess(end[0], end[1]);
   // For some weird reason, timing out the move fixes a UI glitch
   setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 250);
-}
-
-function clearBoard() {
-  $('.square-highlight-move').removeClass('square-highlight-move');
-  $('.square-active').removeClass('square-active');
 }
 
 /* Chessboard Events */
