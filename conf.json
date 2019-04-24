@@ -1,7 +1,7 @@
 {
   "UseOpenings": false,
   "RandomMoveOrder": true,
-  "MemoryLimit": 28672,
+  "MemoryLimit": 26624,
   "CacheGetAllMoves": true,
   "CacheGetAllAttackableMoves": true,
   "CacheMaxPlayerElements": 10000000,

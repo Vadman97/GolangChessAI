@@ -107,6 +107,10 @@ func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, 
 	if logger.MakeExcel {
 		logger.markPerformanceToExcel(b, m, p)
 	}
+	err := logger.ExcelFile.SaveAs(logger.ExcelFileName)
+	if err != nil {
+		log.Fatal("Cannot save excel performance log.", err)
+	}
 }
 
 /**
