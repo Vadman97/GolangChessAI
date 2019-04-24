@@ -57,7 +57,7 @@ var PieceValue = map[byte]int{
 
 const (
 	PawnValueWeight       = 100
-	PawnStructureWeight   = PawnValueWeight / 20
+	PawnStructureWeight   = PawnValueWeight / 100
 	PieceAdvanceWeight    = PawnValueWeight / 10
 	PieceNumMovesWeight   = PawnValueWeight / 50
 	PieceNumAttacksWeight = PawnValueWeight / 20
