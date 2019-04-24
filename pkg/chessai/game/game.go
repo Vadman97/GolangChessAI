@@ -19,24 +19,26 @@ import (
 )
 
 type Game struct {
-	CurrentBoard      *board.Board
-	CurrentTurnColor  color.Color
-	Players           map[color.Color]player.Player
-	CurrentMoveTime   map[color.Color]time.Duration
-	LastMoveTime      map[color.Color]time.Duration
-	TotalMoveTime     map[color.Color]time.Duration
-	TotalSearchDepth  map[color.Color]int
-	MovesPlayed       uint
-	PreviousMove      *board.LastMove
-	GameStatus        byte
-	CacheMemoryLimit  uint64
-	MoveLimit         int32
-	TimeLimit         time.Duration
-	PerformanceLogger *ai.PerformanceLogger
-	PrintInfo         bool
-	SocketBroadcast   chan api.ChessMessage
-	printer           chan string
-	quit              chan bool
+	CurrentBoard       *board.Board
+	CurrentTurnColor   color.Color
+	Players            map[color.Color]player.Player
+	CurrentMoveTime    map[color.Color]time.Duration
+	LastMoveTime       map[color.Color]time.Duration
+	AverageMoveTime    map[color.Color]float64
+	TotalMoveTime      map[color.Color]time.Duration
+	AverageSearchDepth map[color.Color]float64
+	TotalSearchDepth   map[color.Color]int
+	MovesPlayed        uint
+	PreviousMove       *board.LastMove
+	GameStatus         byte
+	CacheMemoryLimit   uint64
+	MoveLimit          int32
+	TimeLimit          time.Duration
+	PerformanceLogger  *ai.PerformanceLogger
+	PrintInfo          bool
+	SocketBroadcast    chan api.ChessMessage
+	printer            chan string
+	quit               chan bool
 }
 
 type Outcome struct {
@@ -177,6 +179,13 @@ func (g *Game) Loop(client *websocket.Conn) {
 				lastMoveJSON := api.CreateMoveJSON(g.PreviousMove)
 				g.SocketBroadcast <- api.CreateChessMessage(api.AIMove, lastMoveJSON)
 			}
+
+			if g.AverageMoveTime[humanColor] > g.AverageMoveTime[humanColor^1] {
+				humanThinkSec := math.Round(g.AverageMoveTime[humanColor])
+				humanThinkTime := time.Duration(humanThinkSec) * time.Second
+				g.Players[humanColor^1].(*ai.AIPlayer).MaxThinkTime = humanThinkTime
+				log.Printf("Increased AI think time to %s\n", humanThinkTime)
+			}
 		}
 	}
 
@@ -188,17 +197,17 @@ func (g Game) String() (result string) {
 	result += fmt.Sprintln(g.CurrentBoard)
 	result += g.PrintThinkTime(g.CurrentTurnColor^1, g.LastMoveTime)
 	if g.MovesPlayed%2 == 0 || g.GameStatus != Active {
-		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
-		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
+		g.AverageMoveTime[color.White] = g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
+		g.AverageMoveTime[color.Black] = g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
 		result += fmt.Sprintf("Average move time:\n")
-		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
-		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
+		result += fmt.Sprintf("\t White: %fs\n", g.AverageMoveTime[color.White])
+		result += fmt.Sprintf("\t Black: %fs\n", g.AverageMoveTime[color.Black])
 
-		whiteAvg = float64(g.TotalSearchDepth[color.White]) / float64(g.MovesPlayed/2)
-		blackAvg = float64(g.TotalSearchDepth[color.Black]) / float64(g.MovesPlayed/2)
+		g.AverageSearchDepth[color.White] = float64(g.TotalSearchDepth[color.White]) / float64(g.MovesPlayed/2)
+		g.AverageSearchDepth[color.Black] = float64(g.TotalSearchDepth[color.Black]) / float64(g.MovesPlayed/2)
 		result += fmt.Sprintf("Average search depth:\n")
-		result += fmt.Sprintf("\t White: %f\n", whiteAvg)
-		result += fmt.Sprintf("\t Black: %f\n", blackAvg)
+		result += fmt.Sprintf("\t White: %f\n", g.AverageSearchDepth[color.White])
+		result += fmt.Sprintf("\t Black: %f\n", g.AverageSearchDepth[color.Black])
 	}
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
 	result += fmt.Sprintf("Total game turns: %d\n", (g.MovesPlayed-1)/2+1)
