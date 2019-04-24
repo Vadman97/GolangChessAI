@@ -9,6 +9,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
 	"math"
 	"math/rand"
+	"runtime"
 	"time"
 )
 
@@ -21,6 +22,7 @@ type Competition struct {
 	gameNumber             int
 	whiteIndex, blackIndex int
 	competitionRand        *rand.Rand
+	analysisPlayers        map[*ai.AIPlayer]*ai.PerformanceLogger
 }
 
 func NewCompetition() (c *Competition) {
@@ -56,6 +58,21 @@ func (c *Competition) RunCompetition() {
 				g.MovesPlayed, g.GetTotalPlayTime(), evalScore,
 				c.players[g.CurrentTurnColor^1], util.GetMemStatString())
 			g.GamePrinter <- fmt.Sprintln(c)
+
+			if c.analysisPlayers != nil {
+				for player, logger := range c.analysisPlayers {
+					player.MaxSearchDepth = math.MaxInt8
+					player.MaxThinkTime = 5 * time.Second
+					bestMove := player.GetBestMove(g.CurrentBoard, g.PreviousMove, logger)
+					g.GamePrinter <- fmt.Sprintf("===ANALYSIS %s Best Move %s\n", player, bestMove)
+					abdada, isAbdada := player.Algorithm.(*ai.ABDADA)
+					if isAbdada {
+						g.GamePrinter <- fmt.Sprintf("=== threads %d\n", abdada.NumThreads)
+					}
+				}
+				g.ClearCaches(true)
+				runtime.GC()
+			}
 		}
 		fmt.Println(g)
 		g.ClearCaches(true)
@@ -126,5 +143,53 @@ func (c *Competition) RunAICompetition() {
 	c.players[color.Black].MaxSearchDepth = math.MaxUint8
 	c.players[color.Black].MaxThinkTime = 5000 * time.Millisecond
 	c.NumberOfGames = 5
+	c.RunCompetition()
+}
+
+func (c *Competition) RunAIAnalysis() {
+	rand.Seed(config.Get().TestRandSeed)
+	c.players[color.White].Algorithm = &ai.Random{
+		Rand: rand.New(rand.NewSource(config.Get().TestRandSeed)),
+	}
+	c.players[color.Black].Algorithm = &ai.Random{
+		Rand: rand.New(rand.NewSource(config.Get().TestRandSeed)),
+	}
+	c.analysisPlayers = map[*ai.AIPlayer]*ai.PerformanceLogger{
+		ai.NewAIPlayer(color.White, &ai.ABDADA{
+			NumThreads: 24,
+		}): ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
+			config.Get().LogPerformance,
+			"24_"+config.Get().ExcelPerformanceFileName,
+			"24_"+config.Get().PerformanceLogFileName),
+		ai.NewAIPlayer(color.White, &ai.ABDADA{
+			NumThreads: 16,
+		}): ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
+			config.Get().LogPerformance,
+			"16_"+config.Get().ExcelPerformanceFileName,
+			"16_"+config.Get().PerformanceLogFileName),
+		ai.NewAIPlayer(color.White, &ai.ABDADA{
+			NumThreads: 8,
+		}): ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
+			config.Get().LogPerformance,
+			"8_"+config.Get().ExcelPerformanceFileName,
+			"8_"+config.Get().PerformanceLogFileName),
+		ai.NewAIPlayer(color.White, &ai.ABDADA{
+			NumThreads: 4,
+		}): ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
+			config.Get().LogPerformance,
+			"4_"+config.Get().ExcelPerformanceFileName,
+			"4_"+config.Get().PerformanceLogFileName), ai.NewAIPlayer(color.White, &ai.ABDADA{
+			NumThreads: 2,
+		}): ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
+			config.Get().LogPerformance,
+			"2_"+config.Get().ExcelPerformanceFileName,
+			"2_"+config.Get().PerformanceLogFileName), ai.NewAIPlayer(color.White, &ai.ABDADA{
+			NumThreads: 1,
+		}): ai.CreatePerformanceLogger(config.Get().LogPerformanceToExcel,
+			config.Get().LogPerformance,
+			"1_"+config.Get().ExcelPerformanceFileName,
+			"1_"+config.Get().PerformanceLogFileName),
+	}
+	c.NumberOfGames = 1
 	c.RunCompetition()
 }
