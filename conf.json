@@ -14,7 +14,7 @@
   "PrintPlayerInfo": true,
   "DebugLogFileName": "moveDebug.log",
   "PerformanceLogFileName": "performance.log",
-  "ExcelPerformanceFileName": "./performance.xlsx",
+  "ExcelPerformanceFileName": "performance.xlsx",
   "StartingElo": 1200,
   "NumberOfCompetitionGames": 100,
   "TestRandSeed": 12435

@@ -180,7 +180,7 @@ func (g *Game) Loop(client *websocket.Conn) {
 				g.SocketBroadcast <- api.CreateChessMessage(api.AIMove, lastMoveJSON)
 			}
 
-			if g.MovesPlayed > 16 && g.AverageMoveTime[humanColor] > g.AverageMoveTime[humanColor^1] {
+			if g.MovesPlayed > 16 {
 				humanThinkSec := math.Round(g.AverageMoveTime[humanColor])
 				humanThinkTime := time.Duration(humanThinkSec) * time.Second
 				g.Players[humanColor^1].(*ai.AIPlayer).MaxThinkTime = humanThinkTime
