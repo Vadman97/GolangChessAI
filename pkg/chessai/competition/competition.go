@@ -70,6 +70,7 @@ func (c *Competition) RunCompetition() {
 						g.GamePrinter <- fmt.Sprintf("=== threads %d\n", abdada.NumThreads)
 					}
 					g.ClearCaches(true)
+					player.ClearCaches(true)
 					runtime.GC()
 				}
 			}
