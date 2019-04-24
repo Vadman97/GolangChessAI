@@ -93,11 +93,16 @@ func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, 
 
 func updateNameWhileExists(name *string) {
 	id := 1
-	for _, err := os.Stat(*name); err == nil; {
+	newName := *name
+	for {
+		if _, err := os.Stat(newName); os.IsNotExist(err) {
+			break
+		}
 		n := strings.Split(*name, ".")
-		*name = fmt.Sprintf("%s_%d.%s", n[0], id, n[1])
+		newName = fmt.Sprintf("%s_%d.%s", n[0], id, n[1])
 		id++
 	}
+	*name = newName
 }
 
 /**
