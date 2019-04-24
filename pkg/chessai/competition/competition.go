@@ -64,6 +64,7 @@ func (c *Competition) RunCompetition() {
 					player.MaxSearchDepth = math.MaxInt8
 					player.MaxThinkTime = 5 * time.Second
 					bestMove := player.GetBestMove(g.CurrentBoard, g.PreviousMove, logger)
+					player.TurnCount++
 					g.GamePrinter <- fmt.Sprintf("===ANALYSIS %s Best Move %s\n", player, bestMove)
 					abdada, isAbdada := player.Algorithm.(*ai.ABDADA)
 					if isAbdada {
