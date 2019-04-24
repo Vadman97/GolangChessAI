@@ -128,7 +128,11 @@ func (logger *PerformanceLogger) CompletePerformanceLog(aiPlayers []*AIPlayer) {
  */
 func (logger *PerformanceLogger) generateChartsForPlayer(p *AIPlayer) {
 	logger.generatePruningBreakdownChart(p)
+	logger.generateChart("scatter", "Moves Considered", p, startingColPruning, p.TurnCount+24,
+		[]byte{startingColPruning + byte(1)})
 	//logger.generateCacheCharts(p, "Move", startingColMoveCache)
+	logger.generateChart("scatter", "Search Depth", p, startingColSearchStats, p.TurnCount+4,
+		[]byte{startingColSearchStats + byte(1)})
 	logger.generateCacheCharts(p, "Attackable", startingColAttackableCache)
 }
 
