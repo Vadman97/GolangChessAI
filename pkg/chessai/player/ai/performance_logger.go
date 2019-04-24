@@ -7,6 +7,7 @@ import (
 	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
 	"log"
 	"os"
+	"strings"
 )
 
 type PerformanceLogger struct {
@@ -90,6 +91,15 @@ func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, 
 	}
 }
 
+func updateNameWhileExists(name *string) {
+	id := 1
+	for _, err := os.Stat(*name); err == nil; {
+		n := strings.Split(*name, ".")
+		*name = fmt.Sprintf("%s_%d.%s", n[0], id, n[1])
+		id++
+	}
+}
+
 /**
  * Call this function after the game is complete and no more logging is desired. It will generate all charts and save
  * the excel file.
@@ -99,6 +109,7 @@ func (logger *PerformanceLogger) CompletePerformanceLog(aiPlayers []*AIPlayer) {
 		logger.generateChartsForPlayer(ai)
 	}
 
+	updateNameWhileExists(&logger.ExcelFileName)
 	err := logger.ExcelFile.SaveAs(logger.ExcelFileName)
 	if err != nil {
 		log.Fatal("Cannot save excel performance log.", err)
@@ -182,6 +193,7 @@ func (logger *PerformanceLogger) generateSeriesString(sheet string, lastTurnRow 
  * Performs simple logging to log file.
  */
 func (logger *PerformanceLogger) markPerformanceToLog(b *board.Board, m *ScoredMove, p *AIPlayer) {
+	updateNameWhileExists(&logger.LogFileName)
 	file, err := os.OpenFile(logger.LogFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatal("Cannot write/open/append/create performance log.", err)
