@@ -37,7 +37,7 @@ type Game struct {
 	PerformanceLogger  *ai.PerformanceLogger
 	PrintInfo          bool
 	SocketBroadcast    chan api.ChessMessage
-	printer            chan string
+	GamePrinter        chan string
 	quit               chan bool
 }
 
@@ -68,10 +68,10 @@ func (g *Game) PlayTurn() bool {
 	}
 
 	if g.MovesPlayed%2 == 0 && g.GetTotalPlayTime() > g.TimeLimit {
-		g.printer <- fmt.Sprintf("Aborting - out of time\n")
+		g.GamePrinter <- fmt.Sprintf("Aborting - out of time\n")
 		g.GameStatus = Aborted
 	} else {
-		g.printer <- fmt.Sprintf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor])
+		g.GamePrinter <- fmt.Sprintf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor])
 		start := time.Now()
 		quitTimeUpdates := make(chan bool)
 		// print think time for slow players, regardless of what's going on
@@ -114,12 +114,12 @@ func (g *Game) PlayTurn() bool {
 		}
 
 		if g.GameStatus == Active {
-			g.printer <- fmt.Sprintf("Move #%d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
+			g.GamePrinter <- fmt.Sprintf("Move #%d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
 		} else {
-			g.printer <- fmt.Sprintf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
+			g.GamePrinter <- fmt.Sprintf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
 		}
 	}
-	g.printer <- fmt.Sprintln(g)
+	g.GamePrinter <- fmt.Sprintln(g)
 	if g.GameStatus != Active {
 		var aiPlayers []*ai.AIPlayer
 		for c := color.White; c < color.NumColors; c++ {
@@ -233,12 +233,12 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 			return
 		default:
 			g.CurrentMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
-			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor, g.CurrentMoveTime))
+			g.GamePrinter <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor, g.CurrentMoveTime))
 			if aiPlayer, isAI := g.Players[g.CurrentTurnColor].(*ai.AIPlayer); isAI {
-				g.printer <- fmt.Sprintf("\t%s\n\t", aiPlayer.Metrics)
+				g.GamePrinter <- fmt.Sprintf("\t%s\n\t", aiPlayer.Metrics)
 			}
-			g.printer <- util.GetMemStatString()
-			g.printer <- fmt.Sprintln()
+			g.GamePrinter <- util.GetMemStatString()
+			g.GamePrinter <- fmt.Sprintln()
 			// TODO(Vadim) decide if any other player things to print here
 		}
 		time.Sleep(30 * time.Second)
@@ -321,11 +321,11 @@ func (g *Game) GetStatusJSON() *api.GameStatusJSON {
 func (g *Game) memoryThread() {
 	for g.GameStatus == Active {
 		if util.GetMemoryUsed() > g.CacheMemoryLimit {
-			g.printer <- fmt.Sprintf("Clearing caches\n")
+			g.GamePrinter <- fmt.Sprintf("Clearing caches\n")
 			g.ClearCaches(false)
 			runtime.GC()
-			g.printer <- fmt.Sprintf("Cleared!\n")
-			g.printer <- util.GetMemStatString()
+			g.GamePrinter <- fmt.Sprintf("Cleared!\n")
+			g.GamePrinter <- util.GetMemStatString()
 		}
 		time.Sleep(1 * time.Second)
 	}
@@ -333,9 +333,9 @@ func (g *Game) memoryThread() {
 
 func (g *Game) printThread() {
 	for g.GameStatus == Active {
-		util.PrintPrinter(g.printer, g.PrintInfo)
+		util.PrintPrinter(g.GamePrinter, g.PrintInfo)
 	}
-	util.PrintPrinter(g.printer, g.PrintInfo)
+	util.PrintPrinter(g.GamePrinter, g.PrintInfo)
 }
 
 func NewGame(whitePlayer, blackPlayer player.Player) *Game {
@@ -383,7 +383,7 @@ func NewGame(whitePlayer, blackPlayer player.Player) *Game {
 		PerformanceLogger: performanceLogger,
 		PrintInfo:         true,
 		SocketBroadcast:   make(chan api.ChessMessage, 10),
-		printer:           make(chan string, 100000),
+		GamePrinter:       make(chan string, 100000),
 		quit:              make(chan bool),
 	}
 	g.CurrentBoard.ResetDefault()

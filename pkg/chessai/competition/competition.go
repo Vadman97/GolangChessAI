@@ -55,12 +55,14 @@ func (c *Competition) RunCompetition() {
 			fmt.Printf("#%d, T: %s, S: %d, P: %s, memory: %s",
 				g.MovesPlayed, g.GetTotalPlayTime(), evalScore,
 				c.players[g.CurrentTurnColor^1], util.GetMemStatString())
+			g.GamePrinter <- fmt.Sprintln(c)
 		}
 		fmt.Println(g)
 		g.ClearCaches(true)
 		outcome := c.derandomizeGameOutcome(g.GetGameOutcome())
 		c.elos = CalculateRatings(c.elos, outcome)
 		c.RecordOutcome(outcome)
+		fmt.Println(c)
 	}
 	fmt.Println(c)
 }
