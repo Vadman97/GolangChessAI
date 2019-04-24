@@ -69,9 +69,9 @@ func (c *Competition) RunCompetition() {
 					if isAbdada {
 						g.GamePrinter <- fmt.Sprintf("=== threads %d\n", abdada.NumThreads)
 					}
+					g.ClearCaches(true)
+					runtime.GC()
 				}
-				g.ClearCaches(true)
-				runtime.GC()
 			}
 		}
 		fmt.Println(g)
