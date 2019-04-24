@@ -354,7 +354,15 @@ func NewGame(whitePlayer, blackPlayer player.Player) *Game {
 			color.White: 0,
 			color.Black: 0,
 		},
+		AverageMoveTime: map[byte]float64{
+			color.White: 0,
+			color.Black: 0,
+		},
 		TotalSearchDepth: map[byte]int{
+			color.White: 0,
+			color.Black: 0,
+		},
+		AverageSearchDepth: map[byte]float64{
 			color.White: 0,
 			color.Black: 0,
 		},
