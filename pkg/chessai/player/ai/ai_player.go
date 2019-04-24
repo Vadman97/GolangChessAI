@@ -263,6 +263,20 @@ func (p *AIPlayer) trackThinkTime(stop, done chan bool, start time.Time) {
 	done <- true
 }
 
+func (p *AIPlayer) trackThinkTimeNoChans(start time.Time) {
+	if p.MaxThinkTime != 0 {
+		for !p.abort {
+			thinkTime := time.Now().Sub(start)
+			if thinkTime > p.MaxThinkTime {
+				p.abort = true
+				p.printer <- fmt.Sprintf("requesting AI hard abort, out of time -- no chan method!!\n")
+			} else {
+				time.Sleep(1 * time.Millisecond)
+			}
+		}
+	}
+}
+
 func (p *AIPlayer) terminalNode(b *board.Board, moves *[]location.Move) bool {
 	return len(*moves) == 0 || b.PreviousPositionsSeen >= 3 || b.MovesSinceNoDraw >= 100
 }

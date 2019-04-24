@@ -34,10 +34,12 @@ import (
 )
 
 type Jamboree struct {
-	player           *AIPlayer
-	threadNumber     int
-	activeThreads    int
-	activeThreadLock sync.Mutex
+	player                 *AIPlayer
+	threadNumber           int
+	activeThreads          int
+	currentSearchDepth     int
+	currentSearchDepthLock sync.Mutex
+	activeThreadLock       sync.Mutex
 }
 
 type TTAnswerJamboree struct {
@@ -49,7 +51,6 @@ type TTAnswerJamboree struct {
 
 func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, currentPlayer color.Color,
 	previousMove *board.LastMove, abortFlag *bool) ScoredMove {
-
 	if depth == 0 {
 		return ScoredMove{Score: j.player.EvaluateBoard(root, currentPlayer).TotalScore}
 	} else {
@@ -57,18 +58,14 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 		moves := root.GetAllMoves(currentPlayer, previousMove)
 		ttAnswer := <-answerChan
 
-		if len(*moves) == 0 {
+		if j.player.terminalNode(root, moves) {
 			return ScoredMove{Score: j.player.EvaluateBoard(root, currentPlayer).TotalScore}
 		}
 
 		// transposition table saved us work
-		if ttAnswer.Found && ttAnswer.Depth == uint16(depth) {
+		if ttAnswer.Found && (ttAnswer.Depth == uint16(depth)) {
 			atomic.AddUint64(&j.player.Metrics.MovesPrunedTransposition, uint64(len(*moves)))
-			return ScoredMove{Score: ttAnswer.Score}
-		}
-
-		if *abortFlag {
-			return ScoredMove{Score: NegInf}
+			return ScoredMove{Score: ttAnswer.Score, Move: ttAnswer.BestMove}
 		}
 
 		var firstMove location.Move
@@ -79,9 +76,10 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 		}
 
 		child, prev := j.player.applyMove(root, &firstMove)
-		b := j.Jamboree(child, depth-1, -beta, -alpha, currentPlayer^1, prev, abortFlag)
-		b.Score *= -1
-		b.Move = firstMove
+
+		score := j.Jamboree(child, depth-1, -beta, -alpha, currentPlayer^1, prev, abortFlag).NegScore().Score
+
+		b := ScoredMove{Score: score, Move: firstMove}
 
 		if b.Score >= beta {
 			return b
@@ -90,57 +88,75 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 			alpha = b.Score
 		}
 
-		if *abortFlag {
-			return ScoredMove{Score: NegInf}
+		if *abortFlag || j.player.abort {
+			return b
 		}
 
 		nextLevelAbortFlag := false
 
-		var movesToResearchLock sync.Mutex
-		var movesToResearch []location.Move
-
 		var childWaitGroup sync.WaitGroup
+		var largeWindowWaitGroup sync.WaitGroup
 		var bLock sync.Mutex
 		var resultLock sync.Mutex
+		var alphaLock sync.Mutex
 		result := ScoredMove{ReturnThisMove: false}
 
 		for i := 0; i < len(*moves); i++ {
-			if *abortFlag {
-				return ScoredMove{Score: NegInf}
-			}
-
 			if (*moves)[i].Equals(&firstMove) {
 				continue
 			}
 
+			if *abortFlag || j.player.abort {
+				return b
+			}
+
 			if !nextLevelAbortFlag {
 				childWaitGroup.Add(1)
+				largeWindowWaitGroup.Add(1)
 				go func(abortFlag *bool, move location.Move) {
 					child, prev := j.player.applyMove(root, &move)
-					nextScoredMove := j.Jamboree(child, depth-1, -alpha-1, -alpha, currentPlayer^1, prev, abortFlag)
-					nextScoredMove.Score *= -1
+					score := j.Jamboree(child, depth-1, -alpha-1, -alpha, currentPlayer^1, prev, abortFlag).NegScore().Score
 					bLock.Lock()
-					if nextScoredMove.Score > b.Score {
-						b.Score = nextScoredMove.Score
-						b.Move = move
+					if score > b.Score {
+						b = ScoredMove{Score: score, Move: move}
 					}
 					bLock.Unlock()
-					if nextScoredMove.Score >= beta {
+					if score >= beta {
 						*abortFlag = true
 						resultLock.Lock()
-						result.ReturnThisMove = true
-						result.Move = move
-						result.Score = nextScoredMove.Score
+						result = ScoredMove{Score: score, Move: move, ReturnThisMove: true}
 						resultLock.Unlock()
 					}
-					if nextScoredMove.Score > alpha {
-						movesToResearchLock.Lock()
-						movesToResearch = append(movesToResearch, move)
-						movesToResearchLock.Unlock()
+					largeWindowWaitGroup.Done()
+					if score > alpha {
+						//wait till all previous iterations are complete
+						largeWindowWaitGroup.Wait()
+						//check again that we should not abort, then proceed
+						if !(*abortFlag) {
+							child, prev := j.player.applyMove(root, &move)
+							score = j.Jamboree(child, depth-1, -beta, -alpha, currentPlayer^1, prev, abortFlag).NegScore().Score
+							if score >= beta {
+								*abortFlag = true
+								resultLock.Lock()
+								result = ScoredMove{Score: score, Move: move, ReturnThisMove: true}
+								resultLock.Unlock()
+							}
+
+							alphaLock.Lock()
+							if score > alpha {
+								alpha = score
+							}
+							alphaLock.Unlock()
+
+							bLock.Lock()
+							if score > b.Score {
+								b = ScoredMove{Score: score, Move: move}
+							}
+							bLock.Unlock()
+						}
 					}
 					childWaitGroup.Done()
 				}(&nextLevelAbortFlag, (*moves)[i])
-				j.threadNumber++
 			} else {
 				break
 			}
@@ -150,28 +166,6 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 		if result.ReturnThisMove {
 			j.syncTTWrite(root, currentPlayer, result.Score, uint16(depth), result.Move)
 			return result
-		} else {
-			// now, serially research any specific moves that we could possibly be better than firstChild
-			for i := 0; i < len(movesToResearch); i++ {
-				if *abortFlag {
-					return ScoredMove{Score: NegInf}
-				}
-				child, prev := j.player.applyMove(root, &movesToResearch[i])
-				dummyAbortFlag := false
-				nextScoredMove := j.Jamboree(child, depth-1, -beta, -alpha, currentPlayer^1, prev, &dummyAbortFlag)
-				nextScoredMove.Score *= -1
-				if nextScoredMove.Score >= beta {
-					j.syncTTWrite(root, currentPlayer, nextScoredMove.Score, uint16(depth), movesToResearch[i])
-					return ScoredMove{Score: nextScoredMove.Score, Move: movesToResearch[i]}
-				}
-				if nextScoredMove.Score > alpha {
-					alpha = nextScoredMove.Score
-				}
-				if nextScoredMove.Score > b.Score {
-					b.Score = nextScoredMove.Score
-					b.Move = movesToResearch[i]
-				}
-			}
 		}
 		j.syncTTWrite(root, currentPlayer, b.Score, uint16(depth), b.Move)
 		return b
@@ -238,10 +232,13 @@ func (j *Jamboree) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.
 		b.CacheGetAllMoves = false
 		b.CacheGetAllAttackableMoves = false
 	}
+	j.currentSearchDepth = j.player.MaxSearchDepth
+	j.player.abort = false
 	dummyAbortFlag := false
 	j.threadNumber = 0
 	j.activeThreads = 1
 	best := j.Jamboree(b, j.player.MaxSearchDepth, NegInf, PosInf, j.player.PlayerColor, previousMove, &dummyAbortFlag)
+	j.player.abort = true
 	return &best
 }
 
