@@ -75,7 +75,6 @@ type AIPlayer struct {
 	MaxSearchDepth            int
 	MaxThinkTime              time.Duration
 	LastSearchDepth           int
-	LastSearchTime            time.Duration
 	TurnCount                 int
 	Opening                   int
 	Metrics                   *Metrics

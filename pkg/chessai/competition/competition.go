@@ -115,9 +115,9 @@ func (c *Competition) RunAICompetition() {
 	rand.Seed(config.Get().TestRandSeed)
 	c.players[color.White].Algorithm = &ai.MiniMax{}
 	c.players[color.White].MaxSearchDepth = math.MaxUint8
-	c.players[color.White].MaxThinkTime = 15000 * time.Millisecond
+	c.players[color.White].MaxThinkTime = 5000 * time.Millisecond
 	c.players[color.Black].Algorithm = &ai.MTDf{}
 	c.players[color.Black].MaxSearchDepth = math.MaxUint8
-	c.players[color.Black].MaxThinkTime = 15000 * time.Millisecond
+	c.players[color.Black].MaxThinkTime = 5000 * time.Millisecond
 	c.RunCompetition()
 }

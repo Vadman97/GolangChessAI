@@ -77,7 +77,7 @@ func (logger *PerformanceLogger) setupExcelRowHeadings(sheet string) {
 	//	logger.setupExcelRowHeadingsForTable(sheet, "Move Cache Statistics", cacheHeadings, startingColMoveCache)
 	logger.setupExcelRowHeadingsForTable(sheet, "Attackable Cache Statistics", cacheHeadings,
 		startingColAttackableCache)
-	searchStatsHeadings := []string{"Turn", "Search Depth", "Search Time", "Score"}
+	searchStatsHeadings := []string{"Turn", "Search Depth", "Score"}
 	logger.setupExcelRowHeadingsForTable(sheet, "Search Statistics", searchStatsHeadings, startingColSearchStats)
 }
 
@@ -258,7 +258,6 @@ func (logger *PerformanceLogger) markPerformanceToExcel(b *board.Board, m *Score
 		[]interface{}{
 			p.TurnCount,
 			p.LastSearchDepth,
-			p.LastSearchTime,
 			m.Score,
 		}, startingColSearchStats)
 }
