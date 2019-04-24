@@ -75,6 +75,11 @@ func (c *Competition) RunCompetition() {
 				}
 			}
 		}
+		if c.analysisPlayers != nil {
+			for player, logger := range c.analysisPlayers {
+				logger.CompletePerformanceLog([]*ai.AIPlayer{player})
+			}
+		}
 		fmt.Println(g)
 		g.ClearCaches(true)
 		outcome := c.derandomizeGameOutcome(g.GetGameOutcome())
