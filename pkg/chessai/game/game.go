@@ -183,8 +183,12 @@ func (g *Game) Loop(client *websocket.Conn) {
 			if g.MovesPlayed > 16 {
 				humanThinkSec := math.Round(g.AverageMoveTime[humanColor])
 				humanThinkTime := time.Duration(humanThinkSec) * time.Second
-				g.Players[humanColor^1].(*ai.AIPlayer).MaxThinkTime = humanThinkTime
-				log.Printf("Increased AI think time to %s\n", humanThinkTime)
+				// only allow AI to go up to certain think time
+				// TODO(Vadim) implement think low, high bounds
+				if humanThinkTime < g.Players[humanColor^1].(*ai.AIPlayer).MaxThinkTime*6 {
+					g.Players[humanColor^1].(*ai.AIPlayer).MaxThinkTime = humanThinkTime
+					log.Printf("Increased AI think time to %s\n", humanThinkTime)
+				}
 			}
 		}
 	}
