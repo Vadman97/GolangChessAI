@@ -57,14 +57,14 @@ var PieceValue = map[byte]int{
 
 const (
 	PawnValueWeight       = 1000
-	PawnStructureWeight   = PawnValueWeight / 1000
+	PawnStructureWeight   = PawnValueWeight / 100
 	PieceAdvanceWeight    = PawnValueWeight / 100
-	PieceNumMovesWeight   = PawnValueWeight / 500
-	PieceNumAttacksWeight = PawnValueWeight / 200
+	PieceNumMovesWeight   = PawnValueWeight / 1000
+	PieceNumAttacksWeight = PawnValueWeight / 1000
 	KingDisplacedWeight   = -2 * PawnValueWeight
 	RookDisplacedWeight   = -PawnValueWeight / 10
 	KingCastledWeight     = 3 * PawnValueWeight
-	KingCheckedWeight     = 1 * PawnValueWeight
+	KingCheckedWeight     = -PawnValueWeight / 2
 	// neg 1 pawn if we do nothing in 50 moves (100 ply)
 	Weight50Rule = -PawnValueWeight / 100
 )
