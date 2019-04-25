@@ -64,10 +64,10 @@ const (
 	PawnValueWeight       = 1000
 	PawnStructureWeight   = PawnValueWeight / 10
 	PieceStructureWeight  = PawnValueWeight / 50
-	PieceNumMovesWeight   = PawnValueWeight / 1000
-	PieceNumAttacksWeight = PawnValueWeight / 100000
-	KingCastledWeight     = PawnValueWeight
-	KingDisplacedWeight   = -PawnValueWeight
+	PieceNumMovesWeight   = PawnValueWeight / 100
+	PieceNumAttacksWeight = PawnValueWeight / 1000
+	KingCastledWeight     = PawnValueWeight / 2
+	KingDisplacedWeight   = -PawnValueWeight / 2
 	RookDisplacedWeight   = -PawnValueWeight / 10
 	KingCheckedWeight     = -PawnValueWeight / 2
 	// neg 1 pawn if we do nothing in 50 moves (100 ply)
