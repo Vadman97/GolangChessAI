@@ -60,7 +60,7 @@ const (
 	PawnStructureWeight   = PawnValueWeight / 10
 	PieceAdvanceWeight    = PawnValueWeight / 10
 	PieceNumMovesWeight   = PawnValueWeight / 1000
-	PieceNumAttacksWeight = PawnValueWeight / 1000
+	PieceNumAttacksWeight = 0 // PawnValueWeight / 1000
 	KingCastledWeight     = 3 * PawnValueWeight
 	KingDisplacedWeight   = -2 * PawnValueWeight
 	RookDisplacedWeight   = -PawnValueWeight / 10
