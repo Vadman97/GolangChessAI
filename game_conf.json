@@ -3,5 +3,5 @@
   "MovesToPlay": 1000,
   "SecondsToPlay": 7200,
   "AIMaxSearchDepth": 255,
-  "AIMaxThinkTimeMs": 5000
+  "AIMaxThinkTimeMs": 15000
 }

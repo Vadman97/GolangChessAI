@@ -1,10 +1,10 @@
 {
   "UseOpenings": false,
   "RandomMoveOrder": true,
-  "MemoryLimit": 26624,
+  "MemoryLimit": 50000,
   "CacheGetAllMoves": true,
   "CacheGetAllAttackableMoves": true,
-  "CacheMaxPlayerElements": 10000000,
+  "CacheMaxPlayerElements": 100000000,
   "IterativeIncrement": 1,
   "TranspositionTableEnabled": true,
 
