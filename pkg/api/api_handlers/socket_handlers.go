@@ -14,7 +14,6 @@ import (
 	"sync"
 )
 
-
 var client *websocket.Conn
 var clientMutex = &sync.Mutex{}
 var upgrader = websocket.Upgrader{
@@ -126,7 +125,12 @@ func HandleMessages(g *game.Game) {
 		case api.AvailablePlayerMoves:
 			fallthrough
 		case api.AIMove:
-			err := client.WriteJSON(msg)
+			var err error
+			clientMutex.Lock()
+			if client != nil {
+				err = client.WriteJSON(msg)
+			}
+			clientMutex.Unlock()
 			if err != nil {
 				log.Printf("Unable to send to client - %v", err)
 				continue
@@ -136,14 +140,13 @@ func HandleMessages(g *game.Game) {
 	}
 }
 
-
 func HandlePlayerMove(moveJSON api.MoveJSON) {
 	for c := color.White; c < color.NumColors; c++ {
 		humanPlayer, isHuman := getGame().Players[c].(*player.HumanPlayer)
 		if isHuman {
 			move := &location.Move{
 				Start: location.NewLocation(moveJSON.Start[0], moveJSON.Start[1]),
-				End: location.NewLocation(moveJSON.End[0], moveJSON.End[1]),
+				End:   location.NewLocation(moveJSON.End[0], moveJSON.End[1]),
 			}
 
 			// Add Pawn Promotion Information if it exists
