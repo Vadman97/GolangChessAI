@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"runtime"
 	"sync"
 )
 
@@ -73,6 +74,9 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 
 	// Start Game
 	if client != nil && getGame() != nil {
+		getGame().ClearCaches(true)
+		log.Println("NEW GAME CLEARING CACHE")
+		runtime.GC()
 		go getGame().Loop(client)
 	}
 
