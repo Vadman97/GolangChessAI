@@ -5,24 +5,6 @@ import (
 	"math/rand"
 )
 
-func MaxScore(a, b int) (result int) {
-	if b > a {
-		result = b
-	} else {
-		result = a
-	}
-	return
-}
-
-func MinScore(a, b int) (result int) {
-	if b < a {
-		result = b
-	} else {
-		result = a
-	}
-	return
-}
-
 func RandShuffleMoves(arr []location.Move) (result []location.Move) {
 	result = make([]location.Move, len(arr))
 	copy(result, arr)

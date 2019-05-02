@@ -135,7 +135,7 @@ func loadCompetitionBoards(boards map[string]competitionBoard) map[string]compet
 
 func evaluateScores(t *testing.T, c color.Color, gameBoard *board.Board, moves map[string]location.Move) {
 	eval := NewAIPlayer(c, nil)
-	scores := map[string]int{}
+	scores := map[string]Value{}
 	for algorithmName, move := range moves {
 		newBoard := gameBoard.Copy()
 		board.MakeMove(&move, newBoard)
@@ -155,7 +155,7 @@ func evaluateScores(t *testing.T, c color.Color, gameBoard *board.Board, moves m
 	fmt.Printf("Difference: %d\n", diff)
 	// test that the moves are all good within a pawn
 	// TODO(Vadim) make more aggressive
-	assert.True(t, diff <= PawnValueWeight*PieceValue[piece.QueenType])
+	assert.True(t, diff <= Value(PawnValueWeight*PieceValue[piece.QueenType]))
 }
 
 func getBestMove(gameBoard *board.Board, c color.Color, algorithm Algorithm) *location.Move {

@@ -7,34 +7,34 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 )
 
-func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
+func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth int, alpha, beta Value, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
 	var h util.BoardHash
 	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h = root.Hash()
 		if entry, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
 			abEntry := entry.(*transposition_table.TranspositionTableEntryABMemory)
-			if abEntry.Lower >= beta {
+			if Value(abEntry.Lower) >= beta {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
-					Score: abEntry.Lower,
+					Score: Value(abEntry.Lower),
 					Move:  abEntry.BestMove,
 				}
-			} else if abEntry.Upper <= alpha {
+			} else if Value(abEntry.Upper) <= alpha {
 				ab.player.Metrics.MovesPrunedTransposition++
 				return &ScoredMove{
-					Score: abEntry.Upper,
+					Score: Value(abEntry.Upper),
 					Move:  abEntry.BestMove,
 				}
 			}
-			if abEntry.Lower > NegInf && abEntry.Lower > alpha {
+			if Value(abEntry.Lower) > NegInf && Value(abEntry.Lower) > alpha {
 				ab.player.Metrics.MovesABImprovedTransposition++
-				alpha = abEntry.Lower
+				alpha = Value(abEntry.Lower)
 				// TODO(Vadim) first in for loop of moves try abEntry.BestMove, same in other else
 			}
-			if abEntry.Upper < PosInf && abEntry.Upper < beta {
+			if Value(abEntry.Upper) < PosInf && Value(abEntry.Upper) < beta {
 				ab.player.Metrics.MovesABImprovedTransposition++
-				beta = abEntry.Upper
+				beta = Value(abEntry.Upper)
 			}
 		}
 	}
@@ -47,7 +47,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		}
 	} else {
 		var maximizingPlayer = currentPlayer == ab.player.PlayerColor
-		var a, b int
+		var a, b Value
 		if maximizingPlayer {
 			best.Score = NegInf
 			a = alpha
@@ -85,9 +85,9 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 				best = *candidate
 			}
 			if maximizingPlayer {
-				a = util.MaxScore(best.Score, a)
+				a = MaxScore(best.Score, a)
 			} else {
-				b = util.MinScore(best.Score, b)
+				b = MinScore(best.Score, b)
 			}
 		}
 	}
@@ -95,20 +95,20 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	if !ab.player.abort && ab.player.TranspositionTableEnabled {
 		if best.Score >= beta {
 			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
-				Lower:    best.Score,
-				Upper:    PosInf,
+				Lower:    int(best.Score),
+				Upper:    int(PosInf),
 				BestMove: best.Move,
 			})
 		} else if best.Score > alpha && best.Score < beta {
 			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
-				Lower:    best.Score,
-				Upper:    best.Score,
+				Lower:    int(best.Score),
+				Upper:    int(best.Score),
 				BestMove: best.Move,
 			})
 		} else if best.Score <= alpha {
 			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
-				Lower:    NegInf,
-				Upper:    best.Score,
+				Lower:    int(NegInf),
+				Upper:    int(best.Score),
 				BestMove: best.Move,
 			})
 		}

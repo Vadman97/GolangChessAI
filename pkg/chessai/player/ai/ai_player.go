@@ -8,6 +8,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"runtime"
@@ -15,9 +16,9 @@ import (
 )
 
 const (
-	PosInf       = int(1000000000)
-	NegInf       = int(-PosInf)
-	OnEvaluation = int(1111111111)
+	PosInf       = Value(30000)
+	NegInf       = Value(-PosInf)
+	OnEvaluation = Value(math.MaxInt16)
 )
 
 const (
@@ -59,7 +60,7 @@ var OpeningMoves = map[color.Color][][]*location.Move{
 type ScoredMove struct {
 	Move           location.Move
 	MoveSequence   []location.Move
-	Score          int
+	Score          Value
 	ReturnThisMove bool
 }
 

@@ -50,7 +50,7 @@ func (c *Competition) RunCompetition() {
 		for active {
 			active = g.PlayTurn()
 			evalScore := ai.EvaluateBoardNoCache(g.CurrentBoard, g.CurrentTurnColor^1).TotalScore
-			fmt.Printf("#%d, T: %s, S: %d, P: %s, memory: %s",
+			fmt.Printf("#%d, T: %s, MakeScore: %d, P: %s, memory: %s",
 				g.MovesPlayed, g.GetTotalPlayTime(), evalScore,
 				c.players[g.CurrentTurnColor^1], util.GetMemStatString())
 		}

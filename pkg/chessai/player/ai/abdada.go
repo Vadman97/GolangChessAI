@@ -7,14 +7,13 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/transposition_table"
-	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"log"
 	"runtime"
 	"sync/atomic"
 	"time"
 )
 
-func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove) ScoredMove {
+func (ab *ABDADA) ABDADA(root *board.Board, depth int, alpha, beta Value, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove) ScoredMove {
 	if depth == 0 {
 		return ScoredMove{
 			Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
@@ -66,7 +65,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 					exclusiveProbe = iteration == 1 && !firstMove
 
 					child, previousMove := ab.player.applyMove(root, &move)
-					value := ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, previousMove)
+					value := ab.ABDADA(child, depth-1, -beta, -MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, previousMove)
 					value.Score = -value.Score
 					value.Move = move
 
@@ -94,7 +93,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	}
 }
 
-func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMove *board.LastMove) ScoredMove {
+func (ab *ABDADA) getBestMove(b *board.Board, depth int, alpha, beta Value, previousMove *board.LastMove) ScoredMove {
 	ab.player.abort = false
 	if ab.NumThreads == 0 {
 		ab.NumThreads = runtime.NumCPU()
@@ -199,11 +198,11 @@ func (ab *ABDADA) GetName() string {
 }
 
 type TTAnswer struct {
-	alpha, beta, score int
+	alpha, beta, score Value
 	bestMove           location.Move
 }
 
-func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
+func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta Value, sm *ScoredMove) {
 	if ab.player.TranspositionTableEnabled {
 		// transposition table lookup
 		h := root.Hash()
@@ -225,7 +224,7 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				} else {
 					entry.EntryType = transposition_table.TrueScore
 				}
-				entry.Score = sm.Score
+				entry.Score = int(sm.Score)
 				entry.BestMove = sm.Move
 				entry.Depth = depth
 
@@ -235,7 +234,7 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 	}
 }
 
-func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, exclusiveProbe bool) chan TTAnswer {
+func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta Value, exclusiveProbe bool) chan TTAnswer {
 	answerChan := make(chan TTAnswer)
 	go func(answerChan chan TTAnswer) {
 		answer := TTAnswer{
@@ -255,15 +254,15 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 					answer.score = OnEvaluation
 				} else if entry.Depth >= depth {
 					if entry.EntryType == transposition_table.TrueScore {
-						answer.score = entry.Score
-						answer.alpha = entry.Score
-						answer.beta = entry.Score
-					} else if entry.EntryType == transposition_table.UpperBound && entry.Score < beta {
-						answer.score = entry.Score
-						answer.beta = entry.Score
-					} else if entry.EntryType == transposition_table.LowerBound && entry.Score > alpha {
-						answer.score = entry.Score
-						answer.alpha = entry.Score
+						answer.score = Value(entry.Score)
+						answer.alpha = Value(entry.Score)
+						answer.beta = Value(entry.Score)
+					} else if entry.EntryType == transposition_table.UpperBound && Value(entry.Score) < beta {
+						answer.score = Value(entry.Score)
+						answer.beta = Value(entry.Score)
+					} else if entry.EntryType == transposition_table.LowerBound && Value(entry.Score) > alpha {
+						answer.score = Value(entry.Score)
+						answer.alpha = Value(entry.Score)
 					}
 					answer.bestMove = entry.BestMove
 

@@ -2,7 +2,7 @@ package ai
 
 import "github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 
-func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
+func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta Value, currentPlayer byte, previousMove *board.LastMove) Value {
 	standPat := p.EvaluateBoard(root, currentPlayer).TotalScore
 	if standPat >= beta {
 		return beta

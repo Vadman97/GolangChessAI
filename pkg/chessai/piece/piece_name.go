@@ -10,6 +10,7 @@ const (
 )
 
 const (
+	NumPieces  = 7
 	NilType    = byte(0)
 	RookType   = byte(1)
 	KnightType = byte(2)
@@ -30,11 +31,11 @@ var NameToType = map[rune]byte{
 	PawnChar:   PawnType,
 }
 
-var TypeToName = map[byte]string {
-	RookType: string(RookChar),
+var TypeToName = map[byte]string{
+	RookType:   string(RookChar),
 	KnightType: string(KnightChar),
 	BishopType: string(BishopChar),
-	QueenType: string(QueenChar),
-	KingType: string(KingChar),
-	PawnType: string(PawnChar),
+	QueenType:  string(QueenChar),
+	KingType:   string(KingChar),
+	PawnType:   string(PawnChar),
 }

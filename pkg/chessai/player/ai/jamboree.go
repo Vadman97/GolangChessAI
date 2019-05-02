@@ -42,12 +42,12 @@ type Jamboree struct {
 
 type TTAnswerJamboree struct {
 	Found    bool
-	Score    int
+	Score    Value
 	BestMove location.Move
 	Depth    uint16
 }
 
-func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, currentPlayer color.Color,
+func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha, beta Value, currentPlayer color.Color,
 	previousMove *board.LastMove, abortFlag *bool) ScoredMove {
 
 	if depth == 0 {
@@ -193,7 +193,7 @@ func (j *Jamboree) asyncTTRead(root *board.Board, currentPlayer color.Color) cha
 				entry.Lock.Lock()
 				// make a deep copy of the TTAnswerJamboree data
 				answer.Found = true
-				answer.Score, answer.BestMove, answer.Depth = entry.Score, entry.BestMove, entry.Depth
+				answer.Score, answer.BestMove, answer.Depth = Value(entry.Score), entry.BestMove, entry.Depth
 				entry.Lock.Unlock()
 			}
 		}
@@ -206,13 +206,13 @@ func (j *Jamboree) asyncTTRead(root *board.Board, currentPlayer color.Color) cha
  * Performs a write to the transposition table if the depth being written is > depth currently written OR if there is no
  * entry currently in the table.
  */
-func (j *Jamboree) syncTTWrite(root *board.Board, currentPlayer color.Color, score int, depth uint16, move location.Move) {
+func (j *Jamboree) syncTTWrite(root *board.Board, currentPlayer color.Color, score Value, depth uint16, move location.Move) {
 	if j.player.TranspositionTableEnabled {
 		h := root.Hash()
 		e, ok := j.player.transpositionTable.Read(&h, currentPlayer)
 		if !ok {
 			entry := transposition_table.TranspositionTableEntryJamboree{
-				Score:    score,
+				Score:    int(score),
 				BestMove: move,
 				Depth:    depth,
 			}
@@ -221,7 +221,7 @@ func (j *Jamboree) syncTTWrite(root *board.Board, currentPlayer color.Color, sco
 			entry := e.(*transposition_table.TranspositionTableEntryJamboree)
 			entry.Lock.Lock()
 			// make a deep copy into the transposition table
-			entry.Score = score
+			entry.Score = int(score)
 			entry.BestMove = move
 			entry.Depth = depth
 			entry.Lock.Unlock()

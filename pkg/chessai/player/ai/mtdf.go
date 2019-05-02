@@ -12,7 +12,7 @@ func (m *MTDf) MTDf(root *board.Board, guess *ScoredMove, previousMove *board.La
 	lowerBound := NegInf
 	upperBound := PosInf
 	for true {
-		var beta int
+		var beta Value
 		if guess.Score == lowerBound {
 			beta = guess.Score + 1
 		} else {

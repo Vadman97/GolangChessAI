@@ -18,7 +18,7 @@ func BenchmarkEvaluate(b *testing.B) {
 	}
 	assert.NotNil(b, eval)
 	if eval != nil {
-		assert.Equal(b, 0, eval.TotalScore)
+		assert.Equal(b, 0, int(eval.TotalScore))
 	}
 }
 
