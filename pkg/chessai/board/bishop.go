@@ -74,8 +74,8 @@ func (r *Bishop) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 /**
  * Retrieves all squares that this bishop can attack.
  */
-func (r *Bishop) GetAttackableMoves(board *Board) AttackableBoard {
-	attackableBoard := CreateEmptyAttackableBoard()
+func (r *Bishop) GetAttackableMoves(board *Board) BitBoard {
+	attackableBoard := BitBoard(0)
 	for i := 0; i < 4; i++ {
 		loc := r.GetPosition()
 		var inBounds bool
@@ -92,7 +92,7 @@ func (r *Bishop) GetAttackableMoves(board *Board) AttackableBoard {
 			if !inBounds {
 				break
 			}
-			SetLocationAttackable(attackableBoard, loc)
+			attackableBoard.SetLocation(loc)
 			if !CheckLocationForAttackability(loc, board) {
 				break
 			}

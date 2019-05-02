@@ -13,7 +13,7 @@ type Piece interface {
 	GetPosition() location.Location
 	SetPosition(location.Location)
 	GetMoves(board *Board, onlyFirstMove bool) *[]location.Move
-	GetAttackableMoves(*Board) AttackableBoard
+	GetAttackableMoves(*Board) BitBoard
 	GetPieceType() byte
 	Move(m *location.Move, b *Board)
 }
