@@ -1,4 +1,4 @@
-Black -90 negative because W_P opens more moves than B_P
+Black -50 negative because W_P opens more moves than B_P
 W_R|W_N|W_B|W_Q|W_K|W_B|W_N|W_R
 W_P|W_P|W_P|W_P|   |W_P|W_P|W_P
    |   |   |   |W_P|   |   |
