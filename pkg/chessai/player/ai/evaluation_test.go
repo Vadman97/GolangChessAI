@@ -2,9 +2,9 @@ package ai
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"

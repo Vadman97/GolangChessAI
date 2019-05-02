@@ -1,7 +1,7 @@
 package transposition_table
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"sync"
 )
 

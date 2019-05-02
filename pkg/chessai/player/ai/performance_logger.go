@@ -3,8 +3,8 @@ package ai
 import (
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"log"
 	"os"
 )

@@ -1,8 +1,8 @@
 package competition
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
 	"math"
 )
 

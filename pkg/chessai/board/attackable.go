@@ -1,6 +1,6 @@
 package board
 
-import "github.com/Vadman97/ChessAI3/pkg/chessai/location"
+import "github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 
 type AttackableBoard *[8]byte
 

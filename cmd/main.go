@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/api/api_handlers"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/competition"
+	"github.com/Vadman97/GolangChessAI/pkg/api/api_handlers"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/competition"
 	"github.com/gorilla/mux"
 	"log"
 	"math/rand"

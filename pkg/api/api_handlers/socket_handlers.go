@@ -2,18 +2,17 @@ package api_handlers
 
 import (
 	"encoding/json"
-	"github.com/Vadman97/ChessAI3/pkg/api"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
+	"github.com/Vadman97/GolangChessAI/pkg/api"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"sync"
 )
-
 
 var client *websocket.Conn
 var clientMutex = &sync.Mutex{}
@@ -136,14 +135,13 @@ func HandleMessages(g *game.Game) {
 	}
 }
 
-
 func HandlePlayerMove(moveJSON api.MoveJSON) {
 	for c := color.White; c < color.NumColors; c++ {
 		humanPlayer, isHuman := getGame().Players[c].(*player.HumanPlayer)
 		if isHuman {
 			move := &location.Move{
 				Start: location.NewLocation(moveJSON.Start[0], moveJSON.Start[1]),
-				End: location.NewLocation(moveJSON.End[0], moveJSON.End[1]),
+				End:   location.NewLocation(moveJSON.End[0], moveJSON.End[1]),
 			}
 
 			// Add Pawn Promotion Information if it exists

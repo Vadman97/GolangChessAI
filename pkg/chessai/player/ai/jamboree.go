@@ -24,10 +24,10 @@ package ai
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/transposition_table"
 	"log"
 	"sync"
 	"sync/atomic"

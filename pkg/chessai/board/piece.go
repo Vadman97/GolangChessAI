@@ -2,8 +2,8 @@ package board
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 )
 
 type Piece interface {

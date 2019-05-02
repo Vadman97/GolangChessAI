@@ -1,7 +1,7 @@
 package board
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

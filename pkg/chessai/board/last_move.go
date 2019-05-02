@@ -1,12 +1,12 @@
 package board
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 )
 
 type LastMove struct {
-	Piece *Piece
+	Piece          *Piece
 	PromotionPiece *Piece
-	Move  *location.Move
-	IsCapture bool
+	Move           *location.Move
+	IsCapture      bool
 }

@@ -2,15 +2,15 @@ package game
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/api"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"github.com/Vadman97/GolangChessAI/pkg/api"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"github.com/gorilla/websocket"
 	"log"
 	"math"
@@ -303,9 +303,9 @@ func (g *Game) GetJSON() *api.GameStateJSON {
 func (g *Game) GetStatusJSON() *api.GameStatusJSON {
 	return &api.GameStatusJSON{
 		CurrentTurnColor: color.Names[g.CurrentTurnColor],
-		MovesPlayed: g.MovesPlayed,
-		GameStatus: StatusStrings[g.GameStatus],
-		KingInCheck: g.CurrentBoard.IsKingInCheck(g.CurrentTurnColor),
+		MovesPlayed:      g.MovesPlayed,
+		GameStatus:       StatusStrings[g.GameStatus],
+		KingInCheck:      g.CurrentBoard.IsKingInCheck(g.CurrentTurnColor),
 	}
 }
 

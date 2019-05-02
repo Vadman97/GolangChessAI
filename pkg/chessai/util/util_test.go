@@ -1,8 +1,8 @@
 package util
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"

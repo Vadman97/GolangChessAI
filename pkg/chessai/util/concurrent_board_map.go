@@ -3,7 +3,7 @@ package util
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"sync"
 	"sync/atomic"
 )

@@ -2,22 +2,22 @@ package player
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 )
 
 type HumanPlayer struct {
-	PlayerColor   byte
-	TurnCount     int
-	Move          chan *location.Move
+	PlayerColor byte
+	TurnCount   int
+	Move        chan *location.Move
 }
 
 func NewHumanPlayer(c color.Color) *HumanPlayer {
 	p := &HumanPlayer{
 		PlayerColor: c,
-		TurnCount: 0,
-		Move: make(chan *location.Move, 1),
+		TurnCount:   0,
+		Move:        make(chan *location.Move, 1),
 	}
 
 	return p

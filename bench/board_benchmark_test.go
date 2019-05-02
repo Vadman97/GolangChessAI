@@ -1,9 +1,9 @@
 package bench
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
