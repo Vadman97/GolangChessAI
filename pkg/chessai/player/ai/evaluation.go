@@ -5,6 +5,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
+	"github.com/steakknife/hamming"
 )
 
 type Evaluation struct {
@@ -148,11 +149,12 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 			for col := location.CoordinateType(0); col < board.Width; col++ {
 				if gamePiece := b.GetPiece(location.NewLocation(row, col)); gamePiece != nil {
 					eval.PieceCounts[gamePiece.GetColor()][gamePiece.GetPieceType()]++
-					eval.NumMoves[gamePiece.GetColor()] += uint16(len(*gamePiece.GetMoves(b, false)))
-					aMoves := gamePiece.GetAttackableMoves(b)
-					if aMoves != nil {
-						eval.NumAttacks[gamePiece.GetColor()] += uint16(len(*aMoves))
-					}
+
+					numMoves := len(*gamePiece.GetMoves(b, false))
+					eval.NumMoves[gamePiece.GetColor()] += uint16(numMoves)
+
+					numAttacks := hamming.CountBitsUint64(uint64(gamePiece.GetAttackableMoves(b))) - numMoves
+					eval.NumAttacks[gamePiece.GetColor()] += uint16(numAttacks)
 
 					if gamePiece.GetPieceType() == piece.PawnType {
 						eval.PawnColumns[gamePiece.GetColor()][col]++
