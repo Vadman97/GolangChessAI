@@ -2,6 +2,6 @@
   "Algorithm": "ABDADA (α/β Parallel)",
   "MovesToPlay": 1000,
   "SecondsToPlay": 7200,
-  "AIMaxSearchDepth": 100,
-  "AIMaxThinkTimeMs": 5000
+  "AIMaxSearchDepth": 255,
+  "AIMaxThinkTimeMs": 15000
 }
