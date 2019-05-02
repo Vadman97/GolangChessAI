@@ -62,15 +62,14 @@ var PieceValue = map[byte]int{
 }
 
 const (
-	PawnValueWeight       = 1000
-	PawnStructureWeight   = PawnValueWeight / 10
-	PieceStructureWeight  = PawnValueWeight / 50
-	PieceNumMovesWeight   = PawnValueWeight / 100
-	PieceNumAttacksWeight = PawnValueWeight / 1000
-	KingCastledWeight     = PawnValueWeight / 2
+	PawnValueWeight       = 100
+	PawnStructureWeight   = PawnValueWeight / 2
+	PieceNumMovesWeight   = PawnValueWeight / 10
+	PieceNumAttacksWeight = PawnValueWeight / 10
 	KingDisplacedWeight   = -PawnValueWeight / 2
 	RookDisplacedWeight   = -PawnValueWeight / 10
 	KingCheckedWeight     = -PawnValueWeight / 2
+	KingCastledWeight     = PawnValueWeight / 2
 	// neg 1 pawn if we do nothing in 50 moves (100 ply)
 	Weight50Rule = -2 * PawnValueWeight / 100
 )
@@ -212,7 +211,7 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 				progress := int(board.Height - 1 - dist)
 				// normalize for number of piece 8
 				score += (PawnStructureWeight * progress * int(eval.PawnRows[pColor][row])) / 8
-				score += (PieceStructureWeight * PieceAdvancedWeight * progress * int(eval.PieceRows[pColor][row])) / 8
+				// score += (PieceStructureWeight * PieceAdvancedWeight * progress * int(eval.PieceRows[pColor][row])) / 8
 			}
 			// possible moves
 			score += PieceNumMovesWeight * int(eval.NumMoves[pColor])
