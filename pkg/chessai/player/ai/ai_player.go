@@ -76,7 +76,6 @@ type AIPlayer struct {
 	MaxSearchDepth            int
 	MaxThinkTime              time.Duration
 	LastSearchDepth           int
-	LastSearchTime            time.Duration
 	TurnCount                 int
 	Opening                   int
 	Metrics                   *Metrics
@@ -216,12 +215,12 @@ func (p *AIPlayer) ClearCaches(force bool) {
 		p.transpositionTable = util.NewConcurrentBoardMap()
 		cleared = true
 	} else {
-		if p.evaluationMap.GetTotalWrites() > 1000000 {
+		if p.evaluationMap.GetTotalWrites() > config.Get().CacheMaxPlayerElements {
 			log.Println("WARNING: Clearing player evaluation cache due to size")
 			p.evaluationMap = util.NewConcurrentBoardMap()
 			cleared = true
 		}
-		if p.transpositionTable.GetTotalWrites() > 1000000 {
+		if p.transpositionTable.GetTotalWrites() > config.Get().CacheMaxPlayerElements {
 			log.Println("WARNING: Clearing player transposition table due to size")
 			p.transpositionTable = util.NewConcurrentBoardMap()
 			cleared = true

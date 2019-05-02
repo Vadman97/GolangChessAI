@@ -14,10 +14,16 @@ import (
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "competition" {
-		comp := competition.NewCompetition()
-		comp.RunAICompetition()
-		return
+	if len(os.Args) > 1 {
+		if os.Args[1] == "competition" {
+			comp := competition.NewCompetition()
+			comp.RunAICompetition()
+			return
+		} else if os.Args[1] == "analysis" {
+			comp := competition.NewCompetition()
+			comp.RunAIAnalysis()
+			return
+		}
 	}
 	rand.Seed(time.Now().UnixNano())
 
@@ -57,7 +63,7 @@ func main() {
 
 	server := &http.Server{
 		Handler:      r,
-		Addr:         fmt.Sprintf(":%s", port),
+		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}

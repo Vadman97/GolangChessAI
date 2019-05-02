@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	NumSlices = 8
+	NumSlices = 256
 )
 
 type BoardHash = [33]byte

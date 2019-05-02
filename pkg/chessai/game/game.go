@@ -19,24 +19,26 @@ import (
 )
 
 type Game struct {
-	CurrentBoard      *board.Board
-	CurrentTurnColor  color.Color
-	Players           map[color.Color]player.Player
-	CurrentMoveTime   map[color.Color]time.Duration
-	LastMoveTime      map[color.Color]time.Duration
-	TotalMoveTime     map[color.Color]time.Duration
-	TotalSearchDepth  map[color.Color]int
-	MovesPlayed       uint
-	PreviousMove      *board.LastMove
-	GameStatus        byte
-	CacheMemoryLimit  uint64
-	MoveLimit         int32
-	TimeLimit         time.Duration
-	PerformanceLogger *ai.PerformanceLogger
-	PrintInfo         bool
-	SocketBroadcast   chan api.ChessMessage
-	printer           chan string
-	quit              chan bool
+	CurrentBoard       *board.Board
+	CurrentTurnColor   color.Color
+	Players            map[color.Color]player.Player
+	CurrentMoveTime    map[color.Color]time.Duration
+	LastMoveTime       map[color.Color]time.Duration
+	AverageMoveTime    map[color.Color]float64
+	TotalMoveTime      map[color.Color]time.Duration
+	AverageSearchDepth map[color.Color]float64
+	TotalSearchDepth   map[color.Color]int
+	MovesPlayed        uint
+	PreviousMove       *board.LastMove
+	GameStatus         byte
+	CacheMemoryLimit   uint64
+	MoveLimit          int32
+	TimeLimit          time.Duration
+	PerformanceLogger  *ai.PerformanceLogger
+	PrintInfo          bool
+	SocketBroadcast    chan api.ChessMessage
+	GamePrinter        chan string
+	quit               chan bool
 }
 
 type Outcome struct {
@@ -66,10 +68,10 @@ func (g *Game) PlayTurn() bool {
 	}
 
 	if g.MovesPlayed%2 == 0 && g.GetTotalPlayTime() > g.TimeLimit {
-		g.printer <- fmt.Sprintf("Aborting - out of time\n")
+		g.GamePrinter <- fmt.Sprintf("Aborting - out of time\n")
 		g.GameStatus = Aborted
 	} else {
-		g.printer <- fmt.Sprintf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor])
+		g.GamePrinter <- fmt.Sprintf("\nPlayer %s thinking...\n", g.Players[g.CurrentTurnColor])
 		start := time.Now()
 		quitTimeUpdates := make(chan bool)
 		// print think time for slow players, regardless of what's going on
@@ -112,12 +114,12 @@ func (g *Game) PlayTurn() bool {
 		}
 
 		if g.GameStatus == Active {
-			g.printer <- fmt.Sprintf("Move #%d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
+			g.GamePrinter <- fmt.Sprintf("Move #%d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
 		} else {
-			g.printer <- fmt.Sprintf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
+			g.GamePrinter <- fmt.Sprintf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
 		}
 	}
-	g.printer <- fmt.Sprintln(g)
+	g.GamePrinter <- fmt.Sprintln(g)
 	if g.GameStatus != Active {
 		var aiPlayers []*ai.AIPlayer
 		for c := color.White; c < color.NumColors; c++ {
@@ -177,6 +179,16 @@ func (g *Game) Loop(client *websocket.Conn) {
 				lastMoveJSON := api.CreateMoveJSON(g.PreviousMove)
 				g.SocketBroadcast <- api.CreateChessMessage(api.AIMove, lastMoveJSON)
 			}
+
+			if g.MovesPlayed > 20 {
+				humanThinkSec := math.Round(g.AverageMoveTime[humanColor])
+				humanThinkTime := time.Duration(humanThinkSec) * time.Second
+				// only allow AI to go up to certain think time
+				// TODO(Vadim) implement think low, high bounds
+				// if humanThinkTime < g.Players[humanColor^1].(*ai.AIPlayer).MaxThinkTime*6 {
+				g.Players[humanColor^1].(*ai.AIPlayer).MaxThinkTime = humanThinkTime
+				log.Printf("Increased AI think time to %s\n", humanThinkTime)
+			}
 		}
 	}
 
@@ -188,17 +200,17 @@ func (g Game) String() (result string) {
 	result += fmt.Sprintln(g.CurrentBoard)
 	result += g.PrintThinkTime(g.CurrentTurnColor^1, g.LastMoveTime)
 	if g.MovesPlayed%2 == 0 || g.GameStatus != Active {
-		whiteAvg := g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
-		blackAvg := g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
+		g.AverageMoveTime[color.White] = g.TotalMoveTime[color.White].Seconds() / float64(g.MovesPlayed/2)
+		g.AverageMoveTime[color.Black] = g.TotalMoveTime[color.Black].Seconds() / float64(g.MovesPlayed/2)
 		result += fmt.Sprintf("Average move time:\n")
-		result += fmt.Sprintf("\t White: %fs\n", whiteAvg)
-		result += fmt.Sprintf("\t Black: %fs\n", blackAvg)
+		result += fmt.Sprintf("\t White: %fs\n", g.AverageMoveTime[color.White])
+		result += fmt.Sprintf("\t Black: %fs\n", g.AverageMoveTime[color.Black])
 
-		whiteAvg = float64(g.TotalSearchDepth[color.White]) / float64(g.MovesPlayed/2)
-		blackAvg = float64(g.TotalSearchDepth[color.Black]) / float64(g.MovesPlayed/2)
+		g.AverageSearchDepth[color.White] = float64(g.TotalSearchDepth[color.White]) / float64(g.MovesPlayed/2)
+		g.AverageSearchDepth[color.Black] = float64(g.TotalSearchDepth[color.Black]) / float64(g.MovesPlayed/2)
 		result += fmt.Sprintf("Average search depth:\n")
-		result += fmt.Sprintf("\t White: %f\n", whiteAvg)
-		result += fmt.Sprintf("\t Black: %f\n", blackAvg)
+		result += fmt.Sprintf("\t White: %f\n", g.AverageSearchDepth[color.White])
+		result += fmt.Sprintf("\t Black: %f\n", g.AverageSearchDepth[color.Black])
 	}
 	result += fmt.Sprintf("Total game duration: %s\n", g.GetTotalPlayTime())
 	result += fmt.Sprintf("Total game turns: %d\n", (g.MovesPlayed-1)/2+1)
@@ -224,12 +236,12 @@ func (g *Game) periodicUpdates(stop chan bool, start time.Time) {
 			return
 		default:
 			g.CurrentMoveTime[g.CurrentTurnColor] = time.Now().Sub(start)
-			g.printer <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor, g.CurrentMoveTime))
+			g.GamePrinter <- fmt.Sprintf("%s", g.PrintThinkTime(g.CurrentTurnColor, g.CurrentMoveTime))
 			if aiPlayer, isAI := g.Players[g.CurrentTurnColor].(*ai.AIPlayer); isAI {
-				g.printer <- fmt.Sprintf("\t%s\n\t", aiPlayer.Metrics)
+				g.GamePrinter <- fmt.Sprintf("\t%s\n\t", aiPlayer.Metrics)
 			}
-			g.printer <- util.GetMemStatString()
-			g.printer <- fmt.Sprintln()
+			g.GamePrinter <- util.GetMemStatString()
+			g.GamePrinter <- fmt.Sprintln()
 			// TODO(Vadim) decide if any other player things to print here
 		}
 		time.Sleep(30 * time.Second)
@@ -312,11 +324,11 @@ func (g *Game) GetStatusJSON() *api.GameStatusJSON {
 func (g *Game) memoryThread() {
 	for g.GameStatus == Active {
 		if util.GetMemoryUsed() > g.CacheMemoryLimit {
-			g.printer <- fmt.Sprintf("Clearing caches\n")
+			g.GamePrinter <- fmt.Sprintf("Clearing caches\n")
 			g.ClearCaches(false)
 			runtime.GC()
-			g.printer <- fmt.Sprintf("Cleared!\n")
-			g.printer <- util.GetMemStatString()
+			g.GamePrinter <- fmt.Sprintf("Cleared!\n")
+			g.GamePrinter <- util.GetMemStatString()
 		}
 		time.Sleep(1 * time.Second)
 	}
@@ -324,9 +336,9 @@ func (g *Game) memoryThread() {
 
 func (g *Game) printThread() {
 	for g.GameStatus == Active {
-		util.PrintPrinter(g.printer, g.PrintInfo)
+		util.PrintPrinter(g.GamePrinter, g.PrintInfo)
 	}
-	util.PrintPrinter(g.printer, g.PrintInfo)
+	util.PrintPrinter(g.GamePrinter, g.PrintInfo)
 }
 
 func NewGame(whitePlayer, blackPlayer player.Player) *Game {
@@ -345,7 +357,15 @@ func NewGame(whitePlayer, blackPlayer player.Player) *Game {
 			color.White: 0,
 			color.Black: 0,
 		},
+		AverageMoveTime: map[byte]float64{
+			color.White: 0,
+			color.Black: 0,
+		},
 		TotalSearchDepth: map[byte]int{
+			color.White: 0,
+			color.Black: 0,
+		},
+		AverageSearchDepth: map[byte]float64{
 			color.White: 0,
 			color.Black: 0,
 		},
@@ -366,7 +386,7 @@ func NewGame(whitePlayer, blackPlayer player.Player) *Game {
 		PerformanceLogger: performanceLogger,
 		PrintInfo:         true,
 		SocketBroadcast:   make(chan api.ChessMessage, 10),
-		printer:           make(chan string, 100000),
+		GamePrinter:       make(chan string, 100000),
 		quit:              make(chan bool),
 	}
 	g.CurrentBoard.ResetDefault()

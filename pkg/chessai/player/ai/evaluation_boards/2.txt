@@ -1,4 +1,4 @@
-Black 135
+Black 107
 W_R|W_N|W_B|W_Q|W_K|W_B|W_N|W_R
 W_P|W_P|W_P|W_P|W_P|W_P|W_P|W_P
    |   |   |   |   |   |   |
