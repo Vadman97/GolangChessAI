@@ -192,22 +192,9 @@ var PieceValue = [...]int{
 }
 
 const (
-	PawnValueWeight       = 100
-	PawnStructureWeight   = PawnValueWeight / 2
-	PieceAdvanceWeight    = PawnValueWeight / 2
-	PieceNumMovesWeight   = PawnValueWeight / 10
-	PieceNumAttacksWeight = PawnValueWeight / 10
-	KingDisplacedWeight   = -2 * PawnValueWeight
-	RookDisplacedWeight   = -1 * PawnValueWeight
-	KingCastledWeight     = 3 * PawnValueWeight
-	KingCheckedWeight     = 1 * PawnValueWeight
+	PawnValueWeight = 100
 	// neg 1 pawn if we do nothing in 50 moves
 	Weight50Rule = -PawnValueWeight / PawnValueWeight
-)
-
-const (
-	PawnDuplicateWeight = -1
-	PawnAdvancedWeight  = 1
 )
 
 const (
@@ -274,6 +261,17 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 
 func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation(whoMoves)
-	// TODO(Vadim) make new
+	// technically ignores en passant, but that should be ok
+	if b.IsInCheckmate(whoMoves^1, nil) {
+		eval.TotalScore = WinScore
+	} else if b.IsInCheckmate(whoMoves, nil) {
+		eval.TotalScore = LossScore
+	} else if b.IsStalemate(whoMoves, nil) || b.IsStalemate(whoMoves^1, nil) {
+		// this is a no moves but not in check stalemate
+		// want to discourage us from stalemating other player or getting stalemated
+		eval.TotalScore = StalemateScore
+	} else {
+		// TODO(Vadim) make new
+	}
 	return eval
 }
