@@ -1,9 +1,9 @@
 package util
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/transposition_table"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/transposition_table"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"

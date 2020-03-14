@@ -1,8 +1,8 @@
 package board
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 )
 
 type King struct {
@@ -114,15 +114,15 @@ func (r *King) GetCastleMoves(board *Board, onlyFirstMove bool) *[]location.Move
 /**
  * Retrieves all squares that this king can attack.
  */
-func (r *King) GetAttackableMoves(board *Board) AttackableBoard {
-	attackableBoard := CreateEmptyAttackableBoard()
+func (r *King) GetAttackableMoves(board *Board) BitBoard {
+	attackableBoard := BitBoard(0)
 	for i := int8(-1); i <= 1; i++ {
 		for j := int8(-1); j <= 1; j++ {
 			if i != 0 || j != 0 {
 				loc := r.GetPosition()
 				loc, inBounds := loc.AddRelative(location.RelativeLocation{Row: i, Col: j})
 				if inBounds {
-					SetLocationAttackable(attackableBoard, loc)
+					attackableBoard.SetLocation(loc)
 				}
 			}
 		}
@@ -187,7 +187,7 @@ func (r *King) canCastle(m *location.Move, b *Board) bool {
  * of the opposing color).
  */
 func (r *King) underAttack(location location.Location, b *Board) bool {
-	var potentialAttackMoves AttackableBoard
+	var potentialAttackMoves BitBoard
 	potentialAttackMoves = b.GetAllAttackableMoves(r.Color ^ 1)
-	return IsLocationUnderAttack(potentialAttackMoves, location)
+	return potentialAttackMoves.IsLocationSet(location)
 }

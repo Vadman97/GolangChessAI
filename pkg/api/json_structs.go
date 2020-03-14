@@ -2,22 +2,22 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"log"
 	"time"
 )
 
 const (
-	PlayerMove            = "playerMove"
-	AIMove                = "aiMove"
-	AvailablePlayerMoves  = "availablePlayerMoves"
-	GameState             = "gameState"
-	GameStatus            = "gameStatus"
-	GameFull              = "gameFull"
-	GameNotAvailable      = "gameNotAvailable"
+	PlayerMove           = "playerMove"
+	AIMove               = "aiMove"
+	AvailablePlayerMoves = "availablePlayerMoves"
+	GameState            = "gameState"
+	GameStatus           = "gameStatus"
+	GameFull             = "gameFull"
+	GameNotAvailable     = "gameNotAvailable"
 )
 
 type ChessMessage struct {
@@ -26,14 +26,14 @@ type ChessMessage struct {
 }
 
 type GameStateJSON struct {
-	CurrentBoard     [board.Height][board.Width]*PieceJSON  `json:"currentBoard"`
-	CurrentTurnColor string                                 `json:"currentTurn"`
-	HumanColor       string                                 `json:"humanColor"`
-	MovesPlayed      uint	                                `json:"movesPlayed"`
-	PreviousMove     *MoveJSON                              `json:"previousMove"`
-	GameStatus       string                                 `json:"gameStatus"`
-	MoveLimit        int32                                  `json:"moveLimit"`
-	TimeLimit        time.Duration                          `json:"timeLimit"`
+	CurrentBoard     [board.Height][board.Width]*PieceJSON `json:"currentBoard"`
+	CurrentTurnColor string                                `json:"currentTurn"`
+	HumanColor       string                                `json:"humanColor"`
+	MovesPlayed      uint                                  `json:"movesPlayed"`
+	PreviousMove     *MoveJSON                             `json:"previousMove"`
+	GameStatus       string                                `json:"gameStatus"`
+	MoveLimit        int32                                 `json:"moveLimit"`
+	TimeLimit        time.Duration                         `json:"timeLimit"`
 }
 
 type GameStatusJSON struct {
@@ -44,22 +44,21 @@ type GameStatusJSON struct {
 }
 
 type PieceJSON struct {
-	PieceType  string  `json:"type"`
-	Color      string  `json:"color"`
+	PieceType string `json:"type"`
+	Color     string `json:"color"`
 }
 
 type MoveJSON struct {
-	Start          [2]uint8   `json:"start"`
-	End            [2]uint8   `json:"end"`
-	IsCapture      bool       `json:"isCapture"`
-	Piece          PieceJSON  `json:"piece"`
-	PromotionPiece PieceJSON  `json:"promotionPiece"`
+	Start          [2]uint8  `json:"start"`
+	End            [2]uint8  `json:"end"`
+	IsCapture      bool      `json:"isCapture"`
+	Piece          PieceJSON `json:"piece"`
+	PromotionPiece PieceJSON `json:"promotionPiece"`
 }
 
 type AvailableMovesJSON struct {
-	AvailableMoves map[string][]MoveJSON  `json:"availableMoves"`
+	AvailableMoves map[string][]MoveJSON `json:"availableMoves"`
 }
-
 
 func CreateChessMessage(msgType string, data interface{}) ChessMessage {
 	dataBytes, err := json.Marshal(data)
@@ -90,14 +89,14 @@ func CreateMoveJSON(m *board.LastMove) *MoveJSON {
 		IsCapture: m.IsCapture,
 		Piece: PieceJSON{
 			PieceType: piece.TypeToName[(*m.Piece).GetPieceType()],
-			Color: color.Names[(*m.Piece).GetColor()],
+			Color:     color.Names[(*m.Piece).GetColor()],
 		},
 	}
 
 	if m.PromotionPiece != nil {
 		moveJSON.PromotionPiece = PieceJSON{
 			PieceType: piece.TypeToName[(*m.PromotionPiece).GetPieceType()],
-			Color: color.Names[(*m.PromotionPiece).GetColor()],
+			Color:     color.Names[(*m.PromotionPiece).GetColor()],
 		}
 	}
 
@@ -115,7 +114,7 @@ func CreateAvailableMovesJSON(moveMap map[string]*[]location.Move) AvailableMove
 					move.GetStart().GetRow(),
 					move.GetStart().GetCol(),
 				},
-				End: [2] uint8{
+				End: [2]uint8{
 					move.GetEnd().GetRow(),
 					move.GetEnd().GetCol(),
 				},

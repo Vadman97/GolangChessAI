@@ -3,10 +3,11 @@ package ai
 import (
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"log"
 	"os"
+	"strings"
 )
 
 type PerformanceLogger struct {
@@ -18,8 +19,10 @@ type PerformanceLogger struct {
 }
 
 var startingColPruning byte = 'A'
-var startingColMoveCache byte = 'K'
+
+//var startingColMoveCache byte = 'K'
 var startingColAttackableCache byte = 'T'
+var startingColSearchStats byte = 'K'
 
 /**
  * Creates a new PerformanceLogger.
@@ -28,11 +31,25 @@ func CreatePerformanceLogger(MakeExcel bool, MakeLog bool, ExcelFileName string,
 	logger := &PerformanceLogger{
 		MakeExcel:     MakeExcel,
 		MakeLog:       MakeLog,
-		ExcelFileName: ExcelFileName,
-		LogFileName:   LogFileName,
+		ExcelFileName: updateNameWhileExists(ExcelFileName),
+		LogFileName:   updateNameWhileExists(LogFileName),
 	}
 	logger.setupExcelFile()
 	return logger
+}
+
+func updateNameWhileExists(name string) string {
+	id := 1
+	newName := name
+	for {
+		if _, err := os.Stat(newName); os.IsNotExist(err) {
+			break
+		}
+		n := strings.Split(name, ".")
+		newName = fmt.Sprintf("%s_%d.%s", n[0], id, n[1])
+		id++
+	}
+	return newName
 }
 
 /**
@@ -57,9 +74,11 @@ func (logger *PerformanceLogger) setupExcelRowHeadings(sheet string) {
 		[]string{"Turn", "Considered", "Pruned", "Pruned AB", "Pruned Trans", "AB Improved Trans"},
 		startingColPruning)
 	cacheHeadings := []string{"Turn", "Entries", "Reads", "Locks used", "Writes", "Hit Ratio", "Read Ratio"}
-	logger.setupExcelRowHeadingsForTable(sheet, "Move Cache Statistics", cacheHeadings, startingColMoveCache)
+	//	logger.setupExcelRowHeadingsForTable(sheet, "Move Cache Statistics", cacheHeadings, startingColMoveCache)
 	logger.setupExcelRowHeadingsForTable(sheet, "Attackable Cache Statistics", cacheHeadings,
 		startingColAttackableCache)
+	searchStatsHeadings := []string{"Turn", "Search Depth", "Score", "AI Name"}
+	logger.setupExcelRowHeadingsForTable(sheet, "Search Statistics", searchStatsHeadings, startingColSearchStats)
 }
 
 /**
@@ -88,6 +107,10 @@ func (logger *PerformanceLogger) MarkPerformance(b *board.Board, m *ScoredMove, 
 	if logger.MakeExcel {
 		logger.markPerformanceToExcel(b, m, p)
 	}
+	err := logger.ExcelFile.SaveAs(logger.ExcelFileName)
+	if err != nil {
+		log.Fatal("Cannot save excel performance log.", err)
+	}
 }
 
 /**
@@ -98,7 +121,6 @@ func (logger *PerformanceLogger) CompletePerformanceLog(aiPlayers []*AIPlayer) {
 	for _, ai := range aiPlayers {
 		logger.generateChartsForPlayer(ai)
 	}
-
 	err := logger.ExcelFile.SaveAs(logger.ExcelFileName)
 	if err != nil {
 		log.Fatal("Cannot save excel performance log.", err)
@@ -110,7 +132,11 @@ func (logger *PerformanceLogger) CompletePerformanceLog(aiPlayers []*AIPlayer) {
  */
 func (logger *PerformanceLogger) generateChartsForPlayer(p *AIPlayer) {
 	logger.generatePruningBreakdownChart(p)
-	logger.generateCacheCharts(p, "Move", startingColMoveCache)
+	logger.generateChart("scatter", "Moves Considered", p, startingColPruning, p.TurnCount+24,
+		[]byte{startingColPruning + byte(1)})
+	//logger.generateCacheCharts(p, "Move", startingColMoveCache)
+	logger.generateChart("scatter", "Search Depth", p, startingColSearchStats, p.TurnCount+4,
+		[]byte{startingColSearchStats + byte(1)})
 	logger.generateCacheCharts(p, "Attackable", startingColAttackableCache)
 }
 
@@ -129,14 +155,14 @@ func (logger *PerformanceLogger) generatePruningBreakdownChart(p *AIPlayer) {
  */
 func (logger *PerformanceLogger) generateCacheCharts(p *AIPlayer, cacheName string, startingCol byte) {
 	logger.generateChart("scatter", cacheName+" Cache Utilization", p, startingCol, p.TurnCount+4,
-		[]byte{startingColMoveCache + byte(5), startingColMoveCache + byte(6)},
+		[]byte{startingCol + byte(5), startingCol + byte(6)},
 	)
 	logger.generateChart("scatter", cacheName+" Cache Size", p, startingCol, p.TurnCount+24,
 		[]byte{
-			startingColMoveCache + byte(1),
-			startingColMoveCache + byte(2),
-			startingColMoveCache + byte(3),
-			startingColMoveCache + byte(4),
+			startingCol + byte(1),
+			startingCol + byte(2),
+			startingCol + byte(3),
+			startingCol + byte(4),
 		})
 }
 
@@ -214,16 +240,18 @@ func (logger *PerformanceLogger) markPerformanceToExcel(b *board.Board, m *Score
 			p.Metrics.MovesPrunedTransposition,
 			p.Metrics.MovesABImprovedTransposition,
 		}, startingColPruning)
-	logger.markMetricsToExcelTable(p,
-		[]interface{}{
-			p.TurnCount,
-			b.MoveCache.GetTotalWrites(),
-			b.MoveCache.GetTotalReads(),
-			b.MoveCache.GetTotalWrites(),
-			b.MoveCache.GetTotalLockUsage(),
-			b.MoveCache.GetHitRatio(),
-			b.MoveCache.GetReadRatio(),
-		}, startingColMoveCache)
+	/*
+		logger.markMetricsToExcelTable(p,
+			[]interface{}{
+				p.TurnCount,
+				b.MoveCache.GetTotalWrites(),
+				b.MoveCache.GetTotalReads(),
+				b.MoveCache.GetTotalWrites(),
+				b.MoveCache.GetTotalLockUsage(),
+				b.MoveCache.GetHitRatio(),
+				b.MoveCache.GetReadRatio(),
+			}, startingColMoveCache)
+	*/
 	logger.markMetricsToExcelTable(p,
 		[]interface{}{
 			p.TurnCount,
@@ -234,6 +262,13 @@ func (logger *PerformanceLogger) markPerformanceToExcel(b *board.Board, m *Score
 			b.AttackableCache.GetHitRatio(),
 			b.AttackableCache.GetReadRatio(),
 		}, startingColAttackableCache)
+	logger.markMetricsToExcelTable(p,
+		[]interface{}{
+			p.TurnCount,
+			p.LastSearchDepth,
+			m.Score,
+			p.Algorithm.GetName(),
+		}, startingColSearchStats)
 }
 
 /**

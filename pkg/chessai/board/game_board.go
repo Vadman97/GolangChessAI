@@ -2,11 +2,11 @@ package board
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/config"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/util"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"math/rand"
 	"strings"
 	"time"
@@ -400,12 +400,12 @@ func (b *Board) getEnPassantMoves(c color.Color, previousMove *LastMove) *[]loca
 /*
  * Caches getAllAttackableMoves
  */
-func (b *Board) GetAllAttackableMoves(c color.Color) AttackableBoard {
+func (b *Board) GetAllAttackableMoves(c color.Color) BitBoard {
 	if b.CacheGetAllAttackableMoves {
 		h := b.Hash()
-		var attackable AttackableBoard
+		var attackable BitBoard
 		if cacheEntry, cacheExists := b.AttackableCache.Read(&h, c); cacheExists {
-			attackable = cacheEntry.(AttackableBoard)
+			attackable = cacheEntry.(BitBoard)
 		} else {
 			attackable = b.getAllAttackableMoves(c)
 		}
@@ -419,8 +419,8 @@ func (b *Board) GetAllAttackableMoves(c color.Color) AttackableBoard {
 /**
  * Returns all attack moves for a specific color.
  */
-func (b *Board) getAllAttackableMoves(color color.Color) AttackableBoard {
-	attackable := CreateEmptyAttackableBoard()
+func (b *Board) getAllAttackableMoves(color color.Color) BitBoard {
+	attackable := BitBoard(0)
 	for r := 0; r < Height; r++ {
 		// this is just a speedup - if the whole row is empty don't look at pieces
 		if b.board[r] == 0 {
@@ -432,12 +432,39 @@ func (b *Board) getAllAttackableMoves(color color.Color) AttackableBoard {
 				pieceOnLocation := b.GetPiece(loc)
 				if pieceOnLocation.GetColor() == color {
 					attackableMoves := pieceOnLocation.GetAttackableMoves(b)
-					attackable = CombineAttackableBoards(attackable, attackableMoves)
+					attackable = attackable.CombineBitBoards(attackableMoves)
 				}
 			}
 		}
 	}
 	return attackable
+}
+
+/**
+ * Returns all attack moves for a specific color.
+ */
+func (b *Board) GetPieceAttackableMoves(color color.Color) (boards [piece.NumPieces]BitBoard) {
+	for pieceType := piece.PawnType; pieceType < piece.NumPieces; pieceType++ {
+		boards[pieceType] = BitBoard(0)
+	}
+	for r := 0; r < Height; r++ {
+		// this is just a speedup - if the whole row is empty don't look at pieces
+		if b.board[r] == 0 {
+			continue
+		}
+		for c := 0; c < Width; c++ {
+			loc := location.NewLocation(location.CoordinateType(r), location.CoordinateType(c))
+			if !b.IsEmpty(loc) {
+				pieceOnLocation := b.GetPiece(loc)
+				if pieceOnLocation.GetColor() == color {
+					pType := pieceOnLocation.GetPieceType()
+					attackableMoves := pieceOnLocation.GetAttackableMoves(b)
+					boards[pType] = boards[pType].CombineBitBoards(attackableMoves)
+				}
+			}
+		}
+	}
+	return
 }
 
 /**
@@ -472,8 +499,8 @@ func (b *Board) GetAllAvailableMoves(color color.Color) map[string]*[]location.M
  */
 func (b *Board) IsKingInCheck(c color.Color) bool {
 	oppositeColor := c ^ 1
-	attackableBoard := b.GetAllAttackableMoves(oppositeColor)
-	return IsLocationUnderAttack(attackableBoard, b.KingLocations[c])
+	bitBoard := b.GetAllAttackableMoves(oppositeColor)
+	return bitBoard.IsLocationSet(b.KingLocations[c])
 }
 
 /**

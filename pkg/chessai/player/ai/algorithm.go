@@ -1,6 +1,6 @@
 package ai
 
-import "github.com/Vadman97/ChessAI3/pkg/chessai/board"
+import "github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 
 const (
 	AlgorithmMiniMax             = "MiniMax"

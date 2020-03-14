@@ -58,6 +58,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:5ca4bdccd72e66aaba5b52f9c4a21f1021102f0919432fe138ad5d48abf06833"
+  name = "github.com/steakknife/hamming"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "003c143a81c25ea5e263d692919c611c7122ae6b"
+  version = "0.2.5"
+
+[[projects]]
   digest = "1:5e8f46b412421d2d6cceea845d28ac46f3f5a5f60a6e86f0ee75e24fd43a02a9"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
@@ -81,6 +89,7 @@
     "github.com/bitly/go-simplejson",
     "github.com/gorilla/mux",
     "github.com/gorilla/websocket",
+    "github.com/steakknife/hamming",
     "github.com/stretchr/testify/assert",
   ]
   solver-name = "gps-cdcl"

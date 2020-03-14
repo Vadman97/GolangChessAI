@@ -1,9 +1,9 @@
 package board
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 )
 
 type Pawn struct {
@@ -49,11 +49,11 @@ func (r *Pawn) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 /**
  * Returns all diagonal attack moves - any position protected by this pawn.
  */
-func (r *Pawn) GetAttackableMoves(board *Board) AttackableBoard {
-	attackableBoard := CreateEmptyAttackableBoard()
+func (r *Pawn) GetAttackableMoves(board *Board) BitBoard {
+	attackableBoard := BitBoard(0)
 	locations := r.getAttackLocations(board)
 	for _, loc := range *locations {
-		SetLocationAttackable(attackableBoard, loc)
+		attackableBoard.SetLocation(loc)
 	}
 	return attackableBoard
 }

@@ -2,8 +2,8 @@ package board
 
 import (
 	"fmt"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 )
 
 type Piece interface {
@@ -13,7 +13,7 @@ type Piece interface {
 	GetPosition() location.Location
 	SetPosition(location.Location)
 	GetMoves(board *Board, onlyFirstMove bool) *[]location.Move
-	GetAttackableMoves(*Board) AttackableBoard
+	GetAttackableMoves(*Board) BitBoard
 	GetPieceType() byte
 	Move(m *location.Move, b *Board)
 }

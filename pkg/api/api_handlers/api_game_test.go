@@ -1,10 +1,10 @@
 package api_handlers
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"net/http"

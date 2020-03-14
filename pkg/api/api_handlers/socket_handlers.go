@@ -2,18 +2,18 @@ package api_handlers
 
 import (
 	"encoding/json"
-	"github.com/Vadman97/ChessAI3/pkg/api"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
+	"github.com/Vadman97/GolangChessAI/pkg/api"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"runtime"
 	"sync"
 )
-
 
 var client *websocket.Conn
 var clientMutex = &sync.Mutex{}
@@ -74,6 +74,9 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 
 	// Start Game
 	if client != nil && getGame() != nil {
+		getGame().ClearCaches(true)
+		log.Println("NEW GAME CLEARING CACHE")
+		runtime.GC()
 		go getGame().Loop(client)
 	}
 
@@ -126,7 +129,12 @@ func HandleMessages(g *game.Game) {
 		case api.AvailablePlayerMoves:
 			fallthrough
 		case api.AIMove:
-			err := client.WriteJSON(msg)
+			var err error
+			clientMutex.Lock()
+			if client != nil {
+				err = client.WriteJSON(msg)
+			}
+			clientMutex.Unlock()
 			if err != nil {
 				log.Printf("Unable to send to client - %v", err)
 				continue
@@ -136,14 +144,13 @@ func HandleMessages(g *game.Game) {
 	}
 }
 
-
 func HandlePlayerMove(moveJSON api.MoveJSON) {
 	for c := color.White; c < color.NumColors; c++ {
 		humanPlayer, isHuman := getGame().Players[c].(*player.HumanPlayer)
 		if isHuman {
 			move := &location.Move{
 				Start: location.NewLocation(moveJSON.Start[0], moveJSON.Start[1]),
-				End: location.NewLocation(moveJSON.End[0], moveJSON.End[1]),
+				End:   location.NewLocation(moveJSON.End[0], moveJSON.End[1]),
 			}
 
 			// Add Pawn Promotion Information if it exists

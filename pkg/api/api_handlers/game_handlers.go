@@ -2,12 +2,12 @@ package api_handlers
 
 import (
 	"encoding/json"
-	"github.com/Vadman97/ChessAI3/pkg/api"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/game"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/game_config"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/player"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/player/ai"
+	"github.com/Vadman97/GolangChessAI/pkg/api"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/game_config"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
 	"github.com/bitly/go-simplejson"
 	"log"
 	"math/rand"

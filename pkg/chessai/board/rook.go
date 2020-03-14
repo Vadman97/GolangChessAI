@@ -1,9 +1,9 @@
 package board
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 )
 
 type Rook struct {
@@ -77,8 +77,8 @@ func (r *Rook) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 /**
  * Retrieves all locations that this rook can attack.
  */
-func (r *Rook) GetAttackableMoves(board *Board) AttackableBoard {
-	attackableBoard := CreateEmptyAttackableBoard()
+func (r *Rook) GetAttackableMoves(board *Board) BitBoard {
+	attackableBoard := BitBoard(0)
 	for i := 0; i < 4; i++ {
 		loc := r.GetPosition()
 		var inBounds bool
@@ -95,7 +95,7 @@ func (r *Rook) GetAttackableMoves(board *Board) AttackableBoard {
 			if !inBounds {
 				break
 			}
-			SetLocationAttackable(attackableBoard, loc)
+			attackableBoard.SetLocation(loc)
 			if !CheckLocationForAttackability(loc, board) {
 				break
 			}

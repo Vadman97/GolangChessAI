@@ -1,10 +1,11 @@
 package ai
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/board"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
+	"github.com/steakknife/hamming"
 )
 
 type Evaluation struct {
@@ -57,14 +58,14 @@ var PieceValue = map[byte]int{
 
 const (
 	PawnValueWeight       = 100
-	PawnStructureWeight   = PawnValueWeight / 2
-	PieceAdvanceWeight    = PawnValueWeight / 2
-	PieceNumMovesWeight   = PawnValueWeight / 10
+	PawnStructureWeight   = PawnValueWeight / 5
+	PieceAdvanceWeight    = PawnValueWeight / 5
+	PieceNumMovesWeight   = PawnValueWeight / 20
 	PieceNumAttacksWeight = PawnValueWeight / 10
-	KingDisplacedWeight   = -2 * PawnValueWeight
+	KingDisplacedWeight   = -1 * PawnValueWeight
 	RookDisplacedWeight   = -1 * PawnValueWeight
-	KingCastledWeight     = 3 * PawnValueWeight
-	KingCheckedWeight     = 1 * PawnValueWeight
+	KingCheckedWeight     = 0
+	KingCastledWeight     = 1 * PawnValueWeight
 	// neg 1 pawn if we do nothing in 50 moves
 	Weight50Rule = -PawnValueWeight / PawnValueWeight
 )
@@ -148,11 +149,12 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 			for col := location.CoordinateType(0); col < board.Width; col++ {
 				if gamePiece := b.GetPiece(location.NewLocation(row, col)); gamePiece != nil {
 					eval.PieceCounts[gamePiece.GetColor()][gamePiece.GetPieceType()]++
-					eval.NumMoves[gamePiece.GetColor()] += uint16(len(*gamePiece.GetMoves(b, false)))
-					aMoves := gamePiece.GetAttackableMoves(b)
-					if aMoves != nil {
-						eval.NumAttacks[gamePiece.GetColor()] += uint16(len(*aMoves))
-					}
+
+					numMoves := len(*gamePiece.GetMoves(b, false))
+					eval.NumMoves[gamePiece.GetColor()] += uint16(numMoves)
+
+					numAttacks := hamming.CountBitsUint64(uint64(gamePiece.GetAttackableMoves(b))) - numMoves
+					eval.NumAttacks[gamePiece.GetColor()] += uint16(numAttacks)
 
 					if gamePiece.GetPieceType() == piece.PawnType {
 						eval.PawnColumns[gamePiece.GetColor()][col]++

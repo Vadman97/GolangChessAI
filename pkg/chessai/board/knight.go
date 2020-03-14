@@ -1,9 +1,9 @@
 package board
 
 import (
-	"github.com/Vadman97/ChessAI3/pkg/chessai/color"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/location"
-	"github.com/Vadman97/ChessAI3/pkg/chessai/piece"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 )
 
 var possibleMoves = []location.RelativeLocation{
@@ -86,11 +86,11 @@ func (r *Knight) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 /**
  * Retrieves all squares that this knight can attack.
  */
-func (r *Knight) GetAttackableMoves(board *Board) AttackableBoard {
-	attackableBoard := CreateEmptyAttackableBoard()
+func (r *Knight) GetAttackableMoves(board *Board) BitBoard {
+	attackableBoard := BitBoard(0)
 	locations := r.getNextLocations(board)
 	for _, loc := range *locations {
-		SetLocationAttackable(attackableBoard, loc)
+		attackableBoard.SetLocation(loc)
 	}
 	return attackableBoard
 }
