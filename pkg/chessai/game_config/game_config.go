@@ -22,7 +22,7 @@ var cfg *GameConfiguration
 
 func Get() *GameConfiguration {
 	if cfg == nil {
-		dir := path.Join(os.Getenv("GOPATH"), "src", "github.com", "Vadman97", "GolangChessAI", FilePath)
+		dir := path.Join(os.Getenv("CHESS_AI"), FilePath)
 		file, _ := os.Open(dir)
 		defer func() { _ = file.Close() }()
 		decoder := json.NewDecoder(file)
