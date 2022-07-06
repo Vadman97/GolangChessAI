@@ -143,5 +143,5 @@ func (m Move) String() string {
 }
 
 func (m Move) UCIString() string {
-	return fmt.Sprintf("%c%d%c%d", m.Start.GetColLetter(), m.Start.GetRow()+1, m.End.GetColLetter(), m.End.GetCol()+1)
+	return fmt.Sprintf("%c%d%c%d", m.Start.GetColLetter(), m.Start.GetRow()+1, m.End.GetColLetter(), m.End.GetRow()+1)
 }
