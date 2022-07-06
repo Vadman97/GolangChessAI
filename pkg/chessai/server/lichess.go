@@ -69,10 +69,11 @@ type Lichess struct {
 	Client *Client
 	// TODO(vkorolik)
 	// store a map of gameID -> game for concurrent games?
-	GameID     string
-	Game       *game.Game
-	Events     chan Event
-	GameEvents chan GameEvent
+	GameID      string
+	PlayerColor color.Color
+	Game        *game.Game
+	Events      chan Event
+	GameEvents  chan GameEvent
 }
 
 func ConnectLichess() Server {
@@ -97,19 +98,19 @@ func (l *Lichess) handleEvent(event *Event) error {
 		}
 		l.GameID = event.Game.GameID
 		// human is the other player
-		playerColor := color.White
+		l.PlayerColor = color.White
 		enemyColor := color.Black
 		if event.Game.Color == "black" {
-			playerColor = color.Black
+			l.PlayerColor = color.Black
 			enemyColor = color.White
 		}
 		enemyPlayer := player.NewHumanPlayer(enemyColor)
-		aiPlayer := ai.NewAIPlayer(playerColor, ai.NameToAlgorithm[ai.AlgorithmMTDf])
+		aiPlayer := ai.NewAIPlayer(l.PlayerColor, ai.NameToAlgorithm[ai.AlgorithmABDADA])
 		aiPlayer.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
-		aiPlayer.MaxThinkTime = time.Second
+		aiPlayer.MaxThinkTime = 3 * time.Second
 
 		// Create game and start game loop
-		if playerColor == color.White {
+		if l.PlayerColor == color.White {
 			l.Game = game.NewGame(aiPlayer, enemyPlayer)
 		} else {
 			l.Game = game.NewGame(enemyPlayer, aiPlayer)
@@ -125,7 +126,7 @@ func (l *Lichess) handleEvent(event *Event) error {
 			}
 		}()
 
-		if l.Game.CurrentTurnColor == playerColor {
+		if l.Game.CurrentTurnColor == l.PlayerColor {
 			l.Game.PlayTurn()
 			if err := l.MakeMove(event.Game.GameID, l.Game.PreviousMove); err != nil {
 				return err
@@ -145,7 +146,7 @@ func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 	switch event.Type {
 	case StateTypeGame:
 		moves := strings.Split(event.Moves, " ")
-		if len(moves)%2 == int(l.Game.CurrentTurnColor) {
+		if len(moves)%2 != int(l.PlayerColor) {
 			return nil
 		}
 		lastMove := moves[len(moves)-1]
@@ -153,12 +154,15 @@ func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 		sRow := lastMove[1] - '0' - 1
 		fCol := lastMove[2] - 'a'
 		fRow := lastMove[3] - '0' - 1
-		// TODO(vkorolik) centralize this with the gameStart
-		l.Game.PlayTurnMove(&location.Move{
+		m := &location.Move{
 			Start: location.NewLocation(sRow, sCol),
 			End:   location.NewLocation(fRow, fCol),
-		})
+		}
+		log.Infof("saw opponent move %s (%s)", m.String(), m.UCIString())
+		// TODO(vkorolik) centralize this with the gameStart
+		l.Game.PlayTurnMove(m)
 		// TODO(vkorolik) partition by gameID
+		l.Game.PlayTurn()
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
 			return err
 		}
