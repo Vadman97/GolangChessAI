@@ -63,6 +63,10 @@ func (g *Game) GetGameOutcome() (outcome Outcome) {
  */
 
 func (g *Game) PlayTurn() bool {
+	return g.PlayTurnMove(nil)
+}
+
+func (g *Game) PlayTurnMove(m *location.Move) bool {
 	if g.GameStatus != Active {
 		log.Println("Game is not active!")
 		return false
@@ -78,10 +82,12 @@ func (g *Game) PlayTurn() bool {
 		// print think time for slow players, regardless of what's going on
 		go g.periodicUpdates(quitTimeUpdates, start)
 
-		var move *location.Move
+		var move *location.Move = m
 		switch p := g.Players[g.CurrentTurnColor].(type) {
 		case *player.HumanPlayer:
-			move = p.WaitForMove()
+			if m == nil {
+				move = p.WaitForMove()
+			}
 		case *ai.AIPlayer:
 			move = p.GetBestMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
 		}

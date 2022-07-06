@@ -9,9 +9,9 @@ import (
 )
 
 type GameConfiguration struct {
-	Algorithm        string
-	MovesToPlay      int32
-	SecondsToPlay    time.Duration
+	Algorithm                 string
+	MovesToPlay               int32
+	SecondsToPlay             time.Duration
 	AIMaxSearchDepth          int
 	AIMaxThinkTimeMs          time.Duration
 	AIScaleThinkTimeWithHuman bool
