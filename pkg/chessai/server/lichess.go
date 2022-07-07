@@ -16,10 +16,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -67,18 +69,21 @@ type GameEvent struct {
 
 type Lichess struct {
 	Client *Client
+	// TODO(vkorolik) per game mutex
+	Mutex sync.Mutex
 	// TODO(vkorolik)
 	// store a map of gameID -> game for concurrent games?
-	GameID      string
-	PlayerColor color.Color
-	Game        *game.Game
-	Events      chan Event
-	GameEvents  chan GameEvent
+	GameID     string
+	Player     *ai.AIPlayer
+	Game       *game.Game
+	Events     chan Event
+	GameEvents chan GameEvent
 }
 
 func ConnectLichess() Server {
 	base, _ := url.Parse("https://lichess.org/api")
 	return &Lichess{
+		Mutex: sync.Mutex{},
 		Client: &Client{
 			BaseURL:    base,
 			UserAgent:  "GolangChessAI",
@@ -91,6 +96,8 @@ func ConnectLichess() Server {
 }
 
 func (l *Lichess) handleEvent(event *Event) error {
+	l.Mutex.Lock()
+	defer l.Mutex.Unlock()
 	switch event.Type {
 	case EventTypeGameStart:
 		if l.Game != nil {
@@ -98,22 +105,22 @@ func (l *Lichess) handleEvent(event *Event) error {
 		}
 		l.GameID = event.Game.GameID
 		// human is the other player
-		l.PlayerColor = color.White
+		playerColor := color.White
 		enemyColor := color.Black
 		if event.Game.Color == "black" {
-			l.PlayerColor = color.Black
+			playerColor = color.Black
 			enemyColor = color.White
 		}
 		enemyPlayer := player.NewHumanPlayer(enemyColor)
-		aiPlayer := ai.NewAIPlayer(l.PlayerColor, ai.NameToAlgorithm[ai.AlgorithmABDADA])
-		aiPlayer.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
-		aiPlayer.MaxThinkTime = 3 * time.Second
+		l.Player = ai.NewAIPlayer(playerColor, ai.NameToAlgorithm[ai.AlgorithmABDADA])
+		l.Player.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
+		l.Player.MaxThinkTime = 5 * time.Second
 
 		// Create game and start game loop
-		if l.PlayerColor == color.White {
-			l.Game = game.NewGame(aiPlayer, enemyPlayer)
+		if playerColor == color.White {
+			l.Game = game.NewGame(l.Player, enemyPlayer)
 		} else {
-			l.Game = game.NewGame(enemyPlayer, aiPlayer)
+			l.Game = game.NewGame(enemyPlayer, l.Player)
 		}
 
 		l.Game.MoveLimit = game_config.Get().MovesToPlay
@@ -126,14 +133,19 @@ func (l *Lichess) handleEvent(event *Event) error {
 			}
 		}()
 
-		if l.Game.CurrentTurnColor == l.PlayerColor {
+		if l.Game.CurrentTurnColor == playerColor {
 			l.Game.PlayTurn()
 			if err := l.MakeMove(event.Game.GameID, l.Game.PreviousMove); err != nil {
 				return err
 			}
-		} else {
-			// TODO(vkorolik) update board state...?
 		}
+		// otherwise we wait for board updates and react there..
+	case EventTypeGameFinish:
+		if l.Game == nil {
+			return errors.New("game does not exists")
+		}
+		l.Player = nil
+		l.Game = nil
 	case EventTypePing:
 		log.Debugf("ping...")
 	default:
@@ -143,16 +155,22 @@ func (l *Lichess) handleEvent(event *Event) error {
 }
 
 func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
+	l.Mutex.Lock()
+	defer l.Mutex.Unlock()
 	switch event.Type {
 	case StateTypeGame:
+		if l.Player == nil || l.Game == nil {
+			log.Errorf("received board event after game over %+v", event)
+			return nil
+		}
 		moves := strings.Split(event.Moves, " ")
-		if len(moves)%2 != int(l.PlayerColor) {
+		if len(moves)%2 != int(l.Player.PlayerColor) {
 			return nil
 		}
 		lastMove := moves[len(moves)-1]
-		sCol := lastMove[0] - 'a'
+		sCol := 7 - (lastMove[0] - 'a')
 		sRow := lastMove[1] - '0' - 1
-		fCol := lastMove[2] - 'a'
+		fCol := 7 - (lastMove[2] - 'a')
 		fRow := lastMove[3] - '0' - 1
 		m := &location.Move{
 			Start: location.NewLocation(sRow, sCol),
@@ -161,8 +179,13 @@ func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 		log.Infof("saw opponent move %s (%s)", m.String(), m.UCIString())
 		// TODO(vkorolik) centralize this with the gameStart
 		l.Game.PlayTurnMove(m)
-		// TODO(vkorolik) partition by gameID
-		l.Game.PlayTurn()
+		playerTimeLeft := time.Duration(event.WhiteTimeMS) * time.Millisecond
+		l.Player.MaxThinkTime = time.Duration(math.Max(playerTimeLeft.Seconds()/60.*float64(l.Game.MovesPlayed)/10, time.Millisecond.Seconds())*1000) * time.Millisecond
+		log.Infof("player thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
+		// TODO(vkorolik) partition by gameID to allow concurrent games
+		if l.Game.GameStatus == game.Active {
+			l.Game.PlayTurn()
+		}
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
 			return err
 		}
@@ -207,9 +230,18 @@ func (l *Lichess) Run() {
 }
 
 func (l *Lichess) MakeMove(gameID string, move *board.LastMove) error {
-	moveStr := move.Move.UCIString()
-	// TODO(vkorolik) offer draw
-	u := fmt.Sprintf("/api/bot/game/%s/move/%s?offeringDraw=false", gameID, moveStr)
+	sCol := 7 - move.Move.Start.GetCol()
+	fCol := 7 - move.Move.End.GetCol()
+	m := &location.Move{
+		Start: location.NewLocation(move.Move.Start.GetRow(), sCol),
+		End:   location.NewLocation(move.Move.End.GetRow(), fCol),
+	}
+	moveStr := m.UCIString()
+	oferringDraw := "false"
+	if l.Game.GameStatus == game.RepeatedActionThreeTimeDraw {
+		oferringDraw = "true"
+	}
+	u := fmt.Sprintf("/api/bot/game/%s/move/%s?offeringDraw=%s", gameID, moveStr, oferringDraw)
 	r, err := l.Client.newRequest("POST", u, nil)
 	if err != nil {
 		return err
