@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/GolangChessAI/pkg/api/api_handlers"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/competition"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/server"
 	"github.com/gorilla/mux"
 	"log"
 	"math/rand"
@@ -22,6 +23,10 @@ func main() {
 		} else if os.Args[1] == "analysis" {
 			comp := competition.NewCompetition()
 			comp.RunAIAnalysis()
+			return
+		} else if os.Args[1] == "lichess" {
+			c := server.ConnectLichess()
+			c.Run()
 			return
 		}
 	}

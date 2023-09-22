@@ -20,6 +20,8 @@ var LeftDownMove = RelativeLocation{1, -1}
 var LeftMove = RelativeLocation{0, -1}
 var LeftUpMove = RelativeLocation{-1, -1}
 
+var Cols = []rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
+
 type Location struct {
 	// row stored in 3 bits, col stored in 3 bits
 	// 2 bits store pawn promotion piece
@@ -70,6 +72,11 @@ func (l Location) Get() (row, col CoordinateType) {
 func (l Location) GetRow() (row CoordinateType) {
 	row, _ = l.Get()
 	return
+}
+
+func (l Location) GetColLetter() rune {
+	_, col := l.Get()
+	return Cols[col]
 }
 
 func (l Location) GetCol() (col CoordinateType) {
@@ -133,4 +140,8 @@ func (m *Move) Equals(v *Move) bool {
 
 func (m Move) String() string {
 	return fmt.Sprintf("move from %s to %s", m.Start.String(), m.End.String())
+}
+
+func (m Move) UCIString() string {
+	return fmt.Sprintf("%c%d%c%d", m.Start.GetColLetter(), m.Start.GetRow()+1, m.End.GetColLetter(), m.End.GetRow()+1)
 }
