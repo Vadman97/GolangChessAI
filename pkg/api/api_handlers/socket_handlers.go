@@ -23,6 +23,7 @@ const (
 
 var client *websocket.Conn
 var clientMutex = &sync.Mutex{}
+var gameLoopStarted bool
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -104,10 +105,20 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	}()
 	defer close(stopPing)
 
-	// Start Game
-	if client != nil && getGame() != nil {
+	// Start the game loop on first connection; resync state on reconnect
+	clientMutex.Lock()
+	isReconnect := gameLoopStarted
+	if !isReconnect {
+		gameLoopStarted = true
+	}
+	clientMutex.Unlock()
+
+	if isReconnect {
+		log.Println("Client reconnected - resyncing game state")
+		getGame().SocketBroadcast <- api.CreateChessMessage(api.GameState, getGame().GetJSON())
+	} else {
+		log.Println("New game - starting loop")
 		getGame().ClearCaches(true)
-		log.Println("NEW GAME CLEARING CACHE")
 		runtime.GC()
 		go getGame().Loop(client)
 	}
@@ -115,22 +126,18 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	// Wait for Messages (Loop Forever)
 	for {
 		var msg api.ChessMessage
-		err := client.ReadJSON(&msg)
+		err := ws.ReadJSON(&msg)
 
 		if err != nil {
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseNoStatusReceived,
 				websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Print("Client disconnected unexpectedly")
-
-				clientMutex.Lock()
-				client = nil
-				clientMutex.Unlock()
-
-				getGame().GameStatus = game.Aborted
-				setGame(nil)
+				log.Print("Client disconnected - keeping game alive for reconnect")
 			} else {
 				log.Printf("WebSocket Error - %v", err)
 			}
+			clientMutex.Lock()
+			client = nil
+			clientMutex.Unlock()
 			return
 		}
 

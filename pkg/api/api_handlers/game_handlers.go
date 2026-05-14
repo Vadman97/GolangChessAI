@@ -100,6 +100,11 @@ func PostGameCommandHandler(w http.ResponseWriter, r *http.Request) {
 		g.MoveLimit = game_config.Get().MovesToPlay
 		g.TimeLimit = game_config.Get().SecondsToPlay * time.Second
 
+		// Reset loop flag for the new game
+		clientMutex.Lock()
+		gameLoopStarted = false
+		clientMutex.Unlock()
+
 		// Initialize WebSocket Handler
 		go HandleMessages(g)
 

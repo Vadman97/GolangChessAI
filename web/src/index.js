@@ -151,12 +151,13 @@ $('.promotion-piece').click((event) => {
 
 function messageHandler(event) {
   const message = JSON.parse(event.data);
-  const data = JSON.parse(message.data);
+  const data = message.data ? JSON.parse(message.data) : null;
 
   console.log('Received Data:', data);
 
   switch (message.type) {
     case SocketConstants.GameState:
+      gameSocket.resetReconnectAttempts();
       game = new Game(
         data.humanColor.toLowerCase(),
         data.gameStatus,
@@ -200,6 +201,11 @@ function messageHandler(event) {
     case SocketConstants.GameFull:
       $('.game-error').text('A game is currently in progress...')
       $("#start-btn").attr("disabled", true);
+      break;
+
+    case SocketConstants.GameNotAvailable:
+      gameSocket.close();
+      $('.game-error').text('Connection lost. Please reload the page.').show();
       break;
 
     default:

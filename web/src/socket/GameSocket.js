@@ -48,8 +48,11 @@ class GameSocket {
   }
 
   // WebSocket EventHandlers
-  onOpen = () => {
+  resetReconnectAttempts() {
     this.reconnectAttempts = 0;
+  }
+
+  onOpen = () => {
     while (this.messageQueue.length > 0) {
       const message = this.messageQueue.shift();
       this.send(message.type, message.data);
