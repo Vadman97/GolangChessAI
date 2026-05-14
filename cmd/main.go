@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"time"
 )
 
@@ -22,6 +23,21 @@ func main() {
 		} else if os.Args[1] == "analysis" {
 			comp := competition.NewCompetition()
 			comp.RunAIAnalysis()
+			return
+		} else if os.Args[1] == "tournament" {
+			gamesPerMatchup := 2
+			thinkTime := 3 * time.Second
+			if len(os.Args) > 2 {
+				if n, err := strconv.Atoi(os.Args[2]); err == nil && n > 0 {
+					gamesPerMatchup = n
+				}
+			}
+			if len(os.Args) > 3 {
+				if ms, err := strconv.Atoi(os.Args[3]); err == nil && ms > 0 {
+					thinkTime = time.Duration(ms) * time.Millisecond
+				}
+			}
+			competition.RunTournament(gamesPerMatchup, thinkTime)
 			return
 		}
 	}
