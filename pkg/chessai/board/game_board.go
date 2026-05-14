@@ -325,12 +325,8 @@ func (b *Board) GetAllMoves(color color.Color, previousMove *LastMove) *[]locati
 		// MVV-LVA ordering: captures first (high-value victim, low-value attacker), non-captures after
 		moves := make([]location.Move, len(*movesPtr))
 		copy(moves, *movesPtr)
-		scores := make([]int, len(moves))
-		for i, m := range moves {
-			scores[i] = b.mvvLvaScore(m)
-		}
 		sort.Slice(moves, func(i, j int) bool {
-			return scores[i] > scores[j]
+			return b.mvvLvaScore(moves[i]) > b.mvvLvaScore(moves[j])
 		})
 		movesPtr = &moves
 	}
