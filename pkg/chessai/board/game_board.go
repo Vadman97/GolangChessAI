@@ -8,6 +8,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"math/rand"
+	"sort"
 	"strings"
 	"time"
 )
@@ -286,12 +287,50 @@ func (b *Board) HasLegalMove(color color.Color, previousMove *LastMove) bool {
 	return len(*b.getAllMovesCached(color, previousMove, true)) > 0
 }
 
+// mvvLvaValue maps piece type to its relative value for MVV-LVA move ordering.
+var mvvLvaValue = [7]int{
+	0,   // NilType
+	5,   // RookType
+	3,   // KnightType
+	3,   // BishopType
+	9,   // QueenType
+	100, // KingType
+	1,   // PawnType
+}
+
+// mvvLvaScore returns a score for a move used to order moves for alpha-beta search.
+// Captures of high-value pieces by low-value attackers score highest.
+// Non-captures return 0.
+func (b *Board) mvvLvaScore(m location.Move) int {
+	victim := b.GetPiece(m.End)
+	if victim == nil {
+		return 0
+	}
+	attacker := b.GetPiece(m.Start)
+	if attacker == nil {
+		return 0
+	}
+	return mvvLvaValue[victim.GetPieceType()]*10 - mvvLvaValue[attacker.GetPieceType()]
+}
+
 func (b *Board) GetAllMoves(color color.Color, previousMove *LastMove) *[]location.Move {
 	movesPtr := b.getAllMovesCached(color, previousMove, false)
 	if config.Get().RandomMoveOrder {
 		moves := *movesPtr
 		rand.Shuffle(len(moves), func(i, j int) {
 			moves[i], moves[j] = moves[j], moves[i]
+		})
+		movesPtr = &moves
+	} else {
+		// MVV-LVA ordering: captures first (high-value victim, low-value attacker), non-captures after
+		moves := make([]location.Move, len(*movesPtr))
+		copy(moves, *movesPtr)
+		scores := make([]int, len(moves))
+		for i, m := range moves {
+			scores[i] = b.mvvLvaScore(m)
+		}
+		sort.Slice(moves, func(i, j int) bool {
+			return scores[i] > scores[j]
 		})
 		movesPtr = &moves
 	}

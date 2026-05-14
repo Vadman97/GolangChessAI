@@ -64,7 +64,7 @@ const (
 	PieceNumAttacksWeight = PawnValueWeight / 10
 	KingDisplacedWeight   = -1 * PawnValueWeight
 	RookDisplacedWeight   = -1 * PawnValueWeight
-	KingCheckedWeight     = 0
+	KingCheckedWeight     = -PawnValueWeight / 4
 	KingCastledWeight     = 1 * PawnValueWeight
 	// neg 1 pawn if we do nothing in 50 moves
 	Weight50Rule = -PawnValueWeight / PawnValueWeight

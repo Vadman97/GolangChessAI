@@ -1,6 +1,6 @@
 {
   "UseOpenings": false,
-  "RandomMoveOrder": true,
+  "RandomMoveOrder": false,
   "MemoryLimit": 50000,
   "CacheGetAllMoves": true,
   "CacheGetAllAttackableMoves": true,
