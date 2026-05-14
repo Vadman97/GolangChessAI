@@ -108,19 +108,14 @@ func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
 }
 
 func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) bool {
-	if maximizingP {
-		if candidate.Score > currentBest.Score {
-			return true
-		} else {
-			return false
-		}
-	} else {
-		if candidate.Score < currentBest.Score {
-			return true
-		} else {
-			return false
-		}
+	// Always prefer a move with a valid Move over a zero-move, regardless of score.
+	if currentBest.Move.Start.Equals(currentBest.Move.End) && !candidate.Move.Start.Equals(candidate.Move.End) {
+		return true
 	}
+	if maximizingP {
+		return candidate.Score > currentBest.Score
+	}
+	return candidate.Score < currentBest.Score
 }
 
 func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *location.Move {

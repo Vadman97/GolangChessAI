@@ -25,9 +25,6 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 		a := alpha
 		b := beta
 		for i, m := range *moves {
-			if n.player.abort {
-				return a
-			}
 			newBoard := root.Copy()
 			previousMove = board.MakeMove(&m, newBoard)
 			n.player.Metrics.MovesConsidered++
@@ -42,7 +39,7 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 				a.Move = m
 			}
 
-			if t.Score > a.Score {
+			if t.Score > a.Score || a.Move.Start.Equals(a.Move.End) {
 				a = t
 			}
 
@@ -54,6 +51,10 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 			// set new null window
 			b = a
 			b.Score++
+
+			if i > 0 && n.player.abort {
+				return a
+			}
 		}
 		return a
 	}

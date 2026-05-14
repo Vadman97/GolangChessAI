@@ -72,7 +72,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 
 					if value.Score == -OnEvaluation {
 						allDone = false
-					} else if value.Score > best.Score {
+					} else if value.Score > best.Score || best.Move.Start.Equals(best.Move.End) {
 						best = value
 						if best.Score >= beta {
 							atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(moves)))

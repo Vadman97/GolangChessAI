@@ -103,7 +103,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 	}
 
 	var firstMove location.Move
-	if ttAnswer.Found {
+	if ttAnswer.Found && !ttAnswer.BestMove.Start.Equals(ttAnswer.BestMove.End) {
 		firstMove = ttAnswer.BestMove
 	} else {
 		firstMove = (*moves)[0]
@@ -152,7 +152,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 				nextScoredMove := j.Jamboree(child, depth-1, -alpha-1, -alpha, currentPlayer^1, prev, abortFlag)
 				nextScoredMove.Score *= -1
 				bLock.Lock()
-				if nextScoredMove.Score > b.Score {
+				if nextScoredMove.Score > b.Score || b.Move.Start.Equals(b.Move.End) {
 					b.Score = nextScoredMove.Score
 					b.Move = move
 				}

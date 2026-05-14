@@ -36,8 +36,8 @@ func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.C
 		// minimizing player
 		best.Score = PosInf
 	}
-	for _, m := range *moves {
-		if miniMax.player.abort {
+	for i, m := range *moves {
+		if i > 0 && miniMax.player.abort {
 			break
 		}
 		candidate := miniMax.MiniMaxRecurse(b, m, depth, currentPlayer, previousMove)
