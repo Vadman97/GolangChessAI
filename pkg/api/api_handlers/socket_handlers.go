@@ -13,6 +13,12 @@ import (
 	"net/http"
 	"runtime"
 	"sync"
+	"time"
+)
+
+const (
+	pingInterval = 30 * time.Second
+	pongWait     = 60 * time.Second
 )
 
 var client *websocket.Conn
@@ -71,6 +77,32 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	client = ws
 	clientMutex.Unlock()
 	log.Print("Client connected")
+
+	// Keep connection alive with periodic pings
+	ws.SetReadDeadline(time.Now().Add(pongWait))
+	ws.SetPongHandler(func(string) error {
+		ws.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+	stopPing := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(pingInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				clientMutex.Lock()
+				err := ws.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second))
+				clientMutex.Unlock()
+				if err != nil {
+					return
+				}
+			case <-stopPing:
+				return
+			}
+		}
+	}()
+	defer close(stopPing)
 
 	// Start Game
 	if client != nil && getGame() != nil {

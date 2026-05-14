@@ -1,15 +1,23 @@
 import SocketConstants from './constants';
 
+const RECONNECT_DELAY_MS = 2000;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
 class GameSocket {
   constructor(messageHandler) {
+    this.messageHandler = messageHandler;
+    this.messageQueue = [];
+    this.closed = false;
+    this.reconnectAttempts = 0;
+    this._connect();
+  }
+
+  _connect() {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     this.socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
     this.socket.onopen = this.onOpen;
-    this.socket.onmessage = messageHandler || this.onReceiveMessage;
+    this.socket.onmessage = this.messageHandler || this.onReceiveMessage;
     this.socket.onclose = this.onClose;
-
-    this.messageQueue = [];
-    this.closed = false;
   }
 
   send(type, data) {
@@ -35,11 +43,13 @@ class GameSocket {
   }
 
   close() {
+    this.closed = true;
     this.socket.close();
   }
 
   // WebSocket EventHandlers
   onOpen = () => {
+    this.reconnectAttempts = 0;
     while (this.messageQueue.length > 0) {
       const message = this.messageQueue.shift();
       this.send(message.type, message.data);
@@ -53,8 +63,17 @@ class GameSocket {
   }
 
   onClose = () => {
+    if (this.closed) return;
+
     console.warn('Socket Closed!');
-    this.closed = true;
+    if (this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      this.reconnectAttempts++;
+      console.warn(`Reconnecting... attempt ${this.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+      setTimeout(() => this._connect(), RECONNECT_DELAY_MS);
+    } else {
+      console.error('Max reconnect attempts reached. Please reload the page.');
+      this.closed = true;
+    }
   }
 }
 
