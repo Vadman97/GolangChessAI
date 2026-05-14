@@ -1,19 +1,9 @@
 const webpack = require('webpack');
 const path = require('path');
 
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const CompressionWebpackPlugin = require('compression-webpack-plugin');
 
 const debug = process.env.NODE_ENV !== 'production';
-
-const productionPlugins = [
-  new webpack.NoEmitOnErrorsPlugin(),
-  new CompressionWebpackPlugin({
-    filename: '[path].gz[query]',
-    algorithm: 'gzip',
-    test: new RegExp('\\.(js|css)$'),
-  }),
-];
 
 module.exports = {
   mode: debug ? 'development' : 'production',
@@ -28,7 +18,7 @@ module.exports = {
   resolve: {
     modules: ['node_modules'],
   },
-  cache: true,
+  cache: { type: 'filesystem' },
   devtool: debug ? 'source-map' : false,
   target: 'web',
   stats: {
@@ -44,7 +34,6 @@ module.exports = {
           loader: 'babel-loader',
           options: { cacheDirectory: true },
         },
-        // query: presets defined in .babelrc
       },
       {
         test: /\.(scss|sass)$/,
@@ -54,10 +43,7 @@ module.exports = {
             loader: 'css-loader',
             options: { modules: true },
           },
-          {
-            loader: 'sass-loader',
-            options: { outputStyle: 'expanded' },
-          },
+          { loader: 'sass-loader' },
         ],
       },
       {
@@ -69,31 +55,21 @@ module.exports = {
       },
       {
         test: /\.(ttf|otf|eot|svg|woff(2)?)(\?[a-z0-9]+)?$/,
-        use: {
-          loader: 'file-loader',
-          options: {
-            name: '[name].[ext]',
-            outputPath: 'fonts/', // where the fonts will go
-            publicPath: '../', // override the default path
-          },
+        type: 'asset/resource',
+        generator: {
+          filename: 'fonts/[name][ext]',
         },
       },
       {
         test: /\.(png|jpg|gif)$/,
-        use: {
-          loader: 'url-loader',
-          options: {
-            limit: 8192,
-            prefix: '/',
-          },
+        type: 'asset',
+        parser: {
+          dataUrlCondition: { maxSize: 8192 },
         },
       },
     ],
   },
   optimization: {
-    namedModules: true,
-    namedChunks: true,
-    runtimeChunk: false,
     splitChunks: {
       cacheGroups: {
         commons: {
@@ -103,15 +79,12 @@ module.exports = {
         },
       },
     },
-    minimizer: !debug ? [
-      new UglifyJsPlugin({
-        cache: true,
-        parallel: true,
-        sourceMap: true,
-      }),
-    ] : [],
   },
-  plugins: debug ? [
-    new webpack.NoEmitOnErrorsPlugin(),
-  ] : productionPlugins,
+  plugins: debug ? [] : [
+    new CompressionWebpackPlugin({
+      filename: '[path][base].gz[query]',
+      algorithm: 'gzip',
+      test: /\.(js|css)$/,
+    }),
+  ],
 };
