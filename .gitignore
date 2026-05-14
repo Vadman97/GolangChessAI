@@ -19,3 +19,5 @@ vendor/
 node_modules/
 web/dist/
 !web/**/vendor
+main
+
