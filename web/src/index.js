@@ -105,7 +105,7 @@ function clearBoard() {
 
 /* Button Events */
 $('#start-btn').click(() => {
-  fetcher.post(`http://${window.location.host}/api/game?command=start`)
+  fetcher.post(`${window.location.protocol}//${window.location.host}/api/game?command=start`)
   .then(response => {
     gameSocket = new GameSocket(messageHandler);
 

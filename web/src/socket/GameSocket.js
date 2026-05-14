@@ -2,7 +2,8 @@ import SocketConstants from './constants';
 
 class GameSocket {
   constructor(messageHandler) {
-    this.socket = new WebSocket(`ws://${window.location.host}/ws`);
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    this.socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
     this.socket.onopen = this.onOpen;
     this.socket.onmessage = messageHandler || this.onReceiveMessage;
     this.socket.onclose = this.onClose;
