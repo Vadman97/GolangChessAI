@@ -1,10 +1,13 @@
 package ai
 
 import (
+	"fmt"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/transposition_table"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
+	"time"
 )
 
 func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alpha, beta int, currentPlayer color.Color, previousMove *board.LastMove) *ScoredMove {
@@ -118,16 +121,43 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 }
 
 type AlphaBetaWithMemory struct {
-	player *AIPlayer
+	player             *AIPlayer
+	currentSearchDepth int
 }
 
 func (ab *AlphaBetaWithMemory) GetName() string {
 	return AlgorithmAlphaBetaWithMemory
 }
 
+func (ab *AlphaBetaWithMemory) iterativeAlphaBeta(b *board.Board, previousMove *board.LastMove) *ScoredMove {
+	start := time.Now()
+	best := &ScoredMove{}
+	iterativeIncrement := config.Get().IterativeIncrement
+	for ab.currentSearchDepth = iterativeIncrement; ab.currentSearchDepth <= ab.player.MaxSearchDepth; ab.currentSearchDepth += iterativeIncrement {
+		thinking, done := make(chan bool), make(chan bool, 1)
+		go ab.player.trackThinkTime(thinking, done, start)
+		newBest := ab.AlphaBetaWithMemory(b, ab.currentSearchDepth, NegInf, PosInf, ab.player.PlayerColor, previousMove)
+		close(thinking)
+		<-done
+		if !ab.player.abort {
+			best = newBest
+			ab.player.LastSearchDepth = ab.currentSearchDepth
+			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", ab.player.LastSearchDepth, best.Move)
+		} else {
+			ab.player.LastSearchDepth = ab.currentSearchDepth - iterativeIncrement
+			ab.player.printer <- fmt.Sprintf("%s hard abort! evaluated to depth %d\n", ab.GetName(), ab.player.LastSearchDepth)
+			break
+		}
+	}
+	return best
+}
+
 func (ab *AlphaBetaWithMemory) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
 	ab.player.abort = false
+	if p.MaxThinkTime != 0 {
+		return ab.iterativeAlphaBeta(b, previousMove)
+	}
 	ab.player.LastSearchDepth = p.MaxSearchDepth
 	return ab.AlphaBetaWithMemory(b, p.MaxSearchDepth, NegInf, PosInf, p.PlayerColor, previousMove)
 }
