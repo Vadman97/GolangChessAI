@@ -34,8 +34,21 @@ var cfg *Configuration
 
 func Get() *Configuration {
 	if cfg == nil {
-		dir := path.Join(os.Getenv("GOPATH"), "src", "github.com", "Vadman97", "GolangChessAI", FilePath)
-		file, _ := os.Open(dir)
+		candidates := []string{
+			FilePath,
+			path.Join(os.Getenv("GOPATH"), "src", "github.com", "Vadman97", "GolangChessAI", FilePath),
+		}
+		var file *os.File
+		for _, p := range candidates {
+			f, err := os.Open(p)
+			if err == nil {
+				file = f
+				break
+			}
+		}
+		if file == nil {
+			log.Panic("configuration parsing failed: could not open ", FilePath)
+		}
 		defer func() { _ = file.Close() }()
 		decoder := json.NewDecoder(file)
 		configuration := Configuration{}
