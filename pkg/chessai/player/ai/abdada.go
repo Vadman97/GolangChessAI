@@ -17,7 +17,7 @@ import (
 func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove) ScoredMove {
 	if depth == 0 {
 		return ScoredMove{
-			Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
+			Score: ab.player.Quiesce(root, alpha, beta, currentPlayer, previousMove),
 		}
 	} else {
 		var best ScoredMove
