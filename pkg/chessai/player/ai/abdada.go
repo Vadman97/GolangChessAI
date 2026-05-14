@@ -259,7 +259,6 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 						answer.alpha = entry.Score
 						answer.beta = entry.Score
 					} else if entry.EntryType == transposition_table.UpperBound && entry.Score < beta {
-						answer.score = entry.Score
 						answer.beta = entry.Score
 					} else if entry.EntryType == transposition_table.LowerBound && entry.Score > alpha {
 						answer.score = entry.Score
