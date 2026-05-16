@@ -15,11 +15,13 @@ import (
 func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMove, currentPlayer color.Color, previousMove *board.LastMove) ScoredMove {
 	moves := root.GetAllMoves(currentPlayer, previousMove)
 	// max recursion or terminal node
-	if depth == 0 || n.player.terminalNode(root, moves) {
-		// leaf node
+	if depth == 0 {
 		return ScoredMove{
 			Score: n.player.Quiesce(root, alpha.Score, beta.Score, currentPlayer, previousMove),
-			//Score: n.player.EvaluateBoard(root, currentPlayer).TotalScore,
+		}
+	} else if n.player.terminalNode(root, moves) {
+		return ScoredMove{
+			Score: AdjustMateScore(n.player.EvaluateBoard(root, currentPlayer).TotalScore, depth),
 		}
 	} else {
 		a := alpha

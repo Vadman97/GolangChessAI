@@ -81,6 +81,17 @@ const (
 	StalemateScore = NegInf / 2 // should only choose draw to avoid a loss
 )
 
+// AdjustMateScore encodes depth into win/loss scores so the search prefers
+// shorter paths to checkmate. More remaining depth = fewer moves from root.
+func AdjustMateScore(score, depth int) int {
+	if score >= WinScore {
+		return WinScore + depth
+	} else if score <= LossScore {
+		return LossScore - depth
+	}
+	return score
+}
+
 type evaluationPair struct {
 	score    int
 	whoMoves color.Color

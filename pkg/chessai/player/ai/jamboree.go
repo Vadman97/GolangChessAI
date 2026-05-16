@@ -59,7 +59,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 	}
 
 	if depth == 0 {
-		return ScoredMove{Score: j.player.EvaluateBoard(root, currentPlayer).TotalScore}
+		return ScoredMove{Score: AdjustMateScore(j.player.EvaluateBoard(root, currentPlayer).TotalScore, depth)}
 	}
 
 	answerChan := j.asyncTTRead(root, currentPlayer)
@@ -67,7 +67,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 	ttAnswer := <-answerChan
 
 	if len(*moves) == 0 {
-		return ScoredMove{Score: j.player.EvaluateBoard(root, currentPlayer).TotalScore}
+		return ScoredMove{Score: AdjustMateScore(j.player.EvaluateBoard(root, currentPlayer).TotalScore, depth)}
 	}
 
 	// Use TT to prune or narrow the search window.

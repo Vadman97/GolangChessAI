@@ -47,7 +47,7 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	// max recursion or terminal node
 	if depth == 0 || ab.player.terminalNode(root, moves) {
 		best = ScoredMove{
-			Score: ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore,
+			Score: AdjustMateScore(ab.player.EvaluateBoard(root, ab.player.PlayerColor).TotalScore, depth),
 		}
 	} else {
 		var maximizingPlayer = currentPlayer == ab.player.PlayerColor

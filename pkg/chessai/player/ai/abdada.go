@@ -35,7 +35,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		// this is a terminal node because we have no moves, either we lost or tied
 		if ab.player.terminalNode(root, movesArr) {
 			return ScoredMove{
-				Score: ab.player.EvaluateBoard(root, currentPlayer).TotalScore,
+				Score: AdjustMateScore(ab.player.EvaluateBoard(root, currentPlayer).TotalScore, depth),
 			}
 		}
 
