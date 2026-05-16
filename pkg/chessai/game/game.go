@@ -6,6 +6,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/game_config"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
@@ -180,7 +181,7 @@ func (g *Game) Loop(client *websocket.Conn) {
 				g.SocketBroadcast <- api.CreateChessMessage(api.AIMove, lastMoveJSON)
 			}
 
-			if g.MovesPlayed > 20 {
+			if g.MovesPlayed > 20 && game_config.Get().AIScaleThinkTimeWithHuman {
 				humanThinkSec := math.Round(g.AverageMoveTime[humanColor])
 				humanThinkTime := time.Duration(humanThinkSec) * time.Second
 				// only allow AI to go up to certain think time
