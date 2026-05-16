@@ -17,13 +17,15 @@ import (
 )
 
 const (
-	pingInterval = 30 * time.Second
-	pongWait     = 60 * time.Second
+	pingInterval    = 30 * time.Second
+	pongWait        = 60 * time.Second
+	idleGameTimeout = 3 * time.Minute
 )
 
 var client *websocket.Conn
 var clientMutex = &sync.Mutex{}
 var gameLoopStarted bool
+var idleTimer *time.Timer
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -76,6 +78,10 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	// Initialize Client
 	clientMutex.Lock()
 	client = ws
+	if idleTimer != nil {
+		idleTimer.Stop()
+		idleTimer = nil
+	}
 	clientMutex.Unlock()
 	log.Print("Client connected")
 
@@ -137,6 +143,16 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			}
 			clientMutex.Lock()
 			client = nil
+			idleTimer = time.AfterFunc(idleGameTimeout, func() {
+				clientMutex.Lock()
+				defer clientMutex.Unlock()
+				if client == nil {
+					log.Print("Idle timeout - ending abandoned game")
+					setGame(nil)
+					gameLoopStarted = false
+					idleTimer = nil
+				}
+			})
 			clientMutex.Unlock()
 			return
 		}
