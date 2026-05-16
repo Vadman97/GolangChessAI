@@ -258,5 +258,5 @@ func (p *AIPlayer) trackThinkTime(stop, done chan bool, start time.Time) {
 }
 
 func (p *AIPlayer) terminalNode(b *board.Board, moves *[]location.Move) bool {
-	return len(*moves) == 0 || b.PreviousPositionsSeen >= 3 || b.MovesSinceNoDraw >= 100
+	return len(*moves) == 0 || b.PreviousPositionsSeen >= 3 || b.MovesSinceNoDraw >= 100 || b.IsInsufficientMaterial()
 }

@@ -452,3 +452,123 @@ func TestBoard_ThreeMoveRepetitionDraw(t *testing.T) {
 
 	assert.Equal(t, 3, b.PreviousPositionsSeen)
 }
+
+func loadInsufficientMaterialBoard(rows []string) *Board {
+	b := &Board{}
+	b.LoadBoardFromText(rows)
+	return b
+}
+
+func TestIsInsufficientMaterial_KvsK(t *testing.T) {
+	b := loadInsufficientMaterialBoard([]string{
+		"   |   |   |   |B_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |W_K|   |   |   ",
+	})
+	assert.True(t, b.IsInsufficientMaterial())
+}
+
+func TestIsInsufficientMaterial_KNvsK(t *testing.T) {
+	b := loadInsufficientMaterialBoard([]string{
+		"   |   |   |   |B_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |W_K|   |W_N|   ",
+	})
+	assert.True(t, b.IsInsufficientMaterial())
+}
+
+func TestIsInsufficientMaterial_KBvsK(t *testing.T) {
+	b := loadInsufficientMaterialBoard([]string{
+		"   |   |   |   |B_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |W_K|W_B|   |   ",
+	})
+	assert.True(t, b.IsInsufficientMaterial())
+}
+
+func TestIsInsufficientMaterial_KBvsKBSameColor(t *testing.T) {
+	// White bishop at (7,0): (7+0)%2=1 (dark). Black bishop at (0,1): (0+1)%2=1 (dark). Same color.
+	b := loadInsufficientMaterialBoard([]string{
+		"   |B_B|   |   |B_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"W_B|   |   |   |W_K|   |   |   ",
+	})
+	assert.True(t, b.IsInsufficientMaterial())
+}
+
+func TestIsInsufficientMaterial_KBvsKBDifferentColor(t *testing.T) {
+	// White bishop at (7,0): (7+0)%2=1 (dark). Black bishop at (0,0): (0+0)%2=0 (light). Different colors.
+	b := loadInsufficientMaterialBoard([]string{
+		"B_B|   |   |   |B_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"W_B|   |   |   |W_K|   |   |   ",
+	})
+	assert.False(t, b.IsInsufficientMaterial())
+}
+
+func TestIsInsufficientMaterial_KRvsK(t *testing.T) {
+	b := loadInsufficientMaterialBoard([]string{
+		"   |   |   |   |B_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |W_K|W_R|   |   ",
+	})
+	assert.False(t, b.IsInsufficientMaterial())
+}
+
+func TestIsInsufficientMaterial_KPvsK(t *testing.T) {
+	b := loadInsufficientMaterialBoard([]string{
+		"   |   |   |   |B_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |W_P|   |   |   |   ",
+		"   |   |   |   |W_K|   |   |   ",
+	})
+	assert.False(t, b.IsInsufficientMaterial())
+}
+
+func TestIsInsufficientMaterial_KQvsK(t *testing.T) {
+	b := loadInsufficientMaterialBoard([]string{
+		"   |   |   |   |B_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |W_K|W_Q|   |   ",
+	})
+	assert.False(t, b.IsInsufficientMaterial())
+}

@@ -7,6 +7,7 @@ const (
 	Stalemate                   = byte(iota)
 	FiftyMoveDraw               = byte(iota)
 	RepeatedActionThreeTimeDraw = byte(iota)
+	InsufficientMaterialDraw    = byte(iota)
 	Aborted                     = byte(iota)
 )
 
@@ -17,5 +18,6 @@ var StatusStrings = [...]string{
 	"Stalemate",
 	"Fifty Move Draw",
 	"Repeated Action Three Times Draw",
+	"Insufficient Material Draw",
 	"Aborted",
 }

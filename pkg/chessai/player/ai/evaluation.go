@@ -152,7 +152,7 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		eval.TotalScore = WinScore
 	} else if b.IsInCheckmate(whoMoves, nil) {
 		eval.TotalScore = LossScore
-	} else if b.IsStalemate(whoMoves, nil) || b.IsStalemate(whoMoves^1, nil) {
+	} else if b.IsStalemate(whoMoves, nil) || b.IsStalemate(whoMoves^1, nil) || b.IsInsufficientMaterial() {
 		// want to discourage us from stalemating other player or getting stalemated
 		eval.TotalScore = StalemateScore
 	} else {

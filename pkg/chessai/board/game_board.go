@@ -563,6 +563,52 @@ func (b *Board) IsStalemate(c byte, previousMove *LastMove) bool {
 	return !b.HasLegalMove(c, previousMove) && !b.IsKingInCheck(c)
 }
 
+// IsInsufficientMaterial returns true when neither side has enough material to
+// force checkmate. Covers K vs K, K+minor vs K, and K+B vs K+B same square color.
+func (b *Board) IsInsufficientMaterial() bool {
+	type pieceInfo struct {
+		pieceType   byte
+		squareColor byte // (row+col)%2: 0=light, 1=dark
+	}
+	var whitePieces, blackPieces []pieceInfo
+	for row := location.CoordinateType(0); row < Height; row++ {
+		for col := location.CoordinateType(0); col < Width; col++ {
+			p := b.GetPiece(location.NewLocation(row, col))
+			if p == nil || p.GetPieceType() == piece.KingType {
+				continue
+			}
+			info := pieceInfo{p.GetPieceType(), (row + col) % 2}
+			if p.GetColor() == color.White {
+				whitePieces = append(whitePieces, info)
+			} else {
+				blackPieces = append(blackPieces, info)
+			}
+		}
+	}
+	wn, bn := len(whitePieces), len(blackPieces)
+	// K vs K
+	if wn == 0 && bn == 0 {
+		return true
+	}
+	// K+N vs K or K+B vs K
+	if (wn == 1 && bn == 0) || (wn == 0 && bn == 1) {
+		var solo pieceInfo
+		if wn == 1 {
+			solo = whitePieces[0]
+		} else {
+			solo = blackPieces[0]
+		}
+		return solo.pieceType == piece.KnightType || solo.pieceType == piece.BishopType
+	}
+	// K+B vs K+B, same square color
+	if wn == 1 && bn == 1 {
+		if whitePieces[0].pieceType == piece.BishopType && blackPieces[0].pieceType == piece.BishopType {
+			return whitePieces[0].squareColor == blackPieces[0].squareColor
+		}
+	}
+	return false
+}
+
 /**
  * Checks if the board is reaching a draw based on the previous move (pawn movement, piece capture)
  */

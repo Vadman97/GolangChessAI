@@ -52,7 +52,7 @@ func (g *Game) GetGameOutcome() (outcome Outcome) {
 		outcome.Win[color.White] = true
 	} else if g.GameStatus == BlackWin {
 		outcome.Win[color.Black] = true
-	} else if g.GameStatus == Stalemate || g.GameStatus == FiftyMoveDraw || g.GameStatus == RepeatedActionThreeTimeDraw {
+	} else if g.GameStatus == Stalemate || g.GameStatus == FiftyMoveDraw || g.GameStatus == RepeatedActionThreeTimeDraw || g.GameStatus == InsufficientMaterialDraw {
 		outcome.Tie = true
 	}
 	return
@@ -112,6 +112,8 @@ func (g *Game) PlayTurn() bool {
 		} else if g.CurrentBoard.PreviousPositionsSeen >= 3 {
 			// 3-position repetition
 			g.GameStatus = RepeatedActionThreeTimeDraw
+		} else if g.CurrentBoard.IsInsufficientMaterial() {
+			g.GameStatus = InsufficientMaterialDraw
 		}
 
 		if g.GameStatus == Active {
