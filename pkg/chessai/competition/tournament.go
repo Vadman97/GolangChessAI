@@ -162,10 +162,12 @@ func playGame(white, black *tournamentPlayer, thinkTime time.Duration, spectator
 
 	for g.PlayTurn() {
 		if spectatorCh != nil {
-			// Per-turn: animate the move then update status — same pattern as game.Loop().
 			if g.PreviousMove != nil {
 				broadcastMessage(spectatorCh, api.CreateChessMessage(api.AIMove, api.CreateMoveJSON(g.PreviousMove)))
 			}
+			// GameState after every move keeps hub.lastState current so late joiners
+			// always sync to the actual board position, not the initial one.
+			broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameState, g.GetJSON()))
 			broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameStatus, g.GetStatusJSON()))
 		}
 	}
