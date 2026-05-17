@@ -152,14 +152,14 @@ func TestPawnGetMovesPromoteAttackWhite(t *testing.T) {
 	testPieceGetMoves(t, location.NewLocation(1, 3), &[]location.Move{{
 		Start: location.NewLocation(6, 3),
 		End:   location.NewLocation(1, 3),
-	}}, 4)
+	}}, 2)
 }
 
 func TestPawnGetMovesPromoteAttackBlack(t *testing.T) {
 	testPieceGetMoves(t, location.NewLocation(6, 3), &[]location.Move{{
 		Start: location.NewLocation(1, 3),
 		End:   location.NewLocation(6, 3),
-	}}, 4)
+	}}, 2)
 }
 
 func TestPawnGetMovesPromoteWhite(t *testing.T) {
