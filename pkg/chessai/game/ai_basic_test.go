@@ -44,7 +44,7 @@ func runAITest(t *testing.T, algorithm ai.Algorithm) {
 
 	for i := 0; i < MovesToPlay; i++ {
 		active := g.PlayTurn()
-		fmt.Printf(util.GetMemStatString())
+		fmt.Print(util.GetMemStatString())
 		if !active {
 			break
 		}

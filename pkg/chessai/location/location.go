@@ -134,3 +134,14 @@ func (m *Move) Equals(v *Move) bool {
 func (m Move) String() string {
 	return fmt.Sprintf("move from %s to %s", m.Start.String(), m.End.String())
 }
+
+func (m Move) UCIString() string {
+	sRow, sCol := m.Start.Get()
+	eRow, eCol := m.End.Get()
+	return fmt.Sprintf("%c%c%c%c",
+		'a'+byte(7-sCol),
+		'1'+sRow,
+		'a'+byte(7-eCol),
+		'1'+eRow,
+	)
+}

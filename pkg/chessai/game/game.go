@@ -143,6 +143,33 @@ func (g *Game) PlayTurn() bool {
 	return g.GameStatus == Active
 }
 
+// PlayTurnMove applies an externally provided move (e.g. from a lichess opponent)
+// and updates game state, without consulting the current player's AI.
+func (g *Game) PlayTurnMove(move *location.Move) {
+	if g.GameStatus != Active {
+		return
+	}
+	g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, move)
+	g.CurrentTurnColor ^= 1
+	g.MovesPlayed++
+
+	if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
+		if g.CurrentTurnColor == color.White {
+			g.GameStatus = BlackWin
+		} else {
+			g.GameStatus = WhiteWin
+		}
+	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
+		g.GameStatus = Stalemate
+	} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
+		g.GameStatus = FiftyMoveDraw
+	} else if g.CurrentBoard.PreviousPositionsSeen >= 3 {
+		g.GameStatus = RepeatedActionThreeTimeDraw
+	} else if g.CurrentBoard.IsInsufficientMaterial() {
+		g.GameStatus = InsufficientMaterialDraw
+	}
+}
+
 func (g *Game) Loop(client *websocket.Conn) {
 	g.SocketBroadcast <- api.CreateChessMessage(api.GameState, g.GetJSON())
 
