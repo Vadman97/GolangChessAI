@@ -78,7 +78,7 @@ const (
 const (
 	WinScore       = PosInf
 	LossScore      = NegInf
-	StalemateScore = NegInf / 2 // should only choose draw to avoid a loss
+	StalemateScore = 0 // draw is neutral: better than losing, worse than winning
 )
 
 // AdjustMateScore encodes depth into win/loss scores so the search prefers
