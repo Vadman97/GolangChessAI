@@ -171,19 +171,8 @@ func (r *Pawn) Move(m *location.Move, b *Board) {
 	if m.End.GetRow() == StartRow[r.Color^1]["Piece"] {
 		r.Promote(b, m)
 	}
-	// move put us above enemy (enPassant pawn)
-	l, inBounds := r.GetPosition().AddRelative(r.forward(-1))
-	if inBounds {
-		enPassantPawn := b.GetPiece(l)
-		if enPassantPawn != nil {
-			pawn, ok := enPassantPawn.(*Pawn)
-			if ok {
-				if r.Color != pawn.GetColor() {
-					b.SetPiece(pawn.GetPosition(), nil)
-				}
-			}
-		}
-	}
+	// En passant clearing is handled in board.MakeMove, which has access to
+	// pieceCaptured and can distinguish en passant from regular diagonal captures.
 }
 
 func (r *Pawn) Promote(b *Board, m *location.Move) {

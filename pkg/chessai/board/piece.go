@@ -35,10 +35,23 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		pieceMoved := b.GetPiece(end)
 		pieceMoved.Move(m, b)
 
+		isCapture := pieceCaptured != nil
+		// En passant: pawn moves diagonally to an empty square — the captured pawn
+		// is not at the destination but one step behind it (same row as start, same col as end).
+		if _, isPawn := pieceMoved.(*Pawn); isPawn && !isCapture && start.GetCol() != end.GetCol() {
+			capturedLoc := location.NewLocation(start.GetRow(), end.GetCol())
+			if ep := b.GetPiece(capturedLoc); ep != nil {
+				if epPawn, ok := ep.(*Pawn); ok && epPawn.GetColor() != pieceMoved.GetColor() {
+					b.SetPiece(capturedLoc, nil)
+					isCapture = true
+				}
+			}
+		}
+
 		lm := &LastMove{
 			Piece:     &pieceMoved,
 			Move:      m,
-			IsCapture: pieceCaptured != nil,
+			IsCapture: isCapture,
 		}
 
 		// Check for Pawn Promotion
