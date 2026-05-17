@@ -1,6 +1,6 @@
 module github.com/Vadman97/GolangChessAI
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
