@@ -19,6 +19,10 @@ const (
 	GameFull             = "gameFull"
 	GameNotAvailable     = "gameNotAvailable"
 	TournamentInfo       = "tournamentInfo"
+	// SpectatorSync is server-internal: the hub caches it as the current board
+	// state for late-joining spectators but does NOT broadcast it to already-
+	// connected clients, so live AIMove animations are not interrupted.
+	SpectatorSync = "spectatorSync"
 )
 
 type ChessMessage struct {

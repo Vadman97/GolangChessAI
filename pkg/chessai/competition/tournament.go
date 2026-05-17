@@ -165,9 +165,9 @@ func playGame(white, black *tournamentPlayer, thinkTime time.Duration, spectator
 			if g.PreviousMove != nil {
 				broadcastMessage(spectatorCh, api.CreateChessMessage(api.AIMove, api.CreateMoveJSON(g.PreviousMove)))
 			}
-			// GameState after every move keeps hub.lastState current so late joiners
-			// always sync to the actual board position, not the initial one.
-			broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameState, g.GetJSON()))
+			// SpectatorSync keeps hub.lastState current for late joiners but is NOT
+			// broadcast to live clients, preserving AIMove animations.
+			broadcastMessage(spectatorCh, api.CreateChessMessage(api.SpectatorSync, g.GetJSON()))
 			broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameStatus, g.GetStatusJSON()))
 		}
 	}

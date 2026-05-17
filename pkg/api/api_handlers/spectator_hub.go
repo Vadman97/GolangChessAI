@@ -38,6 +38,12 @@ func (h *SpectatorHub) Run() {
 	for msg := range h.broadcastCh {
 		h.mu.Lock()
 		switch msg.Type {
+		case api.SpectatorSync:
+			// Cache as GameState for late joiners but do NOT fan out to live clients.
+			cached := api.ChessMessage{Type: api.GameState, Data: msg.Data}
+			h.lastState = &cached
+			h.mu.Unlock()
+			continue
 		case api.GameState:
 			cp := msg
 			h.lastState = &cp
