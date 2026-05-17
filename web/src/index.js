@@ -95,9 +95,9 @@ function updateGameStatus() {
     $('.chessboard-63f37').addClass('inactive');
     $('.ai-thinking').hide();
 
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(alertText));
+    speak(alertText);
     if (game.status !== GameStatus.Aborted) {
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance(game.status));
+      speak(game.status);
     }
   }
 }
@@ -173,6 +173,9 @@ function messageHandler(event) {
 
       board.position(boardMatrixToObj(data.currentBoard), false);
       board.orientation(game.humanColor || 'white');
+      if (isSpectate) {
+        $('.chessboard-63f37').removeClass('inactive');
+      }
       updateGameStatus();
       break;
 
@@ -189,7 +192,7 @@ function messageHandler(event) {
 
       if (game.status === GameStatus.Active && data.kingInCheck) {
         $('.game-status .status-alert').text('Check!').show();
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance('Check'));
+        speak('Check');
       }
       else {
         $('.game-status .status-alert').hide();
@@ -221,6 +224,12 @@ function messageHandler(event) {
   }
 }
 
+function speak(text) {
+  if (!isSpectate) {
+    speak(text);
+  }
+}
+
 function makeAIMove(start, end, piece, promotionPiece) {
   if (promotionPiece.type && promotionPiece.color) {
     const endLoc = rowColToChess(end[0], end[1]);
@@ -230,7 +239,7 @@ function makeAIMove(start, end, piece, promotionPiece) {
       [endLoc]: `${colorToChar[promotionPiece.color.toLowerCase()]}${promotionPiece.type}`,
     }, false);
 
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance('Pawn Promotion'));
+    speak('Pawn Promotion');
     return;
   }
   // Check if it's a Castle Move (King and moved 2 columns)
@@ -240,21 +249,21 @@ function makeAIMove(start, end, piece, promotionPiece) {
       const rookStartLoc = rowColToChess(end[0], end[1] + 2);
       const rookEndLoc = rowColToChess(end[0], end[1] - 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance('Queen-side Castle'));
+      speak('Queen-side Castle');
     }
     // King-side Castle
     else if (start[1] - end[1] === 2) {
       const rookStartLoc = rowColToChess(end[0], end[1] - 1);
       const rookEndLoc = rowColToChess(end[0], end[1] + 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance('King-side Castle'));
+      speak('King-side Castle');
     }
   }
   const startChessLoc = rowColToChess(start[0], start[1]);
   const endChessLoc = rowColToChess(end[0], end[1]);
   // For some weird reason, timing out the move fixes a UI glitch
   setTimeout(() => board.move(`${startChessLoc}-${endChessLoc}`), 150);
-  window.speechSynthesis.speak(new SpeechSynthesisUtterance(`${startChessLoc} to ${endChessLoc}`));
+  speak(`${startChessLoc} to ${endChessLoc}`);
 }
 
 /* Chessboard Events */
@@ -313,14 +322,14 @@ function onChessboardDrop(source, target, piece) {
       const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] + 2);
       const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance('Queen-side Castle'));
+      speak('Queen-side Castle');
     }
     // King-side Castle
     else if (sourceCoord[1] - targetCoord[1] == 2) {
       const rookStartLoc = rowColToChess(targetCoord[0], targetCoord[1] - 1);
       const rookEndLoc = rowColToChess(targetCoord[0], targetCoord[1] + 1);
       setTimeout(() => board.move(`${rookStartLoc}-${rookEndLoc}`), 150);
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance('King-side Castle'));
+      speak('King-side Castle');
     }
   }
 

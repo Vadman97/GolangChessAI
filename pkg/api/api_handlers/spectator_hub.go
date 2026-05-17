@@ -69,15 +69,13 @@ func (h *SpectatorHub) HandleSpectatorConnection(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// Snapshot catch-up state before registering so hub.Run() doesn't write
+	// to this connection concurrently while we send the initial messages.
 	h.mu.Lock()
-	h.clients[ws] = true
 	lastTournament := h.lastTournament
 	lastState := h.lastState
 	h.mu.Unlock()
 
-	log.Printf("spectator connected (%d total)", len(h.clients))
-
-	// Catch up a late joiner with current tournament/game state.
 	if lastTournament != nil {
 		ws.WriteJSON(*lastTournament) //nolint:errcheck
 	}
@@ -85,7 +83,13 @@ func (h *SpectatorHub) HandleSpectatorConnection(w http.ResponseWriter, r *http.
 		ws.WriteJSON(*lastState) //nolint:errcheck
 	}
 
-	// Spectators are read-only; just drain any incoming frames until disconnect.
+	// Register only after initial writes are done.
+	h.mu.Lock()
+	h.clients[ws] = true
+	h.mu.Unlock()
+	log.Printf("spectator connected (%d total)", len(h.clients))
+
+	// Spectators are read-only; drain any incoming frames until disconnect.
 	for {
 		if _, _, err := ws.ReadMessage(); err != nil {
 			break

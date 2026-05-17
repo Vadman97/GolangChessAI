@@ -260,13 +260,10 @@ func (l *Lichess) AcceptChallenge(challengeID string) error {
 }
 
 func (l *Lichess) MakeMove(gameID string, move *board.LastMove) error {
-	sCol := 7 - move.Move.Start.GetCol()
-	fCol := 7 - move.Move.End.GetCol()
-	m := &location.Move{
-		Start: location.NewLocation(move.Move.Start.GetRow(), sCol),
-		End:   location.NewLocation(move.Move.End.GetRow(), fCol),
+	moveStr := move.Move.UCIString()
+	if move.PromotionPiece != nil {
+		moveStr += strings.ToLower(string((*move.PromotionPiece).GetChar()))
 	}
-	moveStr := m.UCIString()
 	oferringDraw := "false"
 	if l.Game.GameStatus == game.RepeatedActionThreeTimeDraw {
 		oferringDraw = "true"

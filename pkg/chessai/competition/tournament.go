@@ -155,21 +155,21 @@ func playGame(white, black *tournamentPlayer, thinkTime time.Duration, spectator
 	g.PrintInfo = false
 
 	if spectatorCh != nil {
+		// Send full board once at game start so spectators see the initial position.
 		broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameState, g.GetJSON()))
 	}
 
 	for g.PlayTurn() {
 		if spectatorCh != nil {
-			broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameState, g.GetJSON()))
-			broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameStatus, g.GetStatusJSON()))
+			// Per-turn: animate the move then update status — same pattern as game.Loop().
 			if g.PreviousMove != nil {
 				broadcastMessage(spectatorCh, api.CreateChessMessage(api.AIMove, api.CreateMoveJSON(g.PreviousMove)))
 			}
+			broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameStatus, g.GetStatusJSON()))
 		}
 	}
 
 	if spectatorCh != nil {
-		broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameState, g.GetJSON()))
 		broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameStatus, g.GetStatusJSON()))
 	}
 
