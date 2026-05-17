@@ -63,10 +63,6 @@ func (g *Game) GetGameOutcome() (outcome Outcome) {
  */
 
 func (g *Game) PlayTurn() bool {
-	return g.PlayTurnMove(nil)
-}
-
-func (g *Game) PlayTurnMove(m *location.Move) bool {
 	if g.GameStatus != Active {
 		log.Println("Game is not active!")
 		return false
@@ -82,12 +78,10 @@ func (g *Game) PlayTurnMove(m *location.Move) bool {
 		// print think time for slow players, regardless of what's going on
 		go g.periodicUpdates(quitTimeUpdates, start)
 
-		var move *location.Move = m
+		var move *location.Move
 		switch p := g.Players[g.CurrentTurnColor].(type) {
 		case *player.HumanPlayer:
-			if m == nil {
-				move = p.WaitForMove()
-			}
+			move = p.WaitForMove()
 		case *ai.AIPlayer:
 			move = p.GetBestMove(g.CurrentBoard, g.PreviousMove, g.PerformanceLogger)
 		}
@@ -147,6 +141,33 @@ func (g *Game) PlayTurnMove(m *location.Move) bool {
 		}
 	}
 	return g.GameStatus == Active
+}
+
+// PlayTurnMove applies an externally provided move (e.g. from a lichess opponent)
+// and updates game state, without consulting the current player's AI.
+func (g *Game) PlayTurnMove(move *location.Move) {
+	if g.GameStatus != Active {
+		return
+	}
+	g.PreviousMove = g.Players[g.CurrentTurnColor].MakeMove(g.CurrentBoard, move)
+	g.CurrentTurnColor ^= 1
+	g.MovesPlayed++
+
+	if g.CurrentBoard.IsInCheckmate(g.CurrentTurnColor, g.PreviousMove) {
+		if g.CurrentTurnColor == color.White {
+			g.GameStatus = BlackWin
+		} else {
+			g.GameStatus = WhiteWin
+		}
+	} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
+		g.GameStatus = Stalemate
+	} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
+		g.GameStatus = FiftyMoveDraw
+	} else if g.CurrentBoard.PreviousPositionsSeen >= 3 {
+		g.GameStatus = RepeatedActionThreeTimeDraw
+	} else if g.CurrentBoard.IsInsufficientMaterial() {
+		g.GameStatus = InsufficientMaterialDraw
+	}
 }
 
 func (g *Game) Loop(client *websocket.Conn) {
