@@ -55,9 +55,14 @@ type Game struct {
 	Source          string  `json:"source"`
 }
 
+type Challenge struct {
+	ID string `json:"id"`
+}
+
 type Event struct {
-	Type EventType `json:"type"`
-	Game *Game     `json:"game"`
+	Type      EventType  `json:"type"`
+	Game      *Game      `json:"game"`
+	Challenge *Challenge `json:"challenge"`
 }
 type GameEvent struct {
 	Type        StateType `json:"type"`
@@ -146,6 +151,13 @@ func (l *Lichess) handleEvent(event *Event) error {
 		}
 		l.Player = nil
 		l.Game = nil
+	case EventTypeChallenge:
+		if event.Challenge == nil {
+			return errors.New("challenge event missing challenge data")
+		}
+		if err := l.AcceptChallenge(event.Challenge.ID); err != nil {
+			log.Errorf("failed to accept challenge %s: %s", event.Challenge.ID, err)
+		}
 	case EventTypePing:
 		log.Debugf("ping...")
 	default:
@@ -227,6 +239,24 @@ func (l *Lichess) Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (l *Lichess) AcceptChallenge(challengeID string) error {
+	u := fmt.Sprintf("/api/challenge/%s/accept", challengeID)
+	r, err := l.Client.newRequest("POST", u, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := l.Client.HttpClient.Do(r)
+	if err != nil {
+		return err
+	}
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Infof("accept challenge %s status %s %s", challengeID, resp.Status, string(bodyBytes))
+	return nil
 }
 
 func (l *Lichess) MakeMove(gameID string, move *board.LastMove) error {

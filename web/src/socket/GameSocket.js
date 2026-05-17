@@ -4,8 +4,9 @@ const RECONNECT_DELAY_MS = 2000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
 class GameSocket {
-  constructor(messageHandler) {
+  constructor(messageHandler, wsPath = '/ws') {
     this.messageHandler = messageHandler;
+    this.wsPath = wsPath;
     this.messageQueue = [];
     this.closed = false;
     this.reconnectAttempts = 0;
@@ -14,7 +15,7 @@ class GameSocket {
 
   _connect() {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    this.socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
+    this.socket = new WebSocket(`${wsProtocol}//${window.location.host}${this.wsPath}`);
     this.socket.onopen = this.onOpen;
     this.socket.onmessage = this.messageHandler || this.onReceiveMessage;
     this.socket.onclose = this.onClose;

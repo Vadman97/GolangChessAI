@@ -6,4 +6,5 @@ export default {
   GameStatus: 'gameStatus',
 	GameFull: 'gameFull',
   GameNotAvailable: 'gameNotAvailable',
+  TournamentInfo: 'tournamentInfo',
 };

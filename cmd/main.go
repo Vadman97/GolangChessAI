@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/GolangChessAI/pkg/api/api_handlers"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/competition"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/server"
 	"github.com/gorilla/mux"
 	"log"
 	"math/rand"
@@ -16,7 +17,10 @@ import (
 
 func main() {
 	if len(os.Args) > 1 {
-		if os.Args[1] == "competition" {
+		if os.Args[1] == "lichess" {
+			server.ConnectLichess().Run()
+			return
+		} else if os.Args[1] == "competition" {
 			comp := competition.NewCompetition()
 			comp.RunAICompetition()
 			return
@@ -37,7 +41,30 @@ func main() {
 					thinkTime = time.Duration(ms) * time.Millisecond
 				}
 			}
-			competition.RunTournament(gamesPerMatchup, thinkTime)
+
+			hub := api_handlers.NewSpectatorHub()
+			go hub.Run()
+
+			tourneyRouter := mux.NewRouter()
+			tourneyRouter.HandleFunc("/ws-spectate", hub.HandleSpectatorConnection)
+			tourneyRouter.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))
+
+			port := os.Getenv("PORT")
+			if port == "" {
+				port = "8080"
+			}
+			tourneyServer := &http.Server{
+				Handler: tourneyRouter,
+				Addr:    fmt.Sprintf("0.0.0.0:%s", port),
+			}
+			go func() {
+				log.Printf("Spectator view: http://localhost:%s/?spectate=true", port)
+				if err := tourneyServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					log.Printf("spectator server error: %v", err)
+				}
+			}()
+
+			competition.RunTournament(gamesPerMatchup, thinkTime, hub.BroadcastCh())
 			return
 		}
 	}

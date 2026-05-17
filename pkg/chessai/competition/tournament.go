@@ -2,6 +2,7 @@ package competition
 
 import (
 	"fmt"
+	"github.com/Vadman97/GolangChessAI/pkg/api"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
@@ -30,7 +31,8 @@ type matchupRecord struct {
 // RunTournament runs a round-robin tournament among all algorithms.
 // Each ordered pair plays gamesPerMatchup games (colors are alternated within
 // each pair so each algorithm plays the same number of games as white and black).
-func RunTournament(gamesPerMatchup int, thinkTime time.Duration) {
+// spectatorCh is optional (nil = no spectating); broadcast messages are sent to it for live viewing.
+func RunTournament(gamesPerMatchup int, thinkTime time.Duration, spectatorCh chan api.ChessMessage) {
 	startingElo := Elo(1200)
 
 	players := []*tournamentPlayer{
@@ -70,7 +72,18 @@ func RunTournament(gamesPerMatchup int, thinkTime time.Duration) {
 					whiteIdx, blackIdx = j, i
 				}
 
-				outcome := playGame(players[whiteIdx], players[blackIdx], thinkTime)
+				if spectatorCh != nil {
+					broadcastTournamentInfo(spectatorCh, api.TournamentInfoJSON{
+						WhiteName:     players[whiteIdx].name,
+						BlackName:     players[blackIdx].name,
+						GameNumber:    g + 1,
+						TotalGames:    gamesPerMatchup,
+						MatchupNumber: matchupNum,
+						TotalMatchups: totalMatchups,
+					})
+				}
+
+				outcome := playGame(players[whiteIdx], players[blackIdx], thinkTime, spectatorCh)
 
 				// Record from i's perspective.
 				var iWon, jWon bool
@@ -129,24 +142,50 @@ func RunTournament(gamesPerMatchup int, thinkTime time.Duration) {
 	printTournamentResults(players, results)
 }
 
-func playGame(white, black *tournamentPlayer, thinkTime time.Duration) game.Outcome {
+func playGame(white, black *tournamentPlayer, thinkTime time.Duration, spectatorCh chan api.ChessMessage) game.Outcome {
 	wp := ai.NewAIPlayer(color.White, white.algorithm)
 	bp := ai.NewAIPlayer(color.Black, black.algorithm)
 	wp.MaxSearchDepth = math.MaxUint8
 	bp.MaxSearchDepth = math.MaxUint8
 	wp.MaxThinkTime = thinkTime
-	bp.MaxThinkTime = thinkTime
 	wp.PrintInfo = false
 	bp.PrintInfo = false
 
 	g := game.NewGame(wp, bp)
 	g.PrintInfo = false
 
+	if spectatorCh != nil {
+		broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameState, g.GetJSON()))
+	}
+
 	for g.PlayTurn() {
+		if spectatorCh != nil {
+			broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameState, g.GetJSON()))
+			broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameStatus, g.GetStatusJSON()))
+			if g.PreviousMove != nil {
+				broadcastMessage(spectatorCh, api.CreateChessMessage(api.AIMove, api.CreateMoveJSON(g.PreviousMove)))
+			}
+		}
+	}
+
+	if spectatorCh != nil {
+		broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameState, g.GetJSON()))
+		broadcastMessage(spectatorCh, api.CreateChessMessage(api.GameStatus, g.GetStatusJSON()))
 	}
 
 	runtime.GC()
 	return g.GetGameOutcome()
+}
+
+func broadcastMessage(ch chan api.ChessMessage, msg api.ChessMessage) {
+	select {
+	case ch <- msg:
+	default:
+	}
+}
+
+func broadcastTournamentInfo(ch chan api.ChessMessage, info api.TournamentInfoJSON) {
+	broadcastMessage(ch, api.CreateChessMessage(api.TournamentInfo, info))
 }
 
 func printTournamentResults(players []*tournamentPlayer, results [][]matchupRecord) {

@@ -18,6 +18,7 @@ const (
 	GameStatus           = "gameStatus"
 	GameFull             = "gameFull"
 	GameNotAvailable     = "gameNotAvailable"
+	TournamentInfo       = "tournamentInfo"
 )
 
 type ChessMessage struct {
@@ -58,6 +59,15 @@ type MoveJSON struct {
 
 type AvailableMovesJSON struct {
 	AvailableMoves map[string][]MoveJSON `json:"availableMoves"`
+}
+
+type TournamentInfoJSON struct {
+	WhiteName     string `json:"whiteName"`
+	BlackName     string `json:"blackName"`
+	GameNumber    int    `json:"gameNumber"`
+	TotalGames    int    `json:"totalGames"`
+	MatchupNumber int    `json:"matchupNumber"`
+	TotalMatchups int    `json:"totalMatchups"`
 }
 
 func CreateChessMessage(msgType string, data interface{}) ChessMessage {

@@ -28,11 +28,16 @@ let game;
 let gameSocket;
 let availableMoves;
 
-// TODO: Keep track of other stats
-// CurrentTurn, MoveCount, Think Time
+const isSpectate = new URLSearchParams(window.location.search).has('spectate');
 
 // Initial UI
 setup();
+
+if (isSpectate) {
+  gameSocket = new GameSocket(messageHandler, '/ws-spectate');
+  $('.game-status').show();
+  $('#start-btn').hide();
+}
 
 $(document).ready(() => {
   // const reference = document.querySelector('.test');
@@ -61,11 +66,10 @@ function updateGameStatus() {
   $('.game-status .moves-played span').text(game.movesPlayed);
   $('.game-status .move-limit span').text(game.moveLimit);
 
-  // Show AI Thinking Animation
-  if (game.currentTurn.toLowerCase() !== game.humanColor) {
+  // Show AI Thinking Animation (both sides are AI in spectate mode)
+  if (!isSpectate && game.currentTurn.toLowerCase() !== game.humanColor) {
     $('.ai-thinking').show();
-  }
-  else {
+  } else if (!isSpectate) {
     $('.ai-thinking').hide();
   }
 
@@ -159,7 +163,7 @@ function messageHandler(event) {
     case SocketConstants.GameState:
       gameSocket.resetReconnectAttempts();
       game = new Game(
-        data.humanColor.toLowerCase(),
+        (data.humanColor || '').toLowerCase(),
         data.gameStatus,
         data.moveLimit,
         data.timeLimit,
@@ -168,10 +172,14 @@ function messageHandler(event) {
       game.movesPlayed = data.movesPlayed;
 
       board.position(boardMatrixToObj(data.currentBoard), false);
-      board.orientation(game.humanColor);
-      // DEPRECATED: Our server records black on the bottom, and white on the top
-      // board.flip();
+      board.orientation(game.humanColor || 'white');
       updateGameStatus();
+      break;
+
+    case SocketConstants.TournamentInfo:
+      $('#tournament-info')
+        .text(`Matchup ${data.matchupNumber}/${data.totalMatchups} — White: ${data.whiteName} vs Black: ${data.blackName} — Game ${data.gameNumber}/${data.totalGames}`)
+        .show();
       break;
 
     case SocketConstants.GameStatus:
