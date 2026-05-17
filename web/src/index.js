@@ -173,6 +173,8 @@ function messageHandler(event) {
 
       board.position(boardMatrixToObj(data.currentBoard), false);
       board.orientation(game.humanColor || 'white');
+      clearBoard();
+      $('.game-status .status-alert').hide();
       if (isSpectate) {
         $('.chessboard-63f37').removeClass('inactive');
       }
@@ -219,9 +221,32 @@ function messageHandler(event) {
       $('.game-error').text('Connection lost. Please reload the page.').show();
       break;
 
+    case SocketConstants.TournamentResult:
+      renderTournamentResult(data.leaderboard);
+      break;
+
     default:
       return;
   }
+}
+
+function renderTournamentResult(leaderboard) {
+  const tbody = document.getElementById('tournament-results-body');
+  tbody.innerHTML = '';
+  leaderboard.forEach((p, i) => {
+    const bg = i % 2 === 0 ? '#f0f4ff' : '#fff';
+    const medal = i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : '';
+    tbody.innerHTML += `<tr style="background:${bg};">
+      <td style="padding:7px 10px;">${p.rank}</td>
+      <td style="padding:7px 10px;">${medal}${p.name}</td>
+      <td style="padding:7px 10px;text-align:right;">${p.elo}</td>
+      <td style="padding:7px 10px;text-align:right;">${p.wins}</td>
+      <td style="padding:7px 10px;text-align:right;">${p.draws}</td>
+      <td style="padding:7px 10px;text-align:right;">${p.losses}</td>
+      <td style="padding:7px 10px;text-align:right;">${p.scorePct.toFixed(1)}%</td>
+    </tr>`;
+  });
+  $('#tournament-results').show();
 }
 
 function speak(text) {

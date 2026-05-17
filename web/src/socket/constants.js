@@ -7,4 +7,5 @@ export default {
 	GameFull: 'gameFull',
   GameNotAvailable: 'gameNotAvailable',
   TournamentInfo: 'tournamentInfo',
+  TournamentResult: 'tournamentResult',
 };

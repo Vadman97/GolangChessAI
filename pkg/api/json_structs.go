@@ -22,7 +22,8 @@ const (
 	// SpectatorSync is server-internal: the hub caches it as the current board
 	// state for late-joining spectators but does NOT broadcast it to already-
 	// connected clients, so live AIMove animations are not interrupted.
-	SpectatorSync = "spectatorSync"
+	SpectatorSync    = "spectatorSync"
+	TournamentResult = "tournamentResult"
 )
 
 type ChessMessage struct {
@@ -72,6 +73,20 @@ type TournamentInfoJSON struct {
 	TotalGames    int    `json:"totalGames"`
 	MatchupNumber int    `json:"matchupNumber"`
 	TotalMatchups int    `json:"totalMatchups"`
+}
+
+type TournamentPlayerResultJSON struct {
+	Rank     int     `json:"rank"`
+	Name     string  `json:"name"`
+	Elo      int     `json:"elo"`
+	Wins     int     `json:"wins"`
+	Draws    int     `json:"draws"`
+	Losses   int     `json:"losses"`
+	ScorePct float64 `json:"scorePct"`
+}
+
+type TournamentResultJSON struct {
+	Leaderboard []TournamentPlayerResultJSON `json:"leaderboard"`
 }
 
 func CreateChessMessage(msgType string, data interface{}) ChessMessage {

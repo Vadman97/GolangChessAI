@@ -140,6 +140,10 @@ func RunTournament(gamesPerMatchup int, thinkTime time.Duration, spectatorCh cha
 	}
 
 	printTournamentResults(players, results)
+
+	if spectatorCh != nil {
+		broadcastMessage(spectatorCh, api.CreateChessMessage(api.TournamentResult, buildResultJSON(players)))
+	}
 }
 
 func playGame(white, black *tournamentPlayer, thinkTime time.Duration, spectatorCh chan api.ChessMessage) game.Outcome {
@@ -189,6 +193,32 @@ func broadcastMessage(ch chan api.ChessMessage, msg api.ChessMessage) {
 
 func broadcastTournamentInfo(ch chan api.ChessMessage, info api.TournamentInfoJSON) {
 	broadcastMessage(ch, api.CreateChessMessage(api.TournamentInfo, info))
+}
+
+func buildResultJSON(players []*tournamentPlayer) api.TournamentResultJSON {
+	ranked := make([]*tournamentPlayer, len(players))
+	copy(ranked, players)
+	sort.Slice(ranked, func(i, j int) bool {
+		return ranked[i].elo > ranked[j].elo
+	})
+	leaderboard := make([]api.TournamentPlayerResultJSON, len(ranked))
+	for i, p := range ranked {
+		total := p.wins + p.draws + p.losses
+		var pct float64
+		if total > 0 {
+			pct = (float64(p.wins) + float64(p.draws)*0.5) / float64(total) * 100
+		}
+		leaderboard[i] = api.TournamentPlayerResultJSON{
+			Rank:     i + 1,
+			Name:     p.name,
+			Elo:      int(p.elo),
+			Wins:     p.wins,
+			Draws:    p.draws,
+			Losses:   p.losses,
+			ScorePct: pct,
+		}
+	}
+	return api.TournamentResultJSON{Leaderboard: leaderboard}
 }
 
 func printTournamentResults(players []*tournamentPlayer, results [][]matchupRecord) {

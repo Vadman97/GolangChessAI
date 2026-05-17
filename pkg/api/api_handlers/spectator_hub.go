@@ -23,6 +23,7 @@ type SpectatorHub struct {
 	lastState      *api.ChessMessage
 	lastStatus     *api.ChessMessage
 	lastTournament *api.ChessMessage
+	lastResult     *api.ChessMessage
 }
 
 func NewSpectatorHub() *SpectatorHub {
@@ -53,6 +54,9 @@ func (h *SpectatorHub) Run() {
 		case api.TournamentInfo:
 			cp := msg
 			h.lastTournament = &cp
+		case api.TournamentResult:
+			cp := msg
+			h.lastResult = &cp
 		}
 		for _, c := range h.clients {
 			select {
@@ -100,6 +104,7 @@ func (h *SpectatorHub) HandleSpectatorConnection(w http.ResponseWriter, r *http.
 	lastTournament := h.lastTournament
 	lastState := h.lastState
 	lastStatus := h.lastStatus
+	lastResult := h.lastResult
 	h.mu.Unlock()
 
 	if lastTournament != nil {
@@ -110,6 +115,9 @@ func (h *SpectatorHub) HandleSpectatorConnection(w http.ResponseWriter, r *http.
 	}
 	if lastStatus != nil {
 		client.writeCh <- *lastStatus
+	}
+	if lastResult != nil {
+		client.writeCh <- *lastResult
 	}
 
 	// Start the write goroutine, then register so hub.Run() starts fanning to it.
