@@ -148,6 +148,7 @@ func playGame(white, black *tournamentPlayer, thinkTime time.Duration, spectator
 	wp.MaxSearchDepth = math.MaxUint8
 	bp.MaxSearchDepth = math.MaxUint8
 	wp.MaxThinkTime = thinkTime
+	bp.MaxThinkTime = thinkTime
 	wp.PrintInfo = false
 	bp.PrintInfo = false
 

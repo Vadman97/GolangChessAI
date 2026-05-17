@@ -6,25 +6,33 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
+type spectatorClient struct {
+	ws      *websocket.Conn
+	writeCh chan api.ChessMessage
+}
+
 // SpectatorHub relays tournament game state to any number of read-only WebSocket clients.
+// Each client gets its own write goroutine so a slow/stalled client never blocks the others.
 type SpectatorHub struct {
-	mu              sync.Mutex
-	clients         map[*websocket.Conn]bool
-	broadcastCh     chan api.ChessMessage
-	lastState       *api.ChessMessage
-	lastTournament  *api.ChessMessage
+	mu             sync.Mutex
+	clients        map[*websocket.Conn]*spectatorClient
+	broadcastCh    chan api.ChessMessage
+	lastState      *api.ChessMessage
+	lastTournament *api.ChessMessage
 }
 
 func NewSpectatorHub() *SpectatorHub {
 	return &SpectatorHub{
-		clients:     make(map[*websocket.Conn]bool),
+		clients:     make(map[*websocket.Conn]*spectatorClient),
 		broadcastCh: make(chan api.ChessMessage, 256),
 	}
 }
 
-// Run drains broadcastCh and fans out to all connected spectators. Call in a goroutine.
+// Run fans out messages from broadcastCh to every registered client's write channel.
+// It never touches WebSocket connections directly, so it never blocks on I/O.
 func (h *SpectatorHub) Run() {
 	for msg := range h.broadcastCh {
 		h.mu.Lock()
@@ -36,11 +44,11 @@ func (h *SpectatorHub) Run() {
 			cp := msg
 			h.lastTournament = &cp
 		}
-		for conn := range h.clients {
-			if err := conn.WriteJSON(msg); err != nil {
-				log.Printf("spectator send error: %v", err)
-				conn.Close()
-				delete(h.clients, conn)
+		for _, c := range h.clients {
+			select {
+			case c.writeCh <- msg:
+			default:
+				log.Printf("spectator write buffer full, dropping %s", msg.Type)
 			}
 		}
 		h.mu.Unlock()
@@ -52,12 +60,15 @@ func (h *SpectatorHub) BroadcastCh() chan api.ChessMessage {
 	return h.broadcastCh
 }
 
-// Broadcast enqueues a message for all spectators. Non-blocking; drops if the buffer is full.
-func (h *SpectatorHub) Broadcast(msg api.ChessMessage) {
-	select {
-	case h.broadcastCh <- msg:
-	default:
-		log.Printf("spectator broadcast buffer full, dropping %s message", msg.Type)
+// clientWriteLoop is the sole goroutine that writes to a WebSocket connection.
+func clientWriteLoop(c *spectatorClient) {
+	for msg := range c.writeCh {
+		c.ws.SetWriteDeadline(time.Now().Add(5 * time.Second))
+		if err := c.ws.WriteJSON(msg); err != nil {
+			log.Printf("spectator write error: %v", err)
+			c.ws.Close()
+			return
+		}
 	}
 }
 
@@ -69,27 +80,33 @@ func (h *SpectatorHub) HandleSpectatorConnection(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Snapshot catch-up state before registering so hub.Run() doesn't write
-	// to this connection concurrently while we send the initial messages.
+	client := &spectatorClient{
+		ws:      ws,
+		writeCh: make(chan api.ChessMessage, 64),
+	}
+
+	// Enqueue catch-up state before registering (hub.Run hasn't seen this client yet).
 	h.mu.Lock()
 	lastTournament := h.lastTournament
 	lastState := h.lastState
 	h.mu.Unlock()
 
 	if lastTournament != nil {
-		ws.WriteJSON(*lastTournament) //nolint:errcheck
+		client.writeCh <- *lastTournament
 	}
 	if lastState != nil {
-		ws.WriteJSON(*lastState) //nolint:errcheck
+		client.writeCh <- *lastState
 	}
 
-	// Register only after initial writes are done.
+	// Start the write goroutine, then register so hub.Run() starts fanning to it.
+	go clientWriteLoop(client)
+
 	h.mu.Lock()
-	h.clients[ws] = true
+	h.clients[ws] = client
 	h.mu.Unlock()
 	log.Printf("spectator connected (%d total)", len(h.clients))
 
-	// Spectators are read-only; drain any incoming frames until disconnect.
+	// Spectators are read-only; drain incoming frames until disconnect.
 	for {
 		if _, _, err := ws.ReadMessage(); err != nil {
 			break
@@ -99,6 +116,6 @@ func (h *SpectatorHub) HandleSpectatorConnection(w http.ResponseWriter, r *http.
 	h.mu.Lock()
 	delete(h.clients, ws)
 	h.mu.Unlock()
-	ws.Close()
+	close(client.writeCh) // signals clientWriteLoop to exit
 	log.Printf("spectator disconnected (%d remaining)", len(h.clients))
 }
