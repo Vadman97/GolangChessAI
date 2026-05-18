@@ -76,6 +76,14 @@ const (
 )
 
 const (
+	// MopupThreshold is the minimum material advantage (in PieceValue units, e.g. 5 = one rook)
+	// required before the mop-up heuristic activates.
+	MopupThreshold = 5
+	// MopupWeight scales the mop-up bonus. Small enough to never override real material/checkmate.
+	MopupWeight = PawnValueWeight / 20
+)
+
+const (
 	WinScore       = PosInf
 	LossScore      = NegInf
 	StalemateScore = 0 // draw is neutral: better than losing, worse than winning
@@ -88,6 +96,29 @@ func AdjustMateScore(score, depth int) int {
 		return WinScore + depth
 	} else if score <= LossScore {
 		return LossScore - depth
+	}
+	return score
+}
+
+// NormalizeMateScore removes the depth component before storing a score in the
+// transposition table so that the distance-to-mate is relative to the stored
+// position rather than the root. Pair with DenormalizeMateScore on retrieval.
+func NormalizeMateScore(score, depth int) int {
+	if score >= WinScore {
+		return score - depth
+	} else if score <= LossScore {
+		return score + depth
+	}
+	return score
+}
+
+// DenormalizeMateScore re-applies the depth component after reading a score
+// from the transposition table at a (possibly different) depth.
+func DenormalizeMateScore(score, depth int) int {
+	if score >= WinScore {
+		return score + depth
+	} else if score <= LossScore {
+		return score - depth
 	}
 	return score
 }
@@ -229,6 +260,47 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 				eval.TotalScore -= score
 			}
 		}
+
+		// Mop-up heuristic: when one side has a large material advantage, reward
+		// pushing the losing king to the board edge and keeping kings close together.
+		whiteMat, blackMat := 0, 0
+		for pt, v := range PieceValue {
+			if pt == piece.KingType {
+				continue
+			}
+			whiteMat += v * int(eval.PieceCounts[color.White][pt])
+			blackMat += v * int(eval.PieceCounts[color.Black][pt])
+		}
+		advantage := whiteMat - blackMat
+		if advantage >= MopupThreshold || advantage <= -MopupThreshold {
+			var winner, loser byte
+			if advantage > 0 {
+				winner, loser = color.White, color.Black
+			} else {
+				winner, loser = color.Black, color.White
+			}
+			loserKing := b.KingLocations[loser]
+			winnerKing := b.KingLocations[winner]
+			loserRow, loserCol := int(loserKing.GetRow()), int(loserKing.GetCol())
+			winRow, winCol := int(winnerKing.GetRow()), int(winnerKing.GetCol())
+			// distance from center (0–6): higher = more towards edge = better for winner
+			edgeBonus := abs(loserRow-3) + abs(loserCol-3)
+			// Manhattan distance between kings (0–14): lower = better for winner
+			kingDist := abs(winRow-loserRow) + abs(winCol-loserCol)
+			mopup := MopupWeight * (edgeBonus + (14 - kingDist))
+			if winner == whoMoves {
+				eval.TotalScore += mopup
+			} else {
+				eval.TotalScore -= mopup
+			}
+		}
 	}
 	return eval
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }

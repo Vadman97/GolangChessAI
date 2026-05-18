@@ -225,7 +225,7 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				} else {
 					entry.EntryType = transposition_table.TrueScore
 				}
-				entry.Score = sm.Score
+				entry.Score = NormalizeMateScore(sm.Score, int(depth))
 				entry.BestMove = sm.Move
 				entry.Depth = depth
 
@@ -255,14 +255,21 @@ func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, dept
 					answer.score = OnEvaluation
 				} else if entry.Depth >= depth {
 					if entry.EntryType == transposition_table.TrueScore {
-						answer.score = entry.Score
-						answer.alpha = entry.Score
-						answer.beta = entry.Score
-					} else if entry.EntryType == transposition_table.UpperBound && entry.Score < beta {
-						answer.beta = entry.Score
-					} else if entry.EntryType == transposition_table.LowerBound && entry.Score > alpha {
-						answer.score = entry.Score
-						answer.alpha = entry.Score
+						s := DenormalizeMateScore(entry.Score, int(depth))
+						answer.score = s
+						answer.alpha = s
+						answer.beta = s
+					} else if entry.EntryType == transposition_table.UpperBound {
+						s := DenormalizeMateScore(entry.Score, int(depth))
+						if s < beta {
+							answer.beta = s
+						}
+					} else if entry.EntryType == transposition_table.LowerBound {
+						s := DenormalizeMateScore(entry.Score, int(depth))
+						if s > alpha {
+							answer.score = s
+							answer.alpha = s
+						}
 					}
 					answer.bestMove = entry.BestMove
 

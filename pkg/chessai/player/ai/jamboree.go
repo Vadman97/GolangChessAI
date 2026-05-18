@@ -72,25 +72,26 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 
 	// Use TT to prune or narrow the search window.
 	if ttAnswer.Found && ttAnswer.Depth >= uint16(depth) {
+		ttScore := DenormalizeMateScore(ttAnswer.Score, depth)
 		switch ttAnswer.EntryType {
 		case transposition_table.TrueScore:
 			atomic.AddUint64(&j.player.Metrics.MovesPrunedTransposition, uint64(len(*moves)))
-			return ScoredMove{Score: ttAnswer.Score, Move: ttAnswer.BestMove}
+			return ScoredMove{Score: ttScore, Move: ttAnswer.BestMove}
 		case transposition_table.LowerBound:
-			if ttAnswer.Score >= beta {
+			if ttScore >= beta {
 				atomic.AddUint64(&j.player.Metrics.MovesPrunedTransposition, uint64(len(*moves)))
-				return ScoredMove{Score: ttAnswer.Score, Move: ttAnswer.BestMove}
+				return ScoredMove{Score: ttScore, Move: ttAnswer.BestMove}
 			}
-			if ttAnswer.Score > alpha {
-				alpha = ttAnswer.Score
+			if ttScore > alpha {
+				alpha = ttScore
 			}
 		case transposition_table.UpperBound:
-			if ttAnswer.Score <= alpha {
+			if ttScore <= alpha {
 				atomic.AddUint64(&j.player.Metrics.MovesPrunedTransposition, uint64(len(*moves)))
-				return ScoredMove{Score: ttAnswer.Score, Move: ttAnswer.BestMove}
+				return ScoredMove{Score: ttScore, Move: ttAnswer.BestMove}
 			}
-			if ttAnswer.Score < beta {
-				beta = ttAnswer.Score
+			if ttScore < beta {
+				beta = ttScore
 			}
 		}
 	}
@@ -245,11 +246,12 @@ func (j *Jamboree) syncTTWrite(root *board.Board, currentPlayer color.Color, sco
 		entryType = transposition_table.TrueScore
 	}
 
+	normalizedScore := NormalizeMateScore(score, int(depth))
 	h := root.Hash()
 	e, ok := j.player.transpositionTable.Read(&h, currentPlayer)
 	if !ok {
 		entry := transposition_table.TranspositionTableEntryJamboree{
-			Score:     score,
+			Score:     normalizedScore,
 			BestMove:  move,
 			Depth:     depth,
 			EntryType: entryType,
@@ -259,7 +261,7 @@ func (j *Jamboree) syncTTWrite(root *board.Board, currentPlayer color.Color, sco
 		entry := e.(*transposition_table.TranspositionTableEntryJamboree)
 		entry.Lock.Lock()
 		if depth >= entry.Depth {
-			entry.Score = score
+			entry.Score = normalizedScore
 			entry.BestMove = move
 			entry.Depth = depth
 			entry.EntryType = entryType

@@ -3,6 +3,11 @@ package ai
 import "github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 
 func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
+	// Generate all moves first so terminal detection uses correct previousMove (en passant included).
+	moves := root.GetAllMoves(currentPlayer, previousMove)
+	if p.terminalNode(root, moves) {
+		return AdjustMateScore(p.EvaluateBoard(root, currentPlayer).TotalScore, 0)
+	}
 	standPat := p.EvaluateBoard(root, currentPlayer).TotalScore
 	if standPat >= beta {
 		return beta
@@ -10,7 +15,6 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 		alpha = standPat
 	}
 	// until every capture has been examined
-	moves := root.GetAllMoves(currentPlayer, previousMove)
 	for _, m := range *moves {
 		if p.abort {
 			break
