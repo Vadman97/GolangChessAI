@@ -72,3 +72,68 @@ npm start
 ### Frontend
 
 React app in `web/` (webpack + babel). Communicates with the backend over WebSocket (`/ws`) for real-time move updates and REST (`/api/game`) for game state and commands.
+
+## Debugging AI Quality Issues
+
+### Where to look first
+
+**`/tmp/chess.log`** — tournament stdout, captured when Vadim runs `./main tournament 2>&1 | tee /tmp/chess.log`. Contains:
+- Matchup headers: `[N/M] AlgoA vs AlgoB (K games, Xs/move)`
+- Per-game results: `Game N (AlgoA=White, AlgoB=Black): AlgoA wins / draw`
+- Subtotals per matchup: `Subtotal: AlgoA W-D-L AlgoB`
+- Final leaderboard with ELO rankings and Score%
+
+**`./performance.log` / `./performance_N.log`** (project root, numbered per game) — per-turn search metrics written by `pkg/chessai/player/ai/performance_logger.go`:
+- `Turn N` — move number
+- `Considered N` — positions evaluated that turn
+- `Pruned X% (N)` — pruning rate breakdown: `PrunedAB`, `PrunedTrans`, `ABImprovedTrans`
+- Cache hit ratios for: Board evaluation map, Transposition table, Move cache, Attack move cache
+- `AI (AlgoName - Color) best move leads to score N` — static eval score of chosen move
+
+**`./moveDebug.log`** (project root) — move-by-move game trace with piece type, color, and from/to coordinates. Written by `ai_player.go:printMoveDebug`. Shows resign events.
+
+**`pkg/chessai/competition/performance*.log`** — same format as root performance logs but produced by `competition` mode (not tournament).
+
+**`performance*.xlsx`** — Excel versions of the performance logs with charts (pruning breakdown, cache hit rates over time). Useful for spotting trends visually.
+
+### What signals indicate a problem
+
+| Symptom | Likely cause | Where to look |
+|---|---|---|
+| Algorithm loses more than expected vs weaker algo | Eval bug or search regression | `performance.log` eval scores, `evaluation.go` |
+| Pruning % near 0% for AB/MTDf/ABDADA | Move ordering broken or transposition table disabled | `performance.log` Pruned lines, `conf.json` |
+| Transposition table hit ratio 0% or NaN | TT disabled or Zobrist hash collision/bug | `performance.log` TT metrics, `conf.json` |
+| Eval score swings wildly turn to turn | Horizon effect or eval asymmetry | `moveDebug.log` + `performance.log` score column |
+| Algorithm resigns with pieces on board | No legal moves generated (move-gen bug) | `moveDebug.log` resign line, `board/` move generators |
+| ABDADA/Jamboree underperforms serial algos | Thread contention or cache thrashing | `performance.log` lock usage counts |
+
+### Useful grep patterns
+
+```bash
+# ELO standings from tournament log
+grep -E "Rank|Elo|Score%" /tmp/chess.log | tail -30
+
+# Win/loss summary per matchup
+grep -E "Subtotal|wins|draw" /tmp/chess.log
+
+# Eval scores over time for a game (spot large swings)
+grep "best move leads to score" performance.log
+
+# Pruning efficiency per turn
+grep -E "Turn|Pruned" performance.log | paste - -
+
+# Cache health
+grep -A3 "Transposition table metrics" performance.log | grep "Hit ratio"
+
+# Resign / no-move events
+grep -i "resign\|no best move" moveDebug.log
+```
+
+### Key source files for eval/search quality
+
+- `pkg/chessai/player/ai/evaluation.go` — piece values, mobility, pawn structure scoring
+- `pkg/chessai/player/ai/abdada.go` — parallel search; thread count logged to stderr at startup
+- `pkg/chessai/player/ai/ai_player.go` — think-time cutoff, opening book, cache eviction warnings
+- `pkg/chessai/competition/elo.go` — Elo update formula (K-factor etc.)
+- `conf.json` — toggle transposition table, cache sizes, Elo start value
+- `game_conf.json` — active algorithm, depth limit, time limit
