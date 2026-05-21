@@ -17,28 +17,33 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 		h = root.Hash()
 		if entry, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
 			abEntry := entry.(*transposition_table.TranspositionTableEntryABMemory)
+			lower := DenormalizeMateScore(abEntry.Lower, depth)
+			upper := DenormalizeMateScore(abEntry.Upper, depth)
 			validMove := !abEntry.BestMove.Start.Equals(abEntry.BestMove.End)
-			if abEntry.Lower >= beta && validMove {
-				ab.player.Metrics.MovesPrunedTransposition++
-				return &ScoredMove{
-					Score: abEntry.Lower,
-					Move:  abEntry.BestMove,
-				}
-			} else if abEntry.Upper <= alpha && validMove {
-				ab.player.Metrics.MovesPrunedTransposition++
-				return &ScoredMove{
-					Score: abEntry.Upper,
-					Move:  abEntry.BestMove,
+			// Only use hard cutoffs from entries at least as deep as the current search.
+			if abEntry.Depth >= depth {
+				if lower >= beta && validMove {
+					ab.player.Metrics.MovesPrunedTransposition++
+					return &ScoredMove{
+						Score: lower,
+						Move:  abEntry.BestMove,
+					}
+				} else if upper <= alpha && validMove {
+					ab.player.Metrics.MovesPrunedTransposition++
+					return &ScoredMove{
+						Score: upper,
+						Move:  abEntry.BestMove,
+					}
 				}
 			}
-			if abEntry.Lower > NegInf && abEntry.Lower > alpha {
+			// Use shallower entries to narrow the window (safe: just a hint, not a cutoff).
+			if lower > NegInf && lower > alpha {
 				ab.player.Metrics.MovesABImprovedTransposition++
-				alpha = abEntry.Lower
-				// TODO(Vadim) first in for loop of moves try abEntry.BestMove, same in other else
+				alpha = lower
 			}
-			if abEntry.Upper < PosInf && abEntry.Upper < beta {
+			if upper < PosInf && upper < beta {
 				ab.player.Metrics.MovesABImprovedTransposition++
-				beta = abEntry.Upper
+				beta = upper
 			}
 		}
 	}
@@ -97,23 +102,27 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 	}
 
 	if !ab.player.abort && ab.player.TranspositionTableEnabled && !best.Move.Start.Equals(best.Move.End) {
+		normScore := NormalizeMateScore(best.Score, depth)
 		if best.Score >= beta {
 			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
-				Lower:    best.Score,
+				Lower:    normScore,
 				Upper:    PosInf,
 				BestMove: best.Move,
+				Depth:    depth,
 			})
 		} else if best.Score > alpha && best.Score < beta {
 			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
-				Lower:    best.Score,
-				Upper:    best.Score,
+				Lower:    normScore,
+				Upper:    normScore,
 				BestMove: best.Move,
+				Depth:    depth,
 			})
 		} else if best.Score <= alpha {
 			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
 				Lower:    NegInf,
-				Upper:    best.Score,
+				Upper:    normScore,
 				BestMove: best.Move,
+				Depth:    depth,
 			})
 		}
 	}

@@ -8,6 +8,7 @@ import (
 type TranspositionTableEntryABMemory struct {
 	Lower, Upper int
 	BestMove     location.Move
+	Depth        int
 }
 
 const (
