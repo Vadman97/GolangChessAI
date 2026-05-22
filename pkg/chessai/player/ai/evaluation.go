@@ -89,14 +89,16 @@ const pstScale = 1
 
 // Piece-square tables indexed [rank_from_own_backrank 0..7][file_a_to_h 0..7].
 // Values are in centipawns; positive = good for the owning side.
+// knightPST: edge files (a/h) are always -50 so any edge move from a starting square
+// (-40 at g1/b1) is a strict penalty rather than an apparent improvement.
 var knightPST = [8][8]int{
 	{-50, -40, -30, -30, -30, -30, -40, -50},
-	{-40, -20, 0, 5, 5, 0, -20, -40},
-	{-30, 5, 10, 15, 15, 10, 5, -30},
-	{-30, 0, 15, 20, 20, 15, 0, -30},
-	{-30, 5, 15, 20, 20, 15, 5, -30},
-	{-30, 0, 10, 15, 15, 10, 0, -30},
-	{-40, -20, 0, 0, 0, 0, -20, -40},
+	{-50, -20, 0, 5, 5, 0, -20, -50},
+	{-50, 5, 10, 15, 15, 10, 5, -50},
+	{-50, 0, 15, 20, 20, 15, 0, -50},
+	{-50, 5, 15, 20, 20, 15, 5, -50},
+	{-50, 0, 10, 15, 15, 10, 0, -50},
+	{-50, -20, 0, 0, 0, 0, -20, -50},
 	{-50, -40, -30, -30, -30, -30, -40, -50},
 }
 
@@ -133,6 +135,21 @@ var queenPST = [8][8]int{
 	{-20, -10, -10, -5, -5, -10, -10, -20},
 }
 
+// pawnPST rewards central pawn placement and advanced passers.
+// Ranks 0-2 are 0: starting square and one-step advances get no PST bonus so
+// existing evaluation baselines are not disturbed. Bonuses start at rank 3
+// (d4/e4 for White or d5/e5 for Black) where center occupancy is meaningful.
+var pawnPST = [8][8]int{
+	{0, 0, 0, 0, 0, 0, 0, 0},         // rank 0 — pawns never reach here (promoted)
+	{0, 0, 0, 0, 0, 0, 0, 0},         // rank 1 — starting squares
+	{0, 0, 0, 0, 0, 0, 0, 0},         // rank 2 — one step advanced
+	{2, 2, 4, 20, 20, 4, 2, 2},       // rank 3 — e4/d4: strong center
+	{5, 5, 10, 25, 25, 10, 5, 5},     // rank 4 — passed pawn territory
+	{10, 10, 20, 30, 30, 20, 10, 10}, // rank 5 — advanced passers
+	{50, 50, 50, 50, 50, 50, 50, 50}, // rank 6 — pre-promotion
+	{0, 0, 0, 0, 0, 0, 0, 0},         // rank 7 — promoted (not a pawn)
+}
+
 var kingMiddlegamePST = [8][8]int{
 	{-30, -40, -40, -50, -50, -40, -40, -30},
 	{-30, -40, -40, -50, -50, -40, -40, -30},
@@ -153,6 +170,8 @@ func pstBonus(pieceType byte, pieceColor color.Color, row, col location.Coordina
 	}
 	file := 7 - int(col) // convert h=0 → h=7 to a=0 → h=7
 	switch pieceType {
+	case piece.PawnType:
+		return pawnPST[rank][file] * pstScale
 	case piece.KnightType:
 		return knightPST[rank][file] * pstScale
 	case piece.BishopType:

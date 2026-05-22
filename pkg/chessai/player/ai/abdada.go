@@ -82,6 +82,10 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 							ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
 							return best
 						}
+						// Narrow the window so subsequent children receive a tighter bound.
+						if best.Score > alpha {
+							alpha = best.Score
+						}
 					}
 					if len(moves) == 0 {
 						break

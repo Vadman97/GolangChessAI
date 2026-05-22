@@ -14,13 +14,15 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 	} else if alpha < standPat {
 		alpha = standPat
 	}
-	// until every capture has been examined
+	// Examine captures and pawn promotions to empty squares.
+	// Promotions must be included even when the destination is empty: a pawn advancing
+	// to the back rank and becoming a queen is an 8-pawn swing that standPat cannot see.
 	for _, m := range *moves {
 		if p.abort {
 			break
 		}
-		// capture move
-		if !root.IsEmpty(m.End) {
+		isPromotion, _ := m.End.GetPawnPromotion()
+		if !root.IsEmpty(m.End) || isPromotion {
 			child := root.Copy()
 			lastMove := board.MakeMove(&m, child)
 			p.Metrics.MovesConsidered++
