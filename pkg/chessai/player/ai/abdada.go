@@ -46,6 +46,9 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			atomic.AddUint64(&ab.player.Metrics.MovesPrunedTransposition, uint64(len(*movesArr)))
 			return best
 		} else {
+			// Prioritize the TT best move so alpha-beta prunes more aggressively.
+			orderedMoves := orderTTMoveFirst(*movesArr, ttAnswer.bestMove)
+
 			iteration := 0
 			allDone := false
 			for iteration < 2 && alpha < beta && !allDone {
@@ -55,7 +58,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				iteration++
 				allDone = true
 				firstMove := true
-				moves := *movesArr
+				moves := orderedMoves
 				move := moves[0]
 				moves = moves[1:]
 				for alpha < beta {
@@ -198,6 +201,22 @@ func (ab *ABDADA) GetName() string {
 	return AlgorithmABDADA
 }
 
+// orderTTMoveFirst returns a new move slice with the TT best move placed first.
+// If ttMove is a zero move (Start==End) it is not in the list and the original order is kept.
+func orderTTMoveFirst(moves []location.Move, ttMove location.Move) []location.Move {
+	if ttMove.Start.Equals(ttMove.End) || len(moves) == 0 {
+		return moves
+	}
+	ordered := make([]location.Move, 0, len(moves))
+	ordered = append(ordered, ttMove)
+	for _, m := range moves {
+		if !m.Start.Equals(ttMove.Start) || !m.End.Equals(ttMove.End) {
+			ordered = append(ordered, m)
+		}
+	}
+	return ordered
+}
+
 type TTAnswer struct {
 	alpha, beta, score int
 	bestMove           location.Move
@@ -205,32 +224,40 @@ type TTAnswer struct {
 
 func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
 	if ab.player.TranspositionTableEnabled {
-		// transposition table lookup
 		h := root.Hash()
+		entryType := transposition_table.TrueScore
+		if sm.Score >= beta {
+			entryType = transposition_table.LowerBound
+		} else if sm.Score <= alpha {
+			entryType = transposition_table.UpperBound
+		}
+		normalizedScore := NormalizeMateScore(sm.Score, int(depth))
+
 		if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
 			entry := e.(*transposition_table.TranspositionTableEntryABDADA)
 			if entry.Depth <= depth {
 				entry.Lock.Lock()
-
 				if entry.Depth == depth {
 					entry.NumProcessors--
 				} else {
 					entry.NumProcessors = 0
 				}
-
-				if sm.Score >= beta {
-					entry.EntryType = transposition_table.LowerBound
-				} else if sm.Score <= alpha {
-					entry.EntryType = transposition_table.UpperBound
-				} else {
-					entry.EntryType = transposition_table.TrueScore
-				}
-				entry.Score = NormalizeMateScore(sm.Score, int(depth))
+				entry.EntryType = entryType
+				entry.Score = normalizedScore
 				entry.BestMove = sm.Move
 				entry.Depth = depth
-
 				entry.Lock.Unlock()
 			}
+		} else {
+			// Entry was evicted or never created; store a fresh one.
+			entry := transposition_table.TranspositionTableEntryABDADA{
+				Depth:         depth,
+				EntryType:     entryType,
+				Score:         normalizedScore,
+				BestMove:      sm.Move,
+				NumProcessors: 0,
+			}
+			ab.player.transpositionTable.Store(&h, currentPlayer, &entry)
 		}
 	}
 }

@@ -83,6 +83,90 @@ const (
 	MopupWeight = PawnValueWeight / 20
 )
 
+// pstScale converts raw PST centipawn values to the internal score scale.
+// PawnValueWeight == 100, so raw cp values from standard tables map 1:1.
+const pstScale = 1
+
+// Piece-square tables indexed [rank_from_own_backrank 0..7][file_a_to_h 0..7].
+// Values are in centipawns; positive = good for the owning side.
+var knightPST = [8][8]int{
+	{-50, -40, -30, -30, -30, -30, -40, -50},
+	{-40, -20, 0, 5, 5, 0, -20, -40},
+	{-30, 5, 10, 15, 15, 10, 5, -30},
+	{-30, 0, 15, 20, 20, 15, 0, -30},
+	{-30, 5, 15, 20, 20, 15, 5, -30},
+	{-30, 0, 10, 15, 15, 10, 0, -30},
+	{-40, -20, 0, 0, 0, 0, -20, -40},
+	{-50, -40, -30, -30, -30, -30, -40, -50},
+}
+
+var bishopPST = [8][8]int{
+	{-20, -10, -10, -10, -10, -10, -10, -20},
+	{-10, 0, 0, 0, 0, 0, 0, -10},
+	{-10, 0, 5, 10, 10, 5, 0, -10},
+	{-10, 5, 5, 10, 10, 5, 5, -10},
+	{-10, 0, 10, 10, 10, 10, 0, -10},
+	{-10, 10, 10, 10, 10, 10, 10, -10},
+	{-10, 5, 0, 0, 0, 0, 5, -10},
+	{-20, -10, -10, -10, -10, -10, -10, -20},
+}
+
+var rookPST = [8][8]int{
+	{0, 0, 0, 0, 0, 0, 0, 0},
+	{5, 10, 10, 10, 10, 10, 10, 5},
+	{-5, 0, 0, 0, 0, 0, 0, -5},
+	{-5, 0, 0, 0, 0, 0, 0, -5},
+	{-5, 0, 0, 0, 0, 0, 0, -5},
+	{-5, 0, 0, 0, 0, 0, 0, -5},
+	{-5, 0, 0, 0, 0, 0, 0, -5},
+	{0, 0, 0, 5, 5, 0, 0, 0},
+}
+
+var queenPST = [8][8]int{
+	{-20, -10, -10, -5, -5, -10, -10, -20},
+	{-10, 0, 0, 0, 0, 0, 0, -10},
+	{-10, 0, 5, 5, 5, 5, 0, -10},
+	{-5, 0, 5, 5, 5, 5, 0, -5},
+	{0, 0, 5, 5, 5, 5, 0, -5},
+	{-10, 5, 5, 5, 5, 5, 0, -10},
+	{-10, 0, 5, 0, 0, 0, 0, -10},
+	{-20, -10, -10, -5, -5, -10, -10, -20},
+}
+
+var kingMiddlegamePST = [8][8]int{
+	{-30, -40, -40, -50, -50, -40, -40, -30},
+	{-30, -40, -40, -50, -50, -40, -40, -30},
+	{-30, -40, -40, -50, -50, -40, -40, -30},
+	{-30, -40, -40, -50, -50, -40, -40, -30},
+	{-20, -30, -30, -40, -40, -30, -30, -20},
+	{-10, -20, -20, -20, -20, -20, -20, -10},
+	{20, 20, 0, 0, 0, 0, 20, 20},
+	{20, 30, 10, 0, 0, 10, 30, 20},
+}
+
+// pstBonus returns the PST bonus for a piece at engine coordinates (row, col).
+// row 0 = White's back rank; col 0 = h-file, col 7 = a-file.
+func pstBonus(pieceType byte, pieceColor color.Color, row, col location.CoordinateType) int {
+	rank := int(row)
+	if pieceColor == color.Black {
+		rank = 7 - int(row)
+	}
+	file := 7 - int(col) // convert h=0 → h=7 to a=0 → h=7
+	switch pieceType {
+	case piece.KnightType:
+		return knightPST[rank][file] * pstScale
+	case piece.BishopType:
+		return bishopPST[rank][file] * pstScale
+	case piece.RookType:
+		return rookPST[rank][file] * pstScale
+	case piece.QueenType:
+		return queenPST[rank][file] * pstScale
+	case piece.KingType:
+		return kingMiddlegamePST[rank][file] * pstScale
+	}
+	return 0
+}
+
 const (
 	WinScore       = PosInf
 	LossScore      = NegInf
@@ -187,27 +271,31 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		// want to discourage us from stalemating other player or getting stalemated
 		eval.TotalScore = StalemateScore
 	} else {
+		pstScores := [color.NumColors]int{}
 		for row := location.CoordinateType(0); row < board.Height; row++ {
 			for col := location.CoordinateType(0); col < board.Width; col++ {
 				if gamePiece := b.GetPiece(location.NewLocation(row, col)); gamePiece != nil {
-					eval.PieceCounts[gamePiece.GetColor()][gamePiece.GetPieceType()]++
+					c := gamePiece.GetColor()
+					pt := gamePiece.GetPieceType()
+					eval.PieceCounts[c][pt]++
 
 					numMoves := len(*gamePiece.GetMoves(b, false))
-					eval.NumMoves[gamePiece.GetColor()] += uint16(numMoves)
+					eval.NumMoves[c] += uint16(numMoves)
 
 					numAttacks := hamming.CountBitsUint64(uint64(gamePiece.GetAttackableMoves(b))) - numMoves
-					eval.NumAttacks[gamePiece.GetColor()] += uint16(numAttacks)
+					eval.NumAttacks[c] += uint16(numAttacks)
 
-					if gamePiece.GetPieceType() == piece.PawnType {
-						eval.PawnColumns[gamePiece.GetColor()][col]++
-						eval.PawnRows[gamePiece.GetColor()][row]++
-						if row != board.StartRow[gamePiece.GetColor()]["Pawn"] {
-							eval.PieceAdvanced[gamePiece.GetColor()][gamePiece.GetPieceType()]++
+					pstScores[c] += pstBonus(pt, c, row, col)
+
+					if pt == piece.PawnType {
+						eval.PawnColumns[c][col]++
+						eval.PawnRows[c][row]++
+						if row != board.StartRow[c]["Pawn"] {
+							eval.PieceAdvanced[c][pt]++
 						}
-						// do not give bonus for advancing king
-					} else if gamePiece.GetPieceType() != piece.KingType {
-						if row != board.StartRow[gamePiece.GetColor()]["Piece"] {
-							eval.PieceAdvanced[gamePiece.GetColor()][gamePiece.GetPieceType()]++
+					} else if pt != piece.KingType {
+						if row != board.StartRow[c]["Piece"] {
+							eval.PieceAdvanced[c][pt]++
 						}
 					}
 				}
@@ -219,6 +307,7 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 				score += PawnValueWeight * value * int(eval.PieceCounts[pColor][pieceType])
 				score += PieceAdvanceWeight * int(eval.PieceAdvanced[pColor][pieceType])
 			}
+			score += pstScores[pColor]
 			if b.GetFlag(board.FlagCastled, pColor) {
 				score += KingCastledWeight
 			} else {

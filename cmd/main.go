@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Vadman97/GolangChessAI/pkg/api/api_handlers"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/analysis"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/competition"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/server"
 	"github.com/gorilla/mux"
@@ -19,6 +20,32 @@ func main() {
 	if len(os.Args) > 1 {
 		if os.Args[1] == "lichess" {
 			server.ConnectLichess().Run()
+			return
+		} else if os.Args[1] == "stockfish-analysis" {
+			// Usage: ./main stockfish-analysis [games] [thinkMs] [sfDepth] [stockfishPath]
+			numGames := 2
+			thinkMs := 1000
+			sfDepth := 15
+			sfPath := "./stockfish"
+			if len(os.Args) > 2 {
+				if n, err := strconv.Atoi(os.Args[2]); err == nil && n > 0 {
+					numGames = n
+				}
+			}
+			if len(os.Args) > 3 {
+				if ms, err := strconv.Atoi(os.Args[3]); err == nil && ms > 0 {
+					thinkMs = ms
+				}
+			}
+			if len(os.Args) > 4 {
+				if d, err := strconv.Atoi(os.Args[4]); err == nil && d > 0 {
+					sfDepth = d
+				}
+			}
+			if len(os.Args) > 5 {
+				sfPath = os.Args[5]
+			}
+			analysis.RunSelfPlayAnalysis(sfPath, numGames, time.Duration(thinkMs)*time.Millisecond, sfDepth)
 			return
 		} else if os.Args[1] == "competition" {
 			comp := competition.NewCompetition()
