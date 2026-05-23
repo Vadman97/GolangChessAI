@@ -11,6 +11,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/game_config"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
 	log "github.com/sirupsen/logrus"
@@ -184,9 +185,24 @@ func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 		sRow := lastMove[1] - '0' - 1
 		fCol := 7 - (lastMove[2] - 'a')
 		fRow := lastMove[3] - '0' - 1
+		endLoc := location.NewLocation(fRow, fCol)
+		if len(lastMove) == 5 {
+			var promoType byte
+			switch lastMove[4] {
+			case 'q':
+				promoType = piece.QueenType
+			case 'r':
+				promoType = piece.RookType
+			case 'b':
+				promoType = piece.BishopType
+			case 'n':
+				promoType = piece.KnightType
+			}
+			endLoc = endLoc.CreatePawnPromotion(promoType)
+		}
 		m := &location.Move{
 			Start: location.NewLocation(sRow, sCol),
-			End:   location.NewLocation(fRow, fCol),
+			End:   endLoc,
 		}
 		log.Infof("saw opponent move %s (%s)", m.String(), m.UCIString())
 		// TODO(vkorolik) centralize this with the gameStart

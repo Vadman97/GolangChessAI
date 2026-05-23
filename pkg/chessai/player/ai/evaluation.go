@@ -190,8 +190,10 @@ func pstBonus(pieceType byte, pieceColor color.Color, row, col location.Coordina
 }
 
 const (
-	WinScore       = PosInf
-	LossScore      = NegInf
+	// WinScore/LossScore are the base checkmate values before depth adjustment.
+	// Mate scores are WinScore ± depth, so they must stay below PosInf/NegInf.
+	WinScore       = 1_000_000_000
+	LossScore      = -WinScore
 	StalemateScore = 0 // draw is neutral: better than losing, worse than winning
 )
 

@@ -15,7 +15,11 @@ import (
 )
 
 const (
-	PosInf       = int(1000000000)
+	// PosInf/NegInf are the initial alpha/beta bounds. Must be strictly larger
+	// than any achievable score including mate scores (WinScore + search depth).
+	// WinScore = 1_000_000_000; depth ≤ ~100 → max mate score ≈ 1_000_000_100.
+	// OnEvaluation (1_111_111_111) sits safely between max mate score and PosInf.
+	PosInf       = int(2000000000)
 	NegInf       = int(-PosInf)
 	OnEvaluation = int(1111111111)
 )
