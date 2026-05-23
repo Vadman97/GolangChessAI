@@ -68,6 +68,9 @@ const (
 	KingCastledWeight     = 1 * PawnValueWeight
 	// neg 1 pawn if we do nothing in 50 moves
 	Weight50Rule = -PawnValueWeight / PawnValueWeight
+	// King safety: penalize exposed king files and enemy sliders on them
+	KingOpenFilePenalty    = -50
+	KingEnemySliderPenalty = -60
 )
 
 const (
@@ -279,6 +282,59 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 	return eval
 }
 
+// kingSafety penalizes a king with open files in front (no friendly pawn within
+// two squares forward) and adds an extra penalty when an enemy rook or queen
+// sits on that file. Row 0 is White's back rank; col 0 is the h-file.
+func kingSafety(b *board.Board, kingColor color.Color) int {
+	kingLoc := b.KingLocations[kingColor]
+	kingRow := int(kingLoc.GetRow())
+	kingCol := int(kingLoc.GetCol())
+
+	enemy := kingColor ^ 1
+	score := 0
+
+	// forward = direction toward the enemy back rank
+	forward := 1
+	if kingColor == color.Black {
+		forward = -1
+	}
+
+	for dc := -1; dc <= 1; dc++ {
+		col := kingCol + dc
+		if col < 0 || col >= board.Width {
+			continue
+		}
+		// look for a friendly pawn within two squares in front of the king
+		hasPawn := false
+		for dist := 1; dist <= 2; dist++ {
+			r := kingRow + forward*dist
+			if r < 0 || r >= board.Height {
+				break
+			}
+			p := b.GetPiece(location.NewLocation(location.CoordinateType(r), location.CoordinateType(col)))
+			if p != nil && p.GetColor() == kingColor && p.GetPieceType() == piece.PawnType {
+				hasPawn = true
+				break
+			}
+		}
+		if !hasPawn {
+			score += KingOpenFilePenalty
+			// additional penalty if an enemy slider threatens down this file
+			for row := 0; row < board.Height; row++ {
+				p := b.GetPiece(location.NewLocation(location.CoordinateType(row), location.CoordinateType(col)))
+				if p != nil && p.GetColor() == enemy {
+					pt := p.GetPieceType()
+					if pt == piece.RookType || pt == piece.QueenType {
+						score += KingEnemySliderPenalty
+						break
+					}
+				}
+			}
+		}
+	}
+	return score
+}
+
 func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
@@ -341,6 +397,7 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 			if b.IsKingInCheck(pColor) {
 				score += KingCheckedWeight
 			}
+			score += kingSafety(b, pColor)
 			for column := location.CoordinateType(0); column < board.Width; column++ {
 				// duplicate score grows exponentially for each additional pawn
 				score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[pColor][column] - 1)) - 1)
