@@ -47,6 +47,24 @@ func main() {
 			}
 			analysis.RunSelfPlayAnalysis(sfPath, numGames, time.Duration(thinkMs)*time.Millisecond, sfDepth)
 			return
+		} else if os.Args[1] == "log-replay" {
+			// Usage: ./main log-replay [logPath] [sfDepth] [stockfishPath]
+			logPath := "/tmp/chess.lichess.log"
+			sfDepth := 15
+			sfPath := "./stockfish"
+			if len(os.Args) > 2 {
+				logPath = os.Args[2]
+			}
+			if len(os.Args) > 3 {
+				if d, err := strconv.Atoi(os.Args[3]); err == nil && d > 0 {
+					sfDepth = d
+				}
+			}
+			if len(os.Args) > 4 {
+				sfPath = os.Args[4]
+			}
+			analysis.RunLogReplay(logPath, sfPath, sfDepth)
+			return
 		} else if os.Args[1] == "competition" {
 			comp := competition.NewCompetition()
 			comp.RunAICompetition()
