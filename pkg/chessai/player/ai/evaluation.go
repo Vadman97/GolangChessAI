@@ -354,11 +354,11 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 					pt := gamePiece.GetPieceType()
 					eval.PieceCounts[c][pt]++
 
-					numMoves := len(*gamePiece.GetMoves(b, false))
-					eval.NumMoves[c] += uint16(numMoves)
-
-					numAttacks := hamming.CountBitsUint64(uint64(gamePiece.GetAttackableMoves(b))) - numMoves
-					eval.NumAttacks[c] += uint16(numAttacks)
+					// Use pseudo-legal (attackable) squares for mobility — avoids willMoveLeaveKingInCheck
+					// per candidate, which would copy the board for every move of every piece.
+					// Pseudo-legal mobility is a standard eval heuristic and allows searching much deeper.
+					numPseudoLegal := int(hamming.CountBitsUint64(uint64(gamePiece.GetAttackableMoves(b))))
+					eval.NumMoves[c] += uint16(numPseudoLegal)
 
 					pstScores[c] += pstBonus(pt, c, row, col)
 
@@ -414,10 +414,10 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 				// normalize for number of pawns 8
 				score += (PawnStructureWeight * PawnAdvancedWeight * progress * int(eval.PawnRows[pColor][row])) / 8
 			}
-			// possible moves
+			// pseudo-legal mobility: attackable squares (no board copies, no willMoveLeaveKingInCheck).
+			// Weight intentionally lower than the old legal-moves weight because pseudo-legal counts
+			// defended friendly squares too, which inflates the count vs strictly legal moves.
 			score += PieceNumMovesWeight * int(eval.NumMoves[pColor])
-			// possible attacks
-			score += PieceNumAttacksWeight * int(eval.NumAttacks[pColor])
 
 			if pColor == whoMoves {
 				eval.TotalScore += score

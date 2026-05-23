@@ -23,12 +23,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		var best ScoredMove
 		best.Score = NegInf
 
-		answerChan := ab.asyncTTRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
-		// generate moves while waiting for the answer ...
+		ttAnswer := ab.ttRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
 		movesArr := root.GetAllMoves(currentPlayer, previousMove)
-
-		// block and grab the answer
-		ttAnswer := <-answerChan
 		alpha, beta = ttAnswer.alpha, ttAnswer.beta
 		best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
 
@@ -266,68 +262,56 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 	}
 }
 
-func (ab *ABDADA) asyncTTRead(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, exclusiveProbe bool) chan TTAnswer {
-	answerChan := make(chan TTAnswer)
-	go func(answerChan chan TTAnswer) {
-		answer := TTAnswer{
-			alpha: alpha,
-			beta:  beta,
-			score: NegInf,
-		}
-		if ab.player.TranspositionTableEnabled {
-			// transposition table lookup
-			h := root.Hash()
-			if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
-				entry := e.(*transposition_table.TranspositionTableEntryABDADA)
-				entry.Lock.Lock()
+func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, exclusiveProbe bool) TTAnswer {
+	answer := TTAnswer{
+		alpha: alpha,
+		beta:  beta,
+		score: NegInf,
+	}
+	if ab.player.TranspositionTableEnabled {
+		h := root.Hash()
+		if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
+			entry := e.(*transposition_table.TranspositionTableEntryABDADA)
+			entry.Lock.Lock()
 
-				if entry.Depth == depth && exclusiveProbe && entry.NumProcessors > 0 {
-					// Only one processor allowed if exclusivity is required
-					answer.score = OnEvaluation
-				} else if entry.Depth >= depth {
-					if entry.EntryType == transposition_table.TrueScore {
-						s := DenormalizeMateScore(entry.Score, int(depth))
+			if entry.Depth == depth && exclusiveProbe && entry.NumProcessors > 0 {
+				answer.score = OnEvaluation
+			} else if entry.Depth >= depth {
+				if entry.EntryType == transposition_table.TrueScore {
+					s := DenormalizeMateScore(entry.Score, int(depth))
+					answer.score = s
+					answer.alpha = s
+					answer.beta = s
+				} else if entry.EntryType == transposition_table.UpperBound {
+					s := DenormalizeMateScore(entry.Score, int(depth))
+					if s < beta {
+						answer.beta = s
+					}
+				} else if entry.EntryType == transposition_table.LowerBound {
+					s := DenormalizeMateScore(entry.Score, int(depth))
+					if s > alpha {
 						answer.score = s
 						answer.alpha = s
-						answer.beta = s
-					} else if entry.EntryType == transposition_table.UpperBound {
-						s := DenormalizeMateScore(entry.Score, int(depth))
-						if s < beta {
-							answer.beta = s
-						}
-					} else if entry.EntryType == transposition_table.LowerBound {
-						s := DenormalizeMateScore(entry.Score, int(depth))
-						if s > alpha {
-							answer.score = s
-							answer.alpha = s
-						}
 					}
-					answer.bestMove = entry.BestMove
-
-					if entry.Depth == depth && answer.alpha < answer.beta {
-						// Increment the number of processors evaluating this node
-						entry.NumProcessors++
-					}
-				} else {
-					// This is the first processor to evaluate this node
-					// new pass - we've seen node on previous evaluation
-					entry.Depth = depth
-					entry.EntryType = transposition_table.Unset
-					entry.NumProcessors = 1
 				}
-
-				entry.Lock.Unlock()
+				answer.bestMove = entry.BestMove
+				if entry.Depth == depth && answer.alpha < answer.beta {
+					entry.NumProcessors++
+				}
 			} else {
-				// This is the first processor to ever evaluate this node
-				entry := transposition_table.TranspositionTableEntryABDADA{
-					Depth:         depth,
-					EntryType:     transposition_table.Unset,
-					NumProcessors: 1,
-				}
-				ab.player.transpositionTable.Store(&h, currentPlayer, &entry)
+				entry.Depth = depth
+				entry.EntryType = transposition_table.Unset
+				entry.NumProcessors = 1
 			}
+			entry.Lock.Unlock()
+		} else {
+			entry := transposition_table.TranspositionTableEntryABDADA{
+				Depth:         depth,
+				EntryType:     transposition_table.Unset,
+				NumProcessors: 1,
+			}
+			ab.player.transpositionTable.Store(&h, currentPlayer, &entry)
 		}
-		answerChan <- answer
-	}(answerChan)
-	return answerChan
+	}
+	return answer
 }

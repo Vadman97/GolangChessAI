@@ -56,8 +56,8 @@ func (m *ConcurrentBoardMap) Store(hash *BoardHash, currentTurn color.Color, val
 
 func (m *ConcurrentBoardMap) Read(hash *BoardHash, currentTurn color.Color) (interface{}, bool) {
 	lock, lockIdx := m.getLock(hash, currentTurn)
-	lock.Lock()
-	defer lock.Unlock()
+	lock.RLock()
+	defer lock.RUnlock()
 	m.numQueries[lockIdx]++
 
 	m1, ok := m.entryMap[lockIdx][*hash]
