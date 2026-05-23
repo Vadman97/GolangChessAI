@@ -284,3 +284,140 @@ func truncate(s string, maxLen int) string {
 	}
 	return s
 }
+
+// RunABDADATournament runs a round-robin tournament among ABDADA instances with
+// varying thread counts. This reveals how parallelism affects playing strength.
+// threadCounts nil/empty uses a sensible default set.
+func RunABDADATournament(gamesPerMatchup int, thinkTime time.Duration, threadCounts []int, spectatorCh chan api.ChessMessage) {
+	if len(threadCounts) == 0 {
+		threadCounts = defaultABDADAThreadCounts()
+	}
+
+	startingElo := Elo(1200)
+	players := make([]*tournamentPlayer, 0, len(threadCounts))
+	for _, n := range threadCounts {
+		name := fmt.Sprintf("ABDADA-%dt", n)
+		players = append(players, &tournamentPlayer{
+			name:      name,
+			algorithm: &ai.ABDADA{NumThreads: n},
+			elo:       startingElo,
+		})
+	}
+
+	n := len(players)
+	results := make([][]matchupRecord, n)
+	for i := range results {
+		results[i] = make([]matchupRecord, n)
+	}
+
+	totalMatchups := n * (n - 1) / 2
+	matchupNum := 0
+
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			matchupNum++
+			fmt.Printf("\n[%d/%d] %s vs %s (%d games, %s/move)\n",
+				matchupNum, totalMatchups,
+				players[i].name, players[j].name,
+				gamesPerMatchup, thinkTime)
+
+			for g := 0; g < gamesPerMatchup; g++ {
+				var whiteIdx, blackIdx int
+				if g%2 == 0 {
+					whiteIdx, blackIdx = i, j
+				} else {
+					whiteIdx, blackIdx = j, i
+				}
+
+				if spectatorCh != nil {
+					broadcastTournamentInfo(spectatorCh, api.TournamentInfoJSON{
+						WhiteName:     players[whiteIdx].name,
+						BlackName:     players[blackIdx].name,
+						GameNumber:    g + 1,
+						TotalGames:    gamesPerMatchup,
+						MatchupNumber: matchupNum,
+						TotalMatchups: totalMatchups,
+					})
+				}
+
+				outcome := playGame(players[whiteIdx], players[blackIdx], thinkTime, spectatorCh)
+
+				var iWon, jWon bool
+				if whiteIdx == i {
+					iWon = outcome.Win[color.White]
+					jWon = outcome.Win[color.Black]
+				} else {
+					iWon = outcome.Win[color.Black]
+					jWon = outcome.Win[color.White]
+				}
+
+				switch {
+				case iWon:
+					results[i][j].wins++
+					results[j][i].losses++
+					players[i].wins++
+					players[j].losses++
+				case jWon:
+					results[i][j].losses++
+					results[j][i].wins++
+					players[j].wins++
+					players[i].losses++
+				default:
+					results[i][j].draws++
+					results[j][i].draws++
+					players[i].draws++
+					players[j].draws++
+				}
+
+				eloArr := [color.NumColors]Elo{players[i].elo, players[j].elo}
+				eloArr = CalculateRatings(eloArr, game.Outcome{
+					Win: [color.NumColors]bool{iWon, jWon},
+					Tie: !iWon && !jWon,
+				})
+				players[i].elo = eloArr[color.White]
+				players[j].elo = eloArr[color.Black]
+
+				result := "draw"
+				if iWon {
+					result = players[i].name + " wins"
+				} else if jWon {
+					result = players[j].name + " wins"
+				}
+				fmt.Printf("  Game %d (%s=White, %s=Black): %s\n",
+					g+1, players[whiteIdx].name, players[blackIdx].name, result)
+			}
+
+			fmt.Printf("  Subtotal: %s %d-%d-%d %s\n",
+				players[i].name,
+				results[i][j].wins, results[i][j].draws, results[i][j].losses,
+				players[j].name)
+		}
+	}
+
+	printTournamentResults(players, results)
+
+	if spectatorCh != nil {
+		broadcastMessage(spectatorCh, api.CreateChessMessage(api.TournamentResult, buildResultJSON(players)))
+	}
+}
+
+func defaultABDADAThreadCounts() []int {
+	cpus := runtime.NumCPU()
+	counts := []int{1, 2, 4, 8}
+	if cpus > 8 && cpus != 16 {
+		counts = append(counts, cpus)
+	}
+	if cpus >= 16 || cpus == 16 {
+		counts = append(counts, 16)
+	}
+	// deduplicate while preserving order
+	seen := make(map[int]bool)
+	unique := counts[:0]
+	for _, c := range counts {
+		if !seen[c] {
+			seen[c] = true
+			unique = append(unique, c)
+		}
+	}
+	return unique
+}

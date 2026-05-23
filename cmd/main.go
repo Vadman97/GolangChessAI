@@ -55,6 +55,44 @@ func main() {
 			comp := competition.NewCompetition()
 			comp.RunAIAnalysis()
 			return
+		} else if os.Args[1] == "abdada-tournament" {
+			gamesPerMatchup := 2
+			thinkTime := 3 * time.Second
+			if len(os.Args) > 2 {
+				if n, err := strconv.Atoi(os.Args[2]); err == nil && n > 0 {
+					gamesPerMatchup = n
+				}
+			}
+			if len(os.Args) > 3 {
+				if ms, err := strconv.Atoi(os.Args[3]); err == nil && ms > 0 {
+					thinkTime = time.Duration(ms) * time.Millisecond
+				}
+			}
+
+			hub := api_handlers.NewSpectatorHub()
+			go hub.Run()
+
+			tourneyRouter := mux.NewRouter()
+			tourneyRouter.HandleFunc("/ws-spectate", hub.HandleSpectatorConnection)
+			tourneyRouter.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))
+
+			port := os.Getenv("PORT")
+			if port == "" {
+				port = "8080"
+			}
+			tourneyServer := &http.Server{
+				Handler: tourneyRouter,
+				Addr:    fmt.Sprintf("0.0.0.0:%s", port),
+			}
+			go func() {
+				log.Printf("Spectator view: http://localhost:%s/?spectate=true", port)
+				if err := tourneyServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					log.Printf("spectator server error: %v", err)
+				}
+			}()
+
+			competition.RunABDADATournament(gamesPerMatchup, thinkTime, nil, hub.BroadcastCh())
+			return
 		} else if os.Args[1] == "tournament" {
 			gamesPerMatchup := 2
 			thinkTime := 3 * time.Second
