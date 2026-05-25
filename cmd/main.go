@@ -12,11 +12,27 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"runtime/pprof"
 	"strconv"
 	"time"
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "profile" {
+		f, err := os.Create("cpu.pprof")
+		if err != nil {
+			log.Fatalf("could not create cpu.pprof: %v", err)
+		}
+		defer f.Close()
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatalf("could not start CPU profile: %v", err)
+		}
+		defer pprof.StopCPUProfile()
+		// shift args so the rest of main sees the real subcommand
+		os.Args = append(os.Args[:1], os.Args[2:]...)
+		log.Println("CPU profiling enabled — writing cpu.pprof on exit")
+	}
+
 	if len(os.Args) > 1 {
 		if os.Args[1] == "lichess" {
 			server.ConnectLichess().Run()
