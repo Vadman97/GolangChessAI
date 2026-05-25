@@ -90,6 +90,41 @@ func TestAIBestMovesSame(t *testing.T) {
 	}
 }
 
+// TestABDADAFindsHangingKnight verifies the AI captures a free knight rather than
+// playing a passive quiet move. This position was a real-game blunder where
+// a stale TT entry (quiet bishop move) caused the search to miss QxN.
+//
+// FEN: r2qkb1r/p2bpppp/2p5/8/3Qn3/5N2/PPP2PPP/R1B2RK1 w kq - 0 10
+// White queen on d4 can capture a hanging Black knight on e4.
+func TestABDADAFindsHangingKnight(t *testing.T) {
+	b := &board.Board{}
+	// Board rows in engine coordinates (row 0 = rank 1, col 0 = h-file)
+	rows := []string{
+		"   |W_K|W_R|   |   |W_B|   |W_R", // row 0: rank 1
+		"W_P|W_P|W_P|   |   |W_P|W_P|W_P", // row 1: rank 2
+		"   |   |W_N|   |   |   |   |   ", // row 2: rank 3
+		"   |   |   |B_N|W_Q|   |   |   ", // row 3: rank 4 — B_N on e4, W_Q on d4
+		"   |   |   |   |   |   |   |   ", // row 4: rank 5
+		"   |   |   |   |   |B_P|   |   ", // row 5: rank 6
+		"B_P|B_P|B_P|B_P|B_B|   |   |B_P", // row 6: rank 7
+		"B_R|   |B_B|B_K|B_Q|   |   |B_R", // row 7: rank 8
+	}
+	b.LoadBoardFromText(rows)
+	// White king has moved (castled to g1); mark flags accordingly.
+	b.SetFlag(board.FlagKingMoved, color.White, true)
+	b.SetFlag(board.FlagKingMoved, color.Black, true)
+
+	move := getBestMove(b, color.White, NameToAlgorithm[AlgorithmABDADA])
+
+	// Expected: White queen d4 (row 3, col 4) captures Black knight e4 (row 3, col 3)
+	wantFrom := location.NewLocation(3, 4) // d4
+	wantTo := location.NewLocation(3, 3)   // e4
+	assert.Equal(t, wantFrom, move.Start,
+		"AI should capture hanging knight: start square should be d4 (3,4)")
+	assert.Equal(t, wantTo, move.End,
+		"AI should capture hanging knight: end square should be e4 (3,3)")
+}
+
 const historicBoardsDirectory = "competition_boards"
 
 /**

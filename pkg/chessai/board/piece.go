@@ -34,6 +34,10 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		b.move(m)
 		pieceMoved := b.GetPiece(end)
 		pieceMoved.Move(m, b)
+		// If a rook was captured from its starting column, invalidate that side's castling right.
+		if capturedRook, ok := pieceCaptured.(*Rook); ok {
+			capturedRook.Move(&location.Move{Start: end, End: end}, b)
+		}
 
 		isCapture := pieceCaptured != nil
 		// En passant: pawn moves diagonally to an empty square — the captured pawn

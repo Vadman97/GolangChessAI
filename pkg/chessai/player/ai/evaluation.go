@@ -69,8 +69,8 @@ const (
 	// neg 1 pawn if we do nothing in 50 moves
 	Weight50Rule = -PawnValueWeight / PawnValueWeight
 	// King safety: penalize exposed king files and enemy sliders on them
-	KingOpenFilePenalty    = -50
-	KingEnemySliderPenalty = -60
+	KingOpenFilePenalty    = -20
+	KingEnemySliderPenalty = -30
 )
 
 const (

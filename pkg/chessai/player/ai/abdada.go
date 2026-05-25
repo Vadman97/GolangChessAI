@@ -42,8 +42,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			atomic.AddUint64(&ab.player.Metrics.MovesPrunedTransposition, uint64(len(*movesArr)))
 			return best
 		} else {
-			// Prioritize the TT best move so alpha-beta prunes more aggressively.
-			orderedMoves := orderTTMoveFirst(*movesArr, ttAnswer.bestMove)
+			// Prioritize TT best move first, then captures, then quiet moves.
+			orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, root)
 
 			iteration := 0
 			allDone := false
@@ -201,19 +201,37 @@ func (ab *ABDADA) GetName() string {
 	return AlgorithmABDADA
 }
 
-// orderTTMoveFirst returns a new move slice with the TT best move placed first.
-// If ttMove is a zero move (Start==End) it is not in the list and the original order is kept.
-func orderTTMoveFirst(moves []location.Move, ttMove location.Move) []location.Move {
-	if ttMove.Start.Equals(ttMove.End) || len(moves) == 0 {
-		return moves
-	}
+// orderMoves returns moves ordered for best alpha-beta pruning:
+//   1. TT best move if it is a capture (highest priority)
+//   2. All other captures (MVV-LVA sorted, already ordered by GetAllMoves)
+//   3. TT best move if it is a quiet move (before remaining quiets)
+//   4. Remaining quiet moves
+//
+// Keeping captures before quiet TT moves ensures the search never misses a
+// free piece because a stale TT entry promoted a passive quiet move first.
+func orderMoves(moves []location.Move, ttMove location.Move, b *board.Board) []location.Move {
 	ordered := make([]location.Move, 0, len(moves))
-	ordered = append(ordered, ttMove)
+	var captures, quiets []location.Move
+	hasTT := !ttMove.Start.Equals(ttMove.End)
+	ttIsCapture := hasTT && b.GetPiece(ttMove.End) != nil
 	for _, m := range moves {
-		if !m.Start.Equals(ttMove.Start) || !m.End.Equals(ttMove.End) {
-			ordered = append(ordered, m)
+		if hasTT && m.Start.Equals(ttMove.Start) && m.End.Equals(ttMove.End) {
+			continue
+		}
+		if b.GetPiece(m.End) != nil {
+			captures = append(captures, m)
+		} else {
+			quiets = append(quiets, m)
 		}
 	}
+	if hasTT && ttIsCapture {
+		ordered = append(ordered, ttMove)
+	}
+	ordered = append(ordered, captures...)
+	if hasTT && !ttIsCapture {
+		ordered = append(ordered, ttMove)
+	}
+	ordered = append(ordered, quiets...)
 	return ordered
 }
 
@@ -280,8 +298,17 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 				if entry.EntryType == transposition_table.TrueScore {
 					s := DenormalizeMateScore(entry.Score, int(depth))
 					answer.score = s
-					answer.alpha = s
-					answer.beta = s
+					// Only collapse alpha==beta (immediate return) for deep entries.
+					// Shallow-depth TrueScore entries were computed under narrow parent
+					// windows and may not reflect the global best move. Using them only
+					// as a lower bound on alpha allows the search to still find better
+					// moves (e.g. free captures) that the stale TT entry would skip.
+					if entry.Depth > depth {
+						answer.alpha = s
+						answer.beta = s
+					} else if s > answer.alpha {
+						answer.alpha = s
+					}
 				} else if entry.EntryType == transposition_table.UpperBound {
 					s := DenormalizeMateScore(entry.Score, int(depth))
 					if s < beta {
