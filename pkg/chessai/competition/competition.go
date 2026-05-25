@@ -139,12 +139,12 @@ func (c *Competition) RunAICompetition() {
 	// TODO(Vadim) output this to file and keep history of AI performance
 	// TODO(Vadim) load ai from file
 	rand.Seed(config.Get().TestRandSeed)
-	c.players[color.White].Algorithm = &ai.MTDf{}
+	c.players[color.White].Algorithm = &ai.ABDADA{}
 	c.players[color.White].MaxSearchDepth = math.MaxUint8
-	c.players[color.White].MaxThinkTime = 100 * time.Millisecond
+	c.players[color.White].MaxThinkTime = 3 * time.Second
 	c.players[color.Black].Algorithm = &ai.ABDADA{}
 	c.players[color.Black].MaxSearchDepth = math.MaxUint8
-	c.players[color.Black].MaxThinkTime = 100 * time.Millisecond
+	c.players[color.Black].MaxThinkTime = 3 * time.Second
 	c.NumberOfGames = 1
 	c.RunCompetition()
 }

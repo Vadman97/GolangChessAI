@@ -207,7 +207,11 @@ func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 		log.Infof("saw opponent move %s (%s)", m.String(), m.UCIString())
 		// TODO(vkorolik) centralize this with the gameStart
 		l.Game.PlayTurnMove(m)
-		playerTimeLeft := time.Duration(event.WhiteTimeMS) * time.Millisecond
+		playerTimeMS := event.WhiteTimeMS
+		if l.Player.PlayerColor == color.Black {
+			playerTimeMS = event.BlackTimeMS
+		}
+		playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
 		l.Player.MaxThinkTime = time.Duration(math.Max(playerTimeLeft.Seconds()/60.*float64(l.Game.MovesPlayed)/10, time.Millisecond.Seconds())*1000) * time.Millisecond
 		log.Infof("player thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
 		// TODO(vkorolik) partition by gameID to allow concurrent games
