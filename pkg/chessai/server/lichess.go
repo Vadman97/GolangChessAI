@@ -212,7 +212,10 @@ func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 			playerTimeMS = event.BlackTimeMS
 		}
 		playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
-		l.Player.MaxThinkTime = time.Duration(math.Max(playerTimeLeft.Seconds()/60.*float64(l.Game.MovesPlayed)/10, time.Millisecond.Seconds())*1000) * time.Millisecond
+		// Allocate 1/30 of remaining time per move, min 1s, max 10s
+		thinkSeconds := math.Max(playerTimeLeft.Seconds()/30.0, 1.0)
+		thinkSeconds = math.Min(thinkSeconds, 10.0)
+		l.Player.MaxThinkTime = time.Duration(thinkSeconds*1000) * time.Millisecond
 		log.Infof("player thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
 		// TODO(vkorolik) partition by gameID to allow concurrent games
 		if l.Game.GameStatus == game.Active {

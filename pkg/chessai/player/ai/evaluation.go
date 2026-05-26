@@ -62,8 +62,9 @@ const (
 	PieceAdvanceWeight    = PawnValueWeight / 5
 	PieceNumMovesWeight   = PawnValueWeight / 20
 	PieceNumAttacksWeight = PawnValueWeight / 10
-	KingDisplacedWeight   = -1 * PawnValueWeight
-	RookDisplacedWeight   = -1 * PawnValueWeight
+	KingDisplacedWeight = -1 * PawnValueWeight
+	// Small penalty for moving a rook before castling — not large enough to force premature castling.
+	RookDisplacedWeight = -PawnValueWeight / 5
 	KingCheckedWeight     = -PawnValueWeight / 4
 	KingCastledWeight     = 1 * PawnValueWeight
 	// neg 1 pawn if we do nothing in 50 moves

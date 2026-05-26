@@ -22,7 +22,8 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 			break
 		}
 		isPromotion, _ := m.End.GetPawnPromotion()
-		if !root.IsEmpty(m.End) || isPromotion {
+		isEnPassant := isEnPassantMove(root, m)
+		if !root.IsEmpty(m.End) || isPromotion || isEnPassant {
 			child := root.Copy()
 			lastMove := board.MakeMove(&m, child)
 			p.Metrics.MovesConsidered++

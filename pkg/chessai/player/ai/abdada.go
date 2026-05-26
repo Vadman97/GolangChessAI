@@ -6,6 +6,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/transposition_table"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"log"
@@ -209,16 +210,25 @@ func (ab *ABDADA) GetName() string {
 //
 // Keeping captures before quiet TT moves ensures the search never misses a
 // free piece because a stale TT entry promoted a passive quiet move first.
+// isEnPassantMove returns true if m is a pawn diagonal capture to an empty square (en passant).
+func isEnPassantMove(b *board.Board, m location.Move) bool {
+	p := b.GetPiece(m.Start)
+	if p == nil || p.GetPieceType() != piece.PawnType {
+		return false
+	}
+	return b.IsEmpty(m.End) && m.Start.GetCol() != m.End.GetCol()
+}
+
 func orderMoves(moves []location.Move, ttMove location.Move, b *board.Board) []location.Move {
 	ordered := make([]location.Move, 0, len(moves))
 	var captures, quiets []location.Move
 	hasTT := !ttMove.Start.Equals(ttMove.End)
-	ttIsCapture := hasTT && b.GetPiece(ttMove.End) != nil
+	ttIsCapture := hasTT && (b.GetPiece(ttMove.End) != nil || isEnPassantMove(b, ttMove))
 	for _, m := range moves {
 		if hasTT && m.Start.Equals(ttMove.Start) && m.End.Equals(ttMove.End) {
 			continue
 		}
-		if b.GetPiece(m.End) != nil {
+		if b.GetPiece(m.End) != nil || isEnPassantMove(b, m) {
 			captures = append(captures, m)
 		} else {
 			quiets = append(quiets, m)
@@ -309,16 +319,25 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 					} else if s > answer.alpha {
 						answer.alpha = s
 					}
-				} else if entry.EntryType == transposition_table.UpperBound {
-					s := DenormalizeMateScore(entry.Score, int(depth))
-					if s < beta {
-						answer.beta = s
-					}
-				} else if entry.EntryType == transposition_table.LowerBound {
-					s := DenormalizeMateScore(entry.Score, int(depth))
-					if s > alpha {
-						answer.score = s
-						answer.alpha = s
+				} else if entry.Depth > depth {
+					// Only apply UpperBound/LowerBound narrowing from strictly deeper
+					// entries. A same-depth bound was computed under some parallel
+					// thread's alpha/beta window, which may be narrower than the current
+					// thread's window. Applying it here can cause a false cutoff that
+					// hides the true best move (e.g., pruning an immediate recapture
+					// because a stale UpperBound tightens beta below the recapture's
+					// score). For same-depth entries we still use the bestMove hint below.
+					if entry.EntryType == transposition_table.UpperBound {
+						s := DenormalizeMateScore(entry.Score, int(depth))
+						if s < beta {
+							answer.beta = s
+						}
+					} else if entry.EntryType == transposition_table.LowerBound {
+						s := DenormalizeMateScore(entry.Score, int(depth))
+						if s > alpha {
+							answer.score = s
+							answer.alpha = s
+						}
 					}
 				}
 				answer.bestMove = entry.BestMove
