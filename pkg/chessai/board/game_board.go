@@ -302,15 +302,15 @@ var mvvLvaValue = [7]int{
 // Captures of high-value pieces by low-value attackers score highest.
 // Non-captures return 0.
 func (b *Board) mvvLvaScore(m location.Move) int {
-	victim := b.GetPiece(m.End)
-	if victim == nil {
+	victimData := b.getPieceData(m.End)
+	if victimData == 0 {
 		return 0
 	}
-	attacker := b.GetPiece(m.Start)
-	if attacker == nil {
+	attackerData := b.getPieceData(m.Start)
+	if attackerData == 0 {
 		return 0
 	}
-	return mvvLvaValue[victim.GetPieceType()]*10 - mvvLvaValue[attacker.GetPieceType()]
+	return mvvLvaValue[(victimData&0xE)>>1]*10 - mvvLvaValue[(attackerData&0xE)>>1]
 }
 
 func (b *Board) GetAllMoves(color color.Color, previousMove *LastMove) *[]location.Move {
@@ -370,7 +370,7 @@ func (b *Board) getAllMovesCached(c color.Color, previousMove *LastMove, onlyFir
  * If onlyFirstMove is set, will only return first move
  */
 func (b *Board) getAllMoves(c color.Color, onlyFirstMove bool) *[]location.Move {
-	var moves []location.Move
+	moves := make([]location.Move, 0, 40)
 	for row := 0; row < Height; row++ {
 		// this is just a speedup - if the whole row is empty don't look at pieces
 		if b.board[row] == 0 {
@@ -538,15 +538,13 @@ func (b *Board) IsKingInCheck(c color.Color) bool {
 	return bitBoard.IsLocationSet(b.KingLocations[c])
 }
 
-/**
- * Applies a move to the board and then checks to see if it will result in king of color c being in check.
- * This could mean that the king was in check and will still be in check, or that king has been put into check as a
- * result of the move.
- */
+// willMoveLeaveKingInCheck returns true if applying m would leave color c's king in check.
+// Uses make/unmake with ray-cast detection instead of board copy + full attack map.
 func (b *Board) willMoveLeaveKingInCheck(c color.Color, m location.Move) bool {
-	boardCopy := b.Copy()
-	MakeMove(&m, boardCopy)
-	return boardCopy.IsKingInCheck(c)
+	undo := b.makeFastMove(&m)
+	inCheck := b.isKingInCheckFast(b.KingLocations[c], c)
+	b.unmakeFastMove(undo)
+	return inCheck
 }
 
 /**

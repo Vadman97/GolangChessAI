@@ -58,8 +58,8 @@ func (r *King) GetNormalMoves(board *Board, onlyFirstMove bool) *[]location.Move
 				l := r.GetPosition()
 				l, inBounds := l.AddRelative(location.RelativeLocation{Row: i, Col: j})
 				if inBounds {
-					pieceOnLocation := board.GetPiece(l)
-					if (pieceOnLocation == nil) || (pieceOnLocation.GetColor() != r.Color) {
+					data := board.getPieceData(l)
+					if data == 0 || data&0x1 != r.Color {
 						possibleMove := location.Move{Start: r.GetPosition(), End: l}
 						if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
 							moves = append(moves, possibleMove)
@@ -173,8 +173,10 @@ func (r *King) canCastle(m *location.Move, b *Board) bool {
 		if r.underAttack(loc, b) {
 			return false
 		}
-		if !b.IsEmpty(loc) {
-			if b.GetPiece(loc).GetPieceType() != piece.KingType && b.GetPiece(loc).GetPieceType() != piece.RookType {
+		data := b.getPieceData(loc)
+		if data != 0 {
+			t := (data & 0xE) >> 1
+			if t != piece.KingType && t != piece.RookType {
 				return false
 			}
 		}

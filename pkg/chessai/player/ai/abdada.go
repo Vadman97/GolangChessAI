@@ -106,9 +106,13 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	}
 	moveChan := make(chan ScoredMove, ab.NumThreads)
 	for i := 0; i < ab.NumThreads; i++ {
-		go func(moveChan chan ScoredMove) {
-			moveChan <- ab.ABDADA(b, depth, alpha, beta, false, ab.player.PlayerColor, previousMove)
-		}(moveChan)
+		// Each goroutine needs its own root board copy because willMoveLeaveKingInCheck
+		// mutates the board in-place during move generation. Sharing b across goroutines
+		// would cause concurrent mutations and corrupt board state.
+		rootCopy := b.Copy()
+		go func(moveChan chan ScoredMove, root *board.Board) {
+			moveChan <- ab.ABDADA(root, depth, alpha, beta, false, ab.player.PlayerColor, previousMove)
+		}(moveChan, rootCopy)
 	}
 
 	var bestMoves []ScoredMove
