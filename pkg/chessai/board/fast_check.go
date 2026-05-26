@@ -112,6 +112,126 @@ func (b *Board) unmakeFastMove(undo fastUndo) {
 	}
 }
 
+// computePinData ray-casts from the king to find:
+//  1. Which friendly squares are pinned (a friendly piece is the only blocker between the king
+//     and an enemy slider along that ray — if it moves off the ray, the king is exposed).
+//  2. Whether the king is currently in check.
+//
+// Returns (pinnedMask, inCheck). pinnedMask has bit row*8+col set for each pinned square.
+// This is called once at the start of getAllMoves so that willMoveLeaveKingInCheck can skip
+// the expensive make/unmake+ray-cast for non-pinned, non-king pieces.
+func (b *Board) computePinData(c byte) (pinnedMask uint64, inCheck bool) {
+	kingLoc := b.KingLocations[c]
+	opp := c ^ 1
+
+	// Rook/queen directions (ranks and files)
+	for _, dir := range [4]location.RelativeLocation{
+		location.UpMove, location.DownMove, location.LeftMove, location.RightMove,
+	} {
+		var pinnedIdx uint64
+		hasPinCandidate := false
+		loc := kingLoc
+		for {
+			var ok bool
+			loc, ok = loc.AddRelative(dir)
+			if !ok {
+				break
+			}
+			data := b.getPieceData(loc)
+			if data == 0 {
+				continue
+			}
+			if data&0x1 == c {
+				if !hasPinCandidate {
+					row, col := loc.Get()
+					pinnedIdx = uint64(row)*8 + uint64(col)
+					hasPinCandidate = true
+				} else {
+					break // second friendly — nothing is pinned on this ray
+				}
+			} else {
+				t := (data & 0xE) >> 1
+				if t == piece.RookType || t == piece.QueenType {
+					if !hasPinCandidate {
+						inCheck = true
+					} else {
+						pinnedMask |= uint64(1) << pinnedIdx
+					}
+				}
+				break
+			}
+		}
+	}
+
+	// Bishop/queen directions (diagonals)
+	for _, dir := range [4]location.RelativeLocation{
+		location.RightUpMove, location.RightDownMove, location.LeftUpMove, location.LeftDownMove,
+	} {
+		var pinnedIdx uint64
+		hasPinCandidate := false
+		loc := kingLoc
+		for {
+			var ok bool
+			loc, ok = loc.AddRelative(dir)
+			if !ok {
+				break
+			}
+			data := b.getPieceData(loc)
+			if data == 0 {
+				continue
+			}
+			if data&0x1 == c {
+				if !hasPinCandidate {
+					row, col := loc.Get()
+					pinnedIdx = uint64(row)*8 + uint64(col)
+					hasPinCandidate = true
+				} else {
+					break
+				}
+			} else {
+				t := (data & 0xE) >> 1
+				if t == piece.BishopType || t == piece.QueenType {
+					if !hasPinCandidate {
+						inCheck = true
+					} else {
+						pinnedMask |= uint64(1) << pinnedIdx
+					}
+				}
+				break
+			}
+		}
+	}
+
+	// Knight attacks on king
+	for _, delta := range possibleMoves {
+		loc, ok := kingLoc.AddRelative(delta)
+		if !ok {
+			continue
+		}
+		data := b.getPieceData(loc)
+		if data != 0 && data&0x1 == opp && (data&0xE)>>1 == piece.KnightType {
+			inCheck = true
+		}
+	}
+
+	// Pawn attacks on king: opponent pawns attack diagonally "forward" from their perspective.
+	// opp=White(0) attacks toward higher rows → pawn sits one row below king
+	// opp=Black(1) attacks toward lower rows → pawn sits one row above king
+	pawnRowDelta := int8(2*int(opp) - 1) // opp=0 → -1, opp=1 → +1
+	for _, colDelta := range [2]int8{-1, 1} {
+		loc, ok := kingLoc.AddRelative(location.RelativeLocation{Row: pawnRowDelta, Col: colDelta})
+		if !ok {
+			continue
+		}
+		data := b.getPieceData(loc)
+		if data != 0 && data&0x1 == opp && (data&0xE)>>1 == piece.PawnType {
+			inCheck = true
+		}
+	}
+
+	return
+}
+
 // isKingInCheckFast checks whether the king of color c at kingLoc is under attack.
 // It ray-casts from the king position rather than computing the full opponent attack map.
 func (b *Board) isKingInCheckFast(kingLoc location.Location, c byte) bool {

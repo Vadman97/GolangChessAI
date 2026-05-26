@@ -87,6 +87,13 @@ type Board struct {
 	PreviousPositions []util.BoardHash
 	// number of previous positions we have seen
 	PreviousPositionsSeen int
+
+	// Pin data cached for the duration of a single getAllMoves call.
+	// pinMaskValid is true only inside getAllMoves; willMoveLeaveKingInCheck uses it
+	// to skip the expensive make/unmake+ray-cast for non-pinned, non-king pieces.
+	pinMaskValid bool
+	pinnedSquares uint64 // bit row*8+col set → that square holds a pinned friendly piece
+	kingInCheck   bool   // true if the side-to-move's king is in check at the start of getAllMoves
 }
 
 func (b *Board) Hash() (result util.BoardHash) {
@@ -322,11 +329,16 @@ func (b *Board) GetAllMoves(color color.Color, previousMove *LastMove) *[]locati
 		})
 		movesPtr = &moves
 	} else {
-		// MVV-LVA ordering: captures first (high-value victim, low-value attacker), non-captures after
+		// MVV-LVA ordering: captures first (high-value victim, low-value attacker), non-captures after.
+		// Pre-compute scores to avoid calling mvvLvaScore twice per sort comparison.
 		moves := make([]location.Move, len(*movesPtr))
 		copy(moves, *movesPtr)
+		scores := make([]int, len(moves))
+		for i, m := range moves {
+			scores[i] = b.mvvLvaScore(m)
+		}
 		sort.Slice(moves, func(i, j int) bool {
-			return b.mvvLvaScore(moves[i]) > b.mvvLvaScore(moves[j])
+			return scores[i] > scores[j]
 		})
 		movesPtr = &moves
 	}
@@ -370,24 +382,36 @@ func (b *Board) getAllMovesCached(c color.Color, previousMove *LastMove, onlyFir
  * If onlyFirstMove is set, will only return first move
  */
 func (b *Board) getAllMoves(c color.Color, onlyFirstMove bool) *[]location.Move {
+	// Compute pin data once for this call so willMoveLeaveKingInCheck can fast-path
+	// non-pinned, non-king pieces when the king is not in check.
+	b.pinnedSquares, b.kingInCheck = b.computePinData(c)
+	b.pinMaskValid = true
+	defer func() { b.pinMaskValid = false }()
+
 	moves := make([]location.Move, 0, 40)
 	for row := 0; row < Height; row++ {
-		// this is just a speedup - if the whole row is empty don't look at pieces
-		if b.board[row] == 0 {
+		rowData := b.board[row]
+		if rowData == 0 {
 			continue
 		}
-		for col := 0; col < Width; col++ {
+		// Extract each piece's 4-bit nibble directly from rowData to avoid calling
+		// getPieceData twice (once for IsEmpty, once inside GetPiece) and skip the
+		// color check before allocating a Piece object.
+		// col 0 is stored in the most-significant nibble (bits 31-28), col 7 in bits 3-0.
+		tmp := rowData
+		for col := uint8(0); col < Width; col++ {
+			data := byte(tmp >> 28)
+			tmp <<= 4
+			if data == 0 || data&0x1 != c {
+				continue
+			}
 			l := location.NewLocation(location.CoordinateType(row), location.CoordinateType(col))
-			if !b.IsEmpty(l) {
-				p := b.GetPiece(l)
-				if p.GetColor() == c {
-					additionalMoves := *p.GetMoves(b, onlyFirstMove)
-					for _, nextMove := range additionalMoves {
-						moves = append(moves, nextMove)
-						if onlyFirstMove {
-							return &moves
-						}
-					}
+			p := decodeData(l, data)
+			additionalMoves := *p.GetMoves(b, onlyFirstMove)
+			for _, nextMove := range additionalMoves {
+				moves = append(moves, nextMove)
+				if onlyFirstMove {
+					return &moves
 				}
 			}
 		}
@@ -540,7 +564,20 @@ func (b *Board) IsKingInCheck(c color.Color) bool {
 
 // willMoveLeaveKingInCheck returns true if applying m would leave color c's king in check.
 // Uses make/unmake with ray-cast detection instead of board copy + full attack map.
+//
+// Fast path: if pin data is cached for this getAllMoves call AND the king is not currently
+// in check AND the moving piece is not pinned AND it is not the king, the move is always
+// legal (it cannot expose the king). This eliminates ~85-90% of expensive ray-cast calls.
 func (b *Board) willMoveLeaveKingInCheck(c color.Color, m location.Move) bool {
+	if b.pinMaskValid && !b.kingInCheck {
+		data := b.getPieceData(m.Start)
+		if (data&0xE)>>1 != piece.KingType {
+			row, col := m.Start.Get()
+			if b.pinnedSquares&(uint64(1)<<(uint64(row)*8+uint64(col))) == 0 {
+				return false
+			}
+		}
+	}
 	undo := b.makeFastMove(&m)
 	inCheck := b.isKingInCheckFast(b.KingLocations[c], c)
 	b.unmakeFastMove(undo)

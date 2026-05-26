@@ -91,28 +91,28 @@ func (r *Pawn) getCaptureMoves(board *Board, onlyFirstMove bool) *[]location.Mov
 	var moves []location.Move
 	locations := r.getAttackLocations(board)
 	for _, loc := range *locations {
-		if !board.IsEmpty(loc) {
-			pieceOnLocation := board.GetPiece(loc)
-			if pieceOnLocation.GetColor() != r.Color {
-				if r.canPromote(loc) {
-					for _, promotedType := range piece.PawnPromotionOptions {
-						loc = loc.CreatePawnPromotion(promotedType)
-						possibleMove := location.Move{Start: r.GetPosition(), End: loc}
-						if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
-							moves = append(moves, possibleMove)
-							if onlyFirstMove {
-								return &moves
-							}
-						}
+		// Use raw piece data to avoid GetPiece heap allocation just for a color check.
+		data := board.getPieceData(loc)
+		if data == 0 || data&0x1 == r.Color {
+			continue
+		}
+		if r.canPromote(loc) {
+			for _, promotedType := range piece.PawnPromotionOptions {
+				loc = loc.CreatePawnPromotion(promotedType)
+				possibleMove := location.Move{Start: r.GetPosition(), End: loc}
+				if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
+					moves = append(moves, possibleMove)
+					if onlyFirstMove {
+						return &moves
 					}
-				} else {
-					possibleMove := location.Move{Start: r.GetPosition(), End: loc}
-					if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
-						moves = append(moves, location.Move{Start: r.GetPosition(), End: loc})
-						if onlyFirstMove {
-							return &moves
-						}
-					}
+				}
+			}
+		} else {
+			possibleMove := location.Move{Start: r.GetPosition(), End: loc}
+			if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
+				moves = append(moves, possibleMove)
+				if onlyFirstMove {
+					return &moves
 				}
 			}
 		}
