@@ -104,7 +104,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 	}
 
 	var firstMove location.Move
-	if ttAnswer.Found && !ttAnswer.BestMove.Start.Equals(ttAnswer.BestMove.End) {
+	if ttAnswer.Found && !ttAnswer.BestMove.Start.Equals(ttAnswer.BestMove.End) && isMoveInList(ttAnswer.BestMove, moves) {
 		firstMove = ttAnswer.BestMove
 	} else {
 		firstMove = (*moves)[0]

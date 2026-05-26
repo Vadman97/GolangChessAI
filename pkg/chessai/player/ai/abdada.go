@@ -223,6 +223,15 @@ func isEnPassantMove(b *board.Board, m location.Move) bool {
 	return b.IsEmpty(m.End) && m.Start.GetCol() != m.End.GetCol()
 }
 
+func isMoveInList(m location.Move, moves *[]location.Move) bool {
+	for _, lm := range *moves {
+		if lm.Start.Equals(m.Start) && lm.End.Equals(m.End) {
+			return true
+		}
+	}
+	return false
+}
+
 func orderMoves(moves []location.Move, ttMove location.Move, b *board.Board) []location.Move {
 	ordered := make([]location.Move, 0, len(moves))
 	var captures, quiets []location.Move
