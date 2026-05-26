@@ -42,8 +42,11 @@ func RunTournament(gamesPerMatchup int, thinkTime time.Duration, spectatorCh cha
 		{name: "ABDADA", algorithm: &ai.ABDADA{}, elo: startingElo},
 		{name: "NegaScout", algorithm: &ai.NegaScout{}, elo: startingElo},
 		{name: "Jamboree", algorithm: &ai.Jamboree{}, elo: startingElo},
+		{name: "LazySMP", algorithm: &ai.LazySMP{}, elo: startingElo},
 		{name: "Random", algorithm: &ai.Random{Rand: rand.New(rand.NewSource(time.Now().UnixNano()))}, elo: startingElo},
 	}
+
+	rand.Shuffle(len(players), func(i, j int) { players[i], players[j] = players[j], players[i] })
 
 	n := len(players)
 	// results[i][j] = record for player i vs player j (from i's perspective)

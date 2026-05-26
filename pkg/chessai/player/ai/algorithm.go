@@ -10,6 +10,7 @@ const (
 	AlgorithmNegaScout           = "NegaScout"
 	AlgorithmRandom              = "Random"
 	AlgorithmJamboree            = "Jamboree"
+	AlgorithmLazySMP             = "LazySMP"
 )
 
 type Algorithm interface {
@@ -25,4 +26,5 @@ var NameToAlgorithm = map[string]Algorithm{
 	AlgorithmNegaScout:           &NegaScout{},
 	AlgorithmRandom:              &Random{},
 	AlgorithmJamboree:            &Jamboree{},
+	AlgorithmLazySMP:             &LazySMP{},
 }

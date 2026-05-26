@@ -125,6 +125,30 @@ func TestABDADAFindsHangingKnight(t *testing.T) {
 		"AI should capture hanging knight: end square should be e4 (3,3)")
 }
 
+func TestLazySMPFindsHangingKnight(t *testing.T) {
+	b := &board.Board{}
+	rows := []string{
+		"   |W_K|W_R|   |   |W_B|   |W_R",
+		"W_P|W_P|W_P|   |   |W_P|W_P|W_P",
+		"   |   |W_N|   |   |   |   |   ",
+		"   |   |   |B_N|W_Q|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |B_P|   |   ",
+		"B_P|B_P|B_P|B_P|B_B|   |   |B_P",
+		"B_R|   |B_B|B_K|B_Q|   |   |B_R",
+	}
+	b.LoadBoardFromText(rows)
+	b.SetFlag(board.FlagKingMoved, color.White, true)
+	b.SetFlag(board.FlagKingMoved, color.Black, true)
+
+	move := getBestMove(b, color.White, NameToAlgorithm[AlgorithmLazySMP])
+
+	wantFrom := location.NewLocation(3, 4)
+	wantTo := location.NewLocation(3, 3)
+	assert.Equal(t, wantFrom, move.Start, "LazySMP should capture hanging knight: start d4 (3,4)")
+	assert.Equal(t, wantTo, move.End, "LazySMP should capture hanging knight: end e4 (3,3)")
+}
+
 const historicBoardsDirectory = "competition_boards"
 
 /**
