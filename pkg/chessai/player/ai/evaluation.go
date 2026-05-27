@@ -65,8 +65,11 @@ const (
 	KingDisplacedWeight = -1 * PawnValueWeight
 	// Small penalty for moving a rook before castling — not large enough to force premature castling.
 	RookDisplacedWeight = -PawnValueWeight / 5
-	KingCheckedWeight     = -PawnValueWeight / 4
-	KingCastledWeight     = 1 * PawnValueWeight
+	KingCheckedWeight   = -PawnValueWeight / 4
+	// KingCastledWeight reduced from 100 to 40: the old +100 cp bonus (plus ~70 PST swing = +170 total)
+	// was overriding concrete tactical continuations — the engine would castle even in clearly winning
+	// positions where an active rook move or attack was better.
+	KingCastledWeight = PawnValueWeight * 2 / 5
 	// neg 1 pawn if we do nothing in 50 moves
 	Weight50Rule = -PawnValueWeight / PawnValueWeight
 	// King safety: penalize exposed king files and enemy sliders on them
@@ -77,14 +80,92 @@ const (
 const (
 	PawnDuplicateWeight = -1
 	PawnAdvancedWeight  = 1
+	// IsolatedPawnPenalty: a pawn with no friendly pawns on adjacent files is weak.
+	IsolatedPawnPenalty = -15
+	// Rook file activity bonuses.
+	RookOpenFileBonus     = 15 // no pawns of either color on the file
+	RookSemiOpenFileBonus = 8  // no friendly pawns but enemy pawns present
+	// KnightOutpostBonus: knight on ranks 3-5 (from own back rank) that no enemy
+	// pawn can attack. Outpost knights dominate the middlegame.
+	KnightOutpostBonus = 20
 )
 
+// isKnightOutpost returns true if no enemy pawn can attack the given square,
+// meaning the knight sitting there cannot be chased away by a pawn push.
+func isKnightOutpost(b *board.Board, row, col location.CoordinateType, knightColor color.Color) bool {
+	enemy := knightColor ^ 1
+	// Enemy pawns attack diagonally forward. For White (attacking toward Black's back rank
+	// = higher rows), White pawns at (row-1, col±1) attack (row, col).
+	// For Black (attacking toward White's back rank = lower rows), Black pawns at
+	// (row+1, col±1) attack (row, col).
+	var attackRow location.CoordinateType
+	if enemy == color.White {
+		// White pawns attack upward: they'd be at row-1 to attack row.
+		if row == 0 {
+			return true
+		}
+		attackRow = row - 1
+	} else {
+		// Black pawns attack downward: they'd be at row+1 to attack row.
+		if row == board.Height-1 {
+			return true
+		}
+		attackRow = row + 1
+	}
+	for _, dc := range []int{-1, 1} {
+		ac := int(col) + dc
+		if ac < 0 || ac >= board.Width {
+			continue
+		}
+		p := b.GetPiece(location.NewLocation(attackRow, location.CoordinateType(ac)))
+		if p != nil && p.GetColor() == enemy && p.GetPieceType() == piece.PawnType {
+			return false
+		}
+	}
+	return true
+}
+
+// passedPawnBonus is added to the score for a passed pawn at the given rank
+// (distance from own back rank, 0 = back rank, 7 = promotion). Additive on top
+// of pawnPST — passed pawns are far more dangerous than normal advanced pawns.
+// Conservative values prevent the shallow search (depth 6-8) from projecting
+// pawn advances that a deeper search (SF depth 15) knows White can stop.
+// Old values {0,0,0,10,35,75,110} caused 1000+ cp eval inflation at search horizon.
+var passedPawnBonus = [8]int{0, 0, 0, 5, 20, 50, 75, 0}
+
+// isPassedPawn returns true if no enemy pawn can block or capture this pawn
+// on the way to promotion — i.e. no enemy pawn on the same file or adjacent
+// files ahead of this pawn.
+func isPassedPawn(b *board.Board, row, col location.CoordinateType, pawnColor color.Color) bool {
+	enemy := pawnColor ^ 1
+	var rStart, rEnd, rStep int
+	if pawnColor == color.White {
+		rStart, rEnd, rStep = int(row)+1, board.Height, 1
+	} else {
+		rStart, rEnd, rStep = int(row)-1, -1, -1
+	}
+	for dc := -1; dc <= 1; dc++ {
+		c := int(col) + dc
+		if c < 0 || c >= board.Width {
+			continue
+		}
+		for r := rStart; r != rEnd; r += rStep {
+			p := b.GetPiece(location.NewLocation(location.CoordinateType(r), location.CoordinateType(c)))
+			if p != nil && p.GetColor() == enemy && p.GetPieceType() == piece.PawnType {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 const (
-	// MopupThreshold is the minimum material advantage (in PieceValue units, e.g. 5 = one rook)
-	// required before the mop-up heuristic activates.
-	MopupThreshold = 5
-	// MopupWeight scales the mop-up bonus. Small enough to never override real material/checkmate.
-	MopupWeight = PawnValueWeight / 20
+	// MopupThreshold: lowered from 5 (one rook) to 3 so the mop-up activates slightly
+	// earlier without distorting evals in materially balanced positions.
+	MopupThreshold = 3
+	// MopupWeight: 8 is a mild increase from the original 5 — enough to push the winning
+	// king towards the enemy without dominating the eval in near-equal positions.
+	MopupWeight = PawnValueWeight * 2 / 25
 )
 
 // pstScale converts raw PST centipawn values to the internal score scale.
@@ -143,12 +224,15 @@ var queenPST = [8][8]int{
 // Ranks 0-2 are 0: starting square and one-step advances get no PST bonus so
 // existing evaluation baselines are not disturbed. Bonuses start at rank 3
 // (d4/e4 for White or d5/e5 for Black) where center occupancy is meaningful.
+// d4/e4 at rank 3 are boosted to 50 cp so the engine prefers occupying the
+// center over developing knights first — the knight PST jump from the starting
+// square to f3/c3 is +50 cp, so the pawn center must match that value.
 var pawnPST = [8][8]int{
 	{0, 0, 0, 0, 0, 0, 0, 0},         // rank 0 — pawns never reach here (promoted)
 	{0, 0, 0, 0, 0, 0, 0, 0},         // rank 1 — starting squares
 	{0, 0, 0, 0, 0, 0, 0, 0},         // rank 2 — one step advanced
-	{2, 2, 4, 20, 20, 4, 2, 2},       // rank 3 — e4/d4: strong center
-	{5, 5, 10, 25, 25, 10, 5, 5},     // rank 4 — passed pawn territory
+	{2, 2, 12, 50, 50, 12, 2, 2},     // rank 3 — e4/d4: dominant center control
+	{5, 5, 15, 35, 35, 15, 5, 5},     // rank 4 — passed pawn territory
 	{10, 10, 20, 30, 30, 20, 10, 10}, // rank 5 — advanced passers
 	{50, 50, 50, 50, 50, 50, 50, 50}, // rank 6 — pre-promotion
 	{0, 0, 0, 0, 0, 0, 0, 0},         // rank 7 — promoted (not a pawn)
@@ -413,6 +497,25 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 						if row != board.StartRow[c]["Pawn"] {
 							eval.PieceAdvanced[c][pt]++
 						}
+						// Passed pawn bonus: awarded per pawn, based on rank from own back rank.
+						if isPassedPawn(b, row, col, c) {
+							rank := int(row)
+							if c == color.Black {
+								rank = 7 - int(row)
+							}
+							pstScores[c] += passedPawnBonus[rank]
+						}
+					} else if pt == piece.KnightType {
+						if row != board.StartRow[c]["Piece"] {
+							eval.PieceAdvanced[c][pt]++
+						}
+						rank := int(row)
+						if c == color.Black {
+							rank = 7 - int(row)
+						}
+						if rank >= 3 && rank <= 5 && isKnightOutpost(b, row, col, c) {
+							pstScores[c] += KnightOutpostBonus
+						}
 					} else if pt != piece.KingType {
 						if row != board.StartRow[c]["Piece"] {
 							eval.PieceAdvanced[c][pt]++
@@ -421,6 +524,24 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 				}
 			}
 		}
+		// Rook open/semi-open file bonus: second pass after PawnColumns is complete.
+		for row := location.CoordinateType(0); row < board.Height; row++ {
+			for col := location.CoordinateType(0); col < board.Width; col++ {
+				p := b.GetPiece(location.NewLocation(row, col))
+				if p == nil || p.GetPieceType() != piece.RookType {
+					continue
+				}
+				c := p.GetColor()
+				friendlyPawns := eval.PawnColumns[c][col] > 0
+				enemyPawns := eval.PawnColumns[c^1][col] > 0
+				if !friendlyPawns && !enemyPawns {
+					pstScores[c] += RookOpenFileBonus
+				} else if !friendlyPawns {
+					pstScores[c] += RookSemiOpenFileBonus
+				}
+			}
+		}
+
 		for pColor := byte(0); pColor < color.NumColors; pColor++ {
 			score := 0
 			for pieceType, value := range PieceValue {
@@ -444,8 +565,18 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 			}
 			score += kingSafety(b, pColor)
 			for column := location.CoordinateType(0); column < board.Width; column++ {
-				// duplicate score grows exponentially for each additional pawn
-				score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (eval.PawnColumns[pColor][column] - 1)) - 1)
+				cnt := eval.PawnColumns[pColor][column]
+				if cnt == 0 {
+					continue
+				}
+				// Doubled pawn penalty grows exponentially per extra pawn on the file.
+				score += PawnStructureWeight * PawnDuplicateWeight * ((1 << (cnt - 1)) - 1)
+				// Isolated pawn: no friendly pawns on either adjacent file.
+				leftEmpty := column == 0 || eval.PawnColumns[pColor][column-1] == 0
+				rightEmpty := column == board.Width-1 || eval.PawnColumns[pColor][column+1] == 0
+				if leftEmpty && rightEmpty {
+					score += IsolatedPawnPenalty * int(cnt)
+				}
 			}
 			goalRow := board.StartRow[pColor^1]["Piece"]
 			for row := location.CoordinateType(0); row < board.Height; row++ {

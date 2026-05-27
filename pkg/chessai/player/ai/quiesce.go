@@ -2,6 +2,7 @@ package ai
 
 import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 )
 
@@ -28,38 +29,49 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 		return alpha
 	}
 
-	// Examine captures and pawn promotions to empty squares.
+	// Collect captures and promotions; sort captures by MVV-LVA so the best trades
+	// are tried first — this improves alpha-beta pruning in quiescence significantly.
+	var captures, promos []location.Move
+	for _, m := range *moves {
+		isPromotion, _ := m.End.GetPawnPromotion()
+		if isPromotion {
+			promos = append(promos, m)
+		} else if !root.IsEmpty(m.End) || isEnPassantMove(root, m) {
+			captures = append(captures, m)
+		}
+	}
+	sortCapturesMVVLVA(captures, root)
+	ordered := append(captures, promos...)
+
+	// Examine captures (MVV-LVA sorted) then promotions.
 	// Promotions must be included even when the destination is empty: a pawn advancing
 	// to the back rank and becoming a queen is an 8-pawn swing that standPat cannot see.
-	for _, m := range *moves {
+	for _, m := range ordered {
 		if p.abort {
 			break
 		}
 		isPromotion, _ := m.End.GetPawnPromotion()
-		isEnPassant := isEnPassantMove(root, m)
-		if !root.IsEmpty(m.End) || isPromotion || isEnPassant {
-			// Per-capture delta prune: skip if even winning this piece won't raise alpha.
-			if !isPromotion {
-				capturedPiece := root.GetPiece(m.End)
-				if capturedPiece != nil {
-					gain := PawnValueWeight * PieceValue[capturedPiece.GetPieceType()]
-					if standPat+gain+deltaMargin < alpha {
-						continue
-					}
+		// Per-capture delta prune: skip if even winning this piece won't raise alpha.
+		if !isPromotion {
+			capturedPiece := root.GetPiece(m.End)
+			if capturedPiece != nil {
+				gain := PawnValueWeight * PieceValue[capturedPiece.GetPieceType()]
+				if standPat+gain+deltaMargin < alpha {
+					continue
 				}
 			}
+		}
 
-			child := root.Copy()
-			lastMove := board.MakeMove(&m, child)
-			p.Metrics.MovesConsidered++
-			score := -p.Quiesce(child, -beta, -alpha, currentPlayer^1, lastMove)
+		child := root.Copy()
+		lastMove := board.MakeMove(&m, child)
+		p.Metrics.MovesConsidered++
+		score := -p.Quiesce(child, -beta, -alpha, currentPlayer^1, lastMove)
 
-			if score >= beta {
-				p.Metrics.MovesPrunedAB++
-				return beta
-			} else if score > alpha {
-				alpha = score
-			}
+		if score >= beta {
+			p.Metrics.MovesPrunedAB++
+			return beta
+		} else if score > alpha {
+			alpha = score
 		}
 	}
 	return alpha

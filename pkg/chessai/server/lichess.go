@@ -94,6 +94,8 @@ type Lichess struct {
 	Events           chan Event
 	GameEvents       chan GameEvent
 	ChallengeOnStart *ChallengeConfig
+	// exitAfterGame signals Run() to stop after the first game finishes.
+	exitAfterGame chan struct{}
 
 	// Pondering: search during the opponent's turn to warm the TT.
 	ponderStop chan struct{}
@@ -106,7 +108,7 @@ func ConnectLichess() Server {
 
 func ConnectLichessWithChallenge(challenge *ChallengeConfig) Server {
 	base, _ := url.Parse("https://lichess.org/api")
-	return &Lichess{
+	s := &Lichess{
 		Mutex: sync.Mutex{},
 		Client: &Client{
 			BaseURL:    base,
@@ -118,6 +120,10 @@ func ConnectLichessWithChallenge(challenge *ChallengeConfig) Server {
 		GameEvents:       make(chan GameEvent),
 		ChallengeOnStart: challenge,
 	}
+	if challenge != nil {
+		s.exitAfterGame = make(chan struct{})
+	}
+	return s
 }
 
 // startPonder begins a background search on the current board position so the
@@ -246,6 +252,13 @@ func (l *Lichess) handleEvent(event *Event) error {
 		l.stopPonder()
 		l.Player = nil
 		l.Game = nil
+		if l.exitAfterGame != nil {
+			select {
+			case <-l.exitAfterGame:
+			default:
+				close(l.exitAfterGame)
+			}
+		}
 	case EventTypeChallenge:
 		if event.Challenge == nil {
 			return errors.New("challenge event missing challenge data")
@@ -398,11 +411,19 @@ func (l *Lichess) Run() {
 		return nil
 	})
 	g.Go(func() error {
+		// exitAfterGame is nil when not in challenge mode; a nil channel in
+		// select blocks forever, so this case only fires in challenge mode.
+		var exitCh <-chan struct{} = l.exitAfterGame
 		for {
-			e := <-l.Events
-			if err := l.handleEvent(&e); err != nil {
-				log.Errorf("failed to handle event %s", err)
-				return err
+			select {
+			case e := <-l.Events:
+				if err := l.handleEvent(&e); err != nil {
+					log.Errorf("failed to handle event %s", err)
+					return err
+				}
+			case <-exitCh:
+				log.Infof("game finished, exiting")
+				return nil
 			}
 		}
 	})

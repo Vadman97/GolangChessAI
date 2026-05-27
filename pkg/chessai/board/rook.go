@@ -105,10 +105,16 @@ func (r *Rook) GetAttackableMoves(board *Board) BitBoard {
 }
 
 func (r *Rook) Move(m *location.Move, b *Board) {
-	if r.IsRightRook() {
+	// Check the START column, not r.Location: by the time Move() is called the piece
+	// is already at the destination, so r.Location reflects the end square. A rook moving
+	// from col 7 (a-file) to col 5 (c-file) would incorrectly pass neither check if we
+	// used r.Location. The same logic applies when a rook is captured (piece.go calls
+	// Move with Start=End=captureSquare) — that still works because the captured rook's
+	// position is correct at capture time.
+	if m.Start.GetCol() == 7 {
 		b.SetFlag(FlagRightRookMoved, r.GetColor(), true)
 	}
-	if r.IsLeftRook() {
+	if m.Start.GetCol() == 0 {
 		b.SetFlag(FlagLeftRookMoved, r.GetColor(), true)
 	}
 }

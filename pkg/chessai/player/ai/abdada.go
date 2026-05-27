@@ -25,6 +25,7 @@ const (
 	nullMoveR        = 2   // null move depth reduction (increases to 3 at depth>=7)
 	lmrMinDepth      = 3   // minimum depth before LMR kicks in
 	lmrMinMoveIdx    = 3   // LMR applies after this many moves have been searched
+	maxExtensions    = 4   // total check-extension budget per branch
 )
 
 // squareIdx converts a location to a flat [0,63] index for history/killer tables.
@@ -94,7 +95,18 @@ func (ab *ABDADA) historyScore(m location.Move) int32 {
 // ABDADA is the core parallel alpha-beta search function.
 // nullMoveOk: false immediately after a null move (prevents consecutive null moves).
 // ply: distance from the root (0 at root), used for killer indexing.
-func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove, nullMoveOk bool, ply int) ScoredMove {
+// extensions: remaining check-extension budget (starts at maxExtensions at root).
+func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove, nullMoveOk bool, ply int, extensions int) ScoredMove {
+	inCheck := root.IsKingInCheck(currentPlayer)
+
+	// Check extension: when the side to move is in check, extend by 1 ply so the
+	// search doesn't cut off forced check-evasion sequences at the horizon.
+	// Bounded by an extension budget to prevent infinite recursion.
+	if inCheck && extensions > 0 {
+		depth++
+		extensions--
+	}
+
 	if depth == 0 {
 		return ScoredMove{
 			Score: ab.player.Quiesce(root, alpha, beta, currentPlayer, previousMove),
@@ -120,8 +132,6 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		return best
 	}
 
-	inCheck := root.IsKingInCheck(currentPlayer)
-
 	// Null Move Pruning: pass the turn and search at reduced depth.
 	// Skip when in check, in zugzwang-prone endgames, or after a prior null move.
 	if nullMoveOk && !inCheck && depth >= nullMoveMinDepth && !onlyKingAndPawns(root, currentPlayer) {
@@ -129,7 +139,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		if depth >= 7 {
 			R = 3
 		}
-		nullVal := ab.ABDADA(root, depth-1-R, -beta, -beta+1, false, currentPlayer^1, nil, false, ply+1)
+		nullVal := ab.ABDADA(root, depth-1-R, -beta, -beta+1, false, currentPlayer^1, nil, false, ply+1, extensions)
 		nullVal.Score = -nullVal.Score
 		if nullVal.Score >= beta {
 			atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, 1)
@@ -184,12 +194,12 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				if reduction > depth-2 {
 					reduction = depth - 2
 				}
-				lmr := ab.ABDADA(child, depth-1-reduction, -(util.MaxScore(alpha, best.Score)+1), -util.MaxScore(alpha, best.Score), false, currentPlayer^1, pm, true, ply+1)
+				lmr := ab.ABDADA(child, depth-1-reduction, -(util.MaxScore(alpha, best.Score)+1), -util.MaxScore(alpha, best.Score), false, currentPlayer^1, pm, true, ply+1, extensions)
 				lmr.Score = -lmr.Score
 				lmr.Move = move
 				if lmr.Score == -OnEvaluation || lmr.Score > util.MaxScore(alpha, best.Score) {
 					// LMR failed high or deferred — do full-depth re-search.
-					value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1)
+					value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1, extensions)
 					value.Score = -value.Score
 					value.Move = move
 				} else {
@@ -197,7 +207,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 					value = lmr
 				}
 			} else {
-				value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1)
+				value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1, extensions)
 				value.Score = -value.Score
 				value.Move = move
 			}
@@ -242,7 +252,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	for i := 0; i < ab.NumThreads; i++ {
 		rootCopy := b.Copy()
 		go func(moveChan chan ScoredMove, root *board.Board) {
-			moveChan <- ab.ABDADA(root, depth, alpha, beta, false, ab.player.PlayerColor, previousMove, true, 0)
+			moveChan <- ab.ABDADA(root, depth, alpha, beta, false, ab.player.PlayerColor, previousMove, true, 0, 4)
 		}(moveChan, rootCopy)
 	}
 
@@ -360,6 +370,38 @@ func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *boa
 //  3. TT best move (if quiet)
 //  4. Killer moves
 //  5. Remaining quiet moves (sorted by history heuristic score, descending)
+// mvvLvaScore returns a score for capture ordering: high victim value and low attacker value
+// are both good. Multiply victim by 10 to ensure victim dominates regardless of attacker type.
+func mvvLvaScore(b *board.Board, m location.Move) int {
+	attacker := b.GetPiece(m.Start)
+	victim := b.GetPiece(m.End)
+	av, vv := 1, 0
+	if attacker != nil {
+		av = PieceValue[attacker.GetPieceType()]
+	}
+	if victim != nil {
+		vv = PieceValue[victim.GetPieceType()]
+	}
+	return vv*10 - av
+}
+
+// sortCapturesMVVLVA sorts a capture list in place by MVV-LVA score descending.
+func sortCapturesMVVLVA(captures []location.Move, b *board.Board) {
+	if len(captures) <= 1 {
+		return
+	}
+	scores := make([]int, len(captures))
+	for i, m := range captures {
+		scores[i] = mvvLvaScore(b, m)
+	}
+	for i := 1; i < len(captures); i++ {
+		for j := i; j > 0 && scores[j] > scores[j-1]; j-- {
+			captures[j], captures[j-1] = captures[j-1], captures[j]
+			scores[j], scores[j-1] = scores[j-1], scores[j]
+		}
+	}
+}
+
 func isEnPassantMove(b *board.Board, m location.Move) bool {
 	p := b.GetPiece(m.Start)
 	if p == nil || p.GetPieceType() != piece.PawnType {
@@ -416,6 +458,9 @@ func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location
 			}
 		}
 	}
+
+	// Sort captures by MVV-LVA (most-valuable-victim × 10 − least-valuable-attacker).
+	sortCapturesMVVLVA(captures, b)
 
 	if hasTT && ttIsCapture {
 		ordered = append(ordered, ttMove)
