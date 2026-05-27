@@ -15,10 +15,6 @@ import (
 	"time"
 )
 
-const (
-	aspirationDelta    = 50
-	aspirationMaxDelta = 500
-)
 
 // threadRootMove records a thread's best move found at a given search depth.
 type threadRootMove struct {
@@ -298,7 +294,7 @@ func (smp *LazySMP) search(root *board.Board, depth, alpha, beta int, currentPla
 		}
 	}
 
-	orderedMoves := orderMoves(*movesArr, ttBestMove, root)
+	orderedMoves := orderMoves(*movesArr, ttBestMove, [2]location.Move{}, nil, root)
 
 	var best ScoredMove
 	best.Score = NegInf

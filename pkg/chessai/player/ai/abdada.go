@@ -2,6 +2,7 @@ package ai
 
 import (
 	"fmt"
+	"math"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
@@ -15,87 +16,220 @@ import (
 	"time"
 )
 
-func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove) ScoredMove {
+const (
+	maxKillerDepth   = 64
+	aspirationDelta    = 50   // initial window half-width in centipawns
+	aspirationMaxDelta = 500  // full-window fallback after repeated failures
+	aspirationWiden    = 4    // multiply delta by this on each failure
+	nullMoveMinDepth = 3   // minimum depth to attempt null move
+	nullMoveR        = 2   // null move depth reduction (increases to 3 at depth>=7)
+	lmrMinDepth      = 3   // minimum depth before LMR kicks in
+	lmrMinMoveIdx    = 3   // LMR applies after this many moves have been searched
+)
+
+// squareIdx converts a location to a flat [0,63] index for history/killer tables.
+func squareIdx(l location.Location) int {
+	return int(l.GetRow())*board.Width + int(l.GetCol())
+}
+
+// onlyKingAndPawns returns true if the given side has no pieces other than king+pawns.
+// Used to guard null move pruning against zugzwang.
+func onlyKingAndPawns(b *board.Board, c color.Color) bool {
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		for col := location.CoordinateType(0); col < board.Width; col++ {
+			p := b.GetPiece(location.NewLocation(row, col))
+			if p == nil || p.GetColor() != c {
+				continue
+			}
+			pt := p.GetPieceType()
+			if pt != piece.KingType && pt != piece.PawnType {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+type ABDADA struct {
+	player             *AIPlayer
+	kill               bool
+	currentSearchDepth int
+	NumThreads         int
+	// killers[depth%maxKillerDepth][0..1]: last two quiet moves causing beta cutoffs at this depth.
+	killers [maxKillerDepth][2]location.Move
+	// history[from][to]: accumulated depth^2 bonuses for quiet moves that caused cutoffs.
+	// Shared across threads; atomic int32 for lock-free updates.
+	history [board.Height * board.Width][board.Height * board.Width]int32
+}
+
+func (ab *ABDADA) GetName() string {
+	return AlgorithmABDADA
+}
+
+func (ab *ABDADA) isKiller(m location.Move, depth int) bool {
+	k := &ab.killers[depth%maxKillerDepth]
+	return (m.Start.Equals(k[0].Start) && m.End.Equals(k[0].End)) ||
+		(m.Start.Equals(k[1].Start) && m.End.Equals(k[1].End))
+}
+
+func (ab *ABDADA) storeKiller(depth int, m location.Move) {
+	k := &ab.killers[depth%maxKillerDepth]
+	if m.Start.Equals(k[0].Start) && m.End.Equals(k[0].End) {
+		return
+	}
+	k[1] = k[0]
+	k[0] = m
+}
+
+func (ab *ABDADA) updateHistory(m location.Move, depth int) {
+	from := squareIdx(m.Start)
+	to := squareIdx(m.End)
+	atomic.AddInt32(&ab.history[from][to], int32(depth*depth))
+}
+
+func (ab *ABDADA) historyScore(m location.Move) int32 {
+	return atomic.LoadInt32(&ab.history[squareIdx(m.Start)][squareIdx(m.End)])
+}
+
+// ABDADA is the core parallel alpha-beta search function.
+// nullMoveOk: false immediately after a null move (prevents consecutive null moves).
+// ply: distance from the root (0 at root), used for killer indexing.
+func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove, nullMoveOk bool, ply int) ScoredMove {
 	if depth == 0 {
 		return ScoredMove{
 			Score: ab.player.Quiesce(root, alpha, beta, currentPlayer, previousMove),
 		}
-	} else {
-		var best ScoredMove
-		best.Score = NegInf
+	}
 
-		ttAnswer := ab.ttRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
-		movesArr := root.GetAllMoves(currentPlayer, previousMove)
-		alpha, beta = ttAnswer.alpha, ttAnswer.beta
-		best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
+	var best ScoredMove
+	best.Score = NegInf
 
-		// this is a terminal node because we have no moves, either we lost or tied
-		if ab.player.terminalNode(root, movesArr) {
-			return ScoredMove{
-				Score: AdjustMateScore(ab.player.EvaluateBoard(root, currentPlayer).TotalScore, depth),
-			}
-		}
+	ttAnswer := ab.ttRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
+	movesArr := root.GetAllMoves(currentPlayer, previousMove)
+	alpha, beta = ttAnswer.alpha, ttAnswer.beta
+	best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
 
-		/* The current move is not evaluated if causing u a cutoff or
-		if we are in exclusive mode and another processor
-		is currently evaluating it. */
-		if alpha >= beta || best.Score == OnEvaluation {
-			atomic.AddUint64(&ab.player.Metrics.MovesPrunedTransposition, uint64(len(*movesArr)))
-			return best
-		} else {
-			// Prioritize TT best move first, then captures, then quiet moves.
-			orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, root)
-
-			iteration := 0
-			allDone := false
-			for iteration < 2 && alpha < beta && !allDone {
-				if ab.player.abort || ab.kill {
-					return best
-				}
-				iteration++
-				allDone = true
-				firstMove := true
-				moves := orderedMoves
-				move := moves[0]
-				moves = moves[1:]
-				for alpha < beta {
-					if ab.player.abort || ab.kill {
-						return best
-					}
-					// On the first iteration, we want to be the only processor to evaluate young sons
-					exclusiveProbe = iteration == 1 && !firstMove
-
-					child, previousMove := ab.player.applyMove(root, &move)
-					value := ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, previousMove)
-					value.Score = -value.Score
-					value.Move = move
-
-					if value.Score == -OnEvaluation {
-						allDone = false
-					} else if value.Score > best.Score || best.Move.Start.Equals(best.Move.End) {
-						best = value
-						if best.Score >= beta {
-							atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(moves)))
-							ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
-							return best
-						}
-						// Narrow the window so subsequent children receive a tighter bound.
-						if best.Score > alpha {
-							alpha = best.Score
-						}
-					}
-					if len(moves) == 0 {
-						break
-					}
-					firstMove = false
-					move = moves[0]
-					moves = moves[1:]
-				}
-			}
-			ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
-			return best
+	if ab.player.terminalNode(root, movesArr) {
+		return ScoredMove{
+			Score: AdjustMateScore(ab.player.EvaluateBoard(root, currentPlayer).TotalScore, depth),
 		}
 	}
+
+	if alpha >= beta || best.Score == OnEvaluation {
+		atomic.AddUint64(&ab.player.Metrics.MovesPrunedTransposition, uint64(len(*movesArr)))
+		return best
+	}
+
+	inCheck := root.IsKingInCheck(currentPlayer)
+
+	// Null Move Pruning: pass the turn and search at reduced depth.
+	// Skip when in check, in zugzwang-prone endgames, or after a prior null move.
+	if nullMoveOk && !inCheck && depth >= nullMoveMinDepth && !onlyKingAndPawns(root, currentPlayer) {
+		R := nullMoveR
+		if depth >= 7 {
+			R = 3
+		}
+		nullVal := ab.ABDADA(root, depth-1-R, -beta, -beta+1, false, currentPlayer^1, nil, false, ply+1)
+		nullVal.Score = -nullVal.Score
+		if nullVal.Score >= beta {
+			atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, 1)
+			return ScoredMove{Score: beta}
+		}
+	}
+
+	killerPair := ab.killers[ply%maxKillerDepth]
+	orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, killerPair, ab, root)
+
+	iteration := 0
+	allDone := false
+	for iteration < 2 && alpha < beta && !allDone {
+		if ab.player.abort || ab.kill {
+			return best
+		}
+		iteration++
+		allDone = true
+		firstMove := true
+		moves := orderedMoves
+		move := moves[0]
+		moves = moves[1:]
+		moveIdx := 0
+		for alpha < beta {
+			if ab.player.abort || ab.kill {
+				return best
+			}
+			moveIdx++
+			exclusiveProbe = iteration == 1 && !firstMove
+
+			isCapture := root.GetPiece(move.End) != nil || isEnPassantMove(root, move)
+			isPromo, _ := move.End.GetPawnPromotion()
+			isKiller := ab.isKiller(move, ply)
+			isTTMove := move.Start.Equals(ttAnswer.bestMove.Start) && move.End.Equals(ttAnswer.bestMove.End)
+
+			// Late Move Reductions: quietly search less-promising moves at reduced depth.
+			// Conditions: not a capture, not a promotion, not a killer, not the TT move,
+			// not when in check, only after lmrMinMoveIdx moves already searched.
+			doLMR := iteration == 1 &&
+				depth >= lmrMinDepth &&
+				moveIdx > lmrMinMoveIdx &&
+				!isCapture && !isPromo && !isKiller && !isTTMove && !inCheck
+
+			var value ScoredMove
+			child, pm := ab.player.applyMove(root, &move)
+
+			if doLMR {
+				reduction := int(math.Log(float64(depth)) * math.Log(float64(moveIdx)) / 2.0)
+				if reduction < 1 {
+					reduction = 1
+				}
+				if reduction > depth-2 {
+					reduction = depth - 2
+				}
+				lmr := ab.ABDADA(child, depth-1-reduction, -(util.MaxScore(alpha, best.Score)+1), -util.MaxScore(alpha, best.Score), false, currentPlayer^1, pm, true, ply+1)
+				lmr.Score = -lmr.Score
+				lmr.Move = move
+				if lmr.Score == -OnEvaluation || lmr.Score > util.MaxScore(alpha, best.Score) {
+					// LMR failed high or deferred — do full-depth re-search.
+					value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1)
+					value.Score = -value.Score
+					value.Move = move
+				} else {
+					// LMR confirmed: move is not good enough.
+					value = lmr
+				}
+			} else {
+				value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1)
+				value.Score = -value.Score
+				value.Move = move
+			}
+
+			if value.Score == -OnEvaluation {
+				allDone = false
+			} else if value.Score > best.Score || best.Move.Start.Equals(best.Move.End) {
+				best = value
+				if best.Score >= beta {
+					atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(moves)))
+					// Update killer and history for quiet cutoff moves.
+					if !isCapture && !isPromo {
+						ab.storeKiller(ply, move)
+						ab.updateHistory(move, depth)
+					}
+					ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
+					return best
+				}
+				if best.Score > alpha {
+					alpha = best.Score
+				}
+			}
+			if len(moves) == 0 {
+				break
+			}
+			firstMove = false
+			move = moves[0]
+			moves = moves[1:]
+		}
+	}
+	ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
+	return best
 }
 
 func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMove *board.LastMove) ScoredMove {
@@ -106,12 +240,9 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	}
 	moveChan := make(chan ScoredMove, ab.NumThreads)
 	for i := 0; i < ab.NumThreads; i++ {
-		// Each goroutine needs its own root board copy because willMoveLeaveKingInCheck
-		// mutates the board in-place during move generation. Sharing b across goroutines
-		// would cause concurrent mutations and corrupt board state.
 		rootCopy := b.Copy()
 		go func(moveChan chan ScoredMove, root *board.Board) {
-			moveChan <- ab.ABDADA(root, depth, alpha, beta, false, ab.player.PlayerColor, previousMove)
+			moveChan <- ab.ABDADA(root, depth, alpha, beta, false, ab.player.PlayerColor, previousMove, true, 0)
 		}(moveChan, rootCopy)
 	}
 
@@ -119,10 +250,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 
 	const AbortAfterFirst = true
 	if AbortAfterFirst {
-		// abort the other threads after the first move is retrieved
-		// get first thread's move
 		bestMoves = append(bestMoves, <-moveChan)
-		// abort the rest
 		ab.kill = true
 		for i := 0; i < ab.NumThreads-1; i++ {
 			<-moveChan
@@ -140,30 +268,61 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 		if sm.Score >= bestMove.Score {
 			bestMove = sm
 		}
-		//ab.player.printer <- fmt.Sprintf("Thread #%d best move: %s %d\n", i, sm.Move, sm.Score)
 	}
 	return bestMove
 }
 
 func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) ScoredMove {
 	start := time.Now()
-	best := ScoredMove{
-		Score: NegInf,
-	}
+	best := ScoredMove{Score: NegInf}
 	iterativeIncrement := config.Get().IterativeIncrement
+
 	for ab.currentSearchDepth = iterativeIncrement; ab.currentSearchDepth <= ab.player.MaxSearchDepth; ab.currentSearchDepth += iterativeIncrement {
-		thinking, done := make(chan bool), make(chan bool, 1)
-		go ab.player.trackThinkTime(thinking, done, start)
-		newGuess := ab.getBestMove(b, ab.currentSearchDepth, NegInf, PosInf, previousMove)
-		close(thinking)
-		<-done
-		// MTDf returns a good move (did not abort search)
+		// Aspiration windows: start with a narrow window around the previous score.
+		// On failure, widen exponentially until the full window is used.
+		alpha, beta := NegInf, PosInf
+		delta := aspirationDelta
+		if ab.currentSearchDepth > iterativeIncrement && best.Score != NegInf {
+			alpha = best.Score - delta
+			beta = best.Score + delta
+		}
+
+		var newGuess ScoredMove
+		for {
+			thinking, done := make(chan bool), make(chan bool, 1)
+			go ab.player.trackThinkTime(thinking, done, start)
+			newGuess = ab.getBestMove(b, ab.currentSearchDepth, alpha, beta, previousMove)
+			close(thinking)
+			<-done
+
+			if ab.player.abort {
+				break
+			}
+
+			if newGuess.Score <= alpha {
+				// Fail-low: widen the window downward.
+				delta *= aspirationWiden
+				alpha = newGuess.Score - delta
+				if alpha < NegInf {
+					alpha = NegInf
+				}
+			} else if newGuess.Score >= beta {
+				// Fail-high: widen the window upward.
+				delta *= aspirationWiden
+				beta = newGuess.Score + delta
+				if beta > PosInf {
+					beta = PosInf
+				}
+			} else {
+				break // search succeeded within the window
+			}
+		}
+
 		if !ab.player.abort {
 			best = newGuess
 			ab.player.LastSearchDepth = ab.currentSearchDepth
-			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", ab.player.LastSearchDepth, best.Move)
+			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s score:%d\n", ab.player.LastSearchDepth, best.Move, best.Score)
 		} else {
-			// -1 due to discard of current level due to hard abort
 			ab.player.LastSearchDepth = ab.currentSearchDepth - iterativeIncrement
 			ab.player.printer <- fmt.Sprintf("%s hard abort! evaluated to depth %d\n", ab.GetName(), ab.player.LastSearchDepth)
 			break
@@ -195,26 +354,12 @@ func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *boa
 	return
 }
 
-type ABDADA struct {
-	player             *AIPlayer
-	kill               bool
-	currentSearchDepth int
-	NumThreads         int
-}
-
-func (ab *ABDADA) GetName() string {
-	return AlgorithmABDADA
-}
-
 // orderMoves returns moves ordered for best alpha-beta pruning:
-//   1. TT best move if it is a capture (highest priority)
-//   2. All other captures (MVV-LVA sorted, already ordered by GetAllMoves)
-//   3. TT best move if it is a quiet move (before remaining quiets)
-//   4. Remaining quiet moves
-//
-// Keeping captures before quiet TT moves ensures the search never misses a
-// free piece because a stale TT entry promoted a passive quiet move first.
-// isEnPassantMove returns true if m is a pawn diagonal capture to an empty square (en passant).
+//  1. TT best move (if capture)
+//  2. All other captures (MVV-LVA sorted)
+//  3. TT best move (if quiet)
+//  4. Killer moves
+//  5. Remaining quiet moves (sorted by history heuristic score, descending)
 func isEnPassantMove(b *board.Board, m location.Move) bool {
 	p := b.GetPiece(m.Start)
 	if p == nil || p.GetPieceType() != piece.PawnType {
@@ -232,11 +377,13 @@ func isMoveInList(m location.Move, moves *[]location.Move) bool {
 	return false
 }
 
-func orderMoves(moves []location.Move, ttMove location.Move, b *board.Board) []location.Move {
+func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location.Move, ab *ABDADA, b *board.Board) []location.Move {
 	ordered := make([]location.Move, 0, len(moves))
-	var captures, quiets []location.Move
+	var captures, killerMoves, quiets []location.Move
+
 	hasTT := !ttMove.Start.Equals(ttMove.End)
 	ttIsCapture := hasTT && (b.GetPiece(ttMove.End) != nil || isEnPassantMove(b, ttMove))
+
 	for _, m := range moves {
 		if hasTT && m.Start.Equals(ttMove.Start) && m.End.Equals(ttMove.End) {
 			continue
@@ -244,9 +391,32 @@ func orderMoves(moves []location.Move, ttMove location.Move, b *board.Board) []l
 		if b.GetPiece(m.End) != nil || isEnPassantMove(b, m) {
 			captures = append(captures, m)
 		} else {
-			quiets = append(quiets, m)
+			// Check killers before adding to quiets.
+			isK := (m.Start.Equals(killers[0].Start) && m.End.Equals(killers[0].End)) ||
+				(m.Start.Equals(killers[1].Start) && m.End.Equals(killers[1].End))
+			if isK {
+				killerMoves = append(killerMoves, m)
+			} else {
+				quiets = append(quiets, m)
+			}
 		}
 	}
+
+	// Sort quiets by history score descending.
+	if ab != nil && len(quiets) > 1 {
+		scores := make([]int32, len(quiets))
+		for i, m := range quiets {
+			scores[i] = ab.historyScore(m)
+		}
+		// Simple insertion sort — quiet lists are usually short.
+		for i := 1; i < len(quiets); i++ {
+			for j := i; j > 0 && scores[j] > scores[j-1]; j-- {
+				quiets[j], quiets[j-1] = quiets[j-1], quiets[j]
+				scores[j], scores[j-1] = scores[j-1], scores[j]
+			}
+		}
+	}
+
 	if hasTT && ttIsCapture {
 		ordered = append(ordered, ttMove)
 	}
@@ -254,6 +424,7 @@ func orderMoves(moves []location.Move, ttMove location.Move, b *board.Board) []l
 	if hasTT && !ttIsCapture {
 		ordered = append(ordered, ttMove)
 	}
+	ordered = append(ordered, killerMoves...)
 	ordered = append(ordered, quiets...)
 	return ordered
 }
@@ -290,7 +461,6 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				entry.Lock.Unlock()
 			}
 		} else {
-			// Entry was evicted or never created; store a fresh one.
 			entry := transposition_table.TranspositionTableEntryABDADA{
 				Depth:         depth,
 				EntryType:     entryType,
@@ -321,11 +491,6 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 				if entry.EntryType == transposition_table.TrueScore {
 					s := DenormalizeMateScore(entry.Score, int(depth))
 					answer.score = s
-					// Only collapse alpha==beta (immediate return) for deep entries.
-					// Shallow-depth TrueScore entries were computed under narrow parent
-					// windows and may not reflect the global best move. Using them only
-					// as a lower bound on alpha allows the search to still find better
-					// moves (e.g. free captures) that the stale TT entry would skip.
 					if entry.Depth > depth {
 						answer.alpha = s
 						answer.beta = s
@@ -333,13 +498,6 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 						answer.alpha = s
 					}
 				} else if entry.Depth > depth {
-					// Only apply UpperBound/LowerBound narrowing from strictly deeper
-					// entries. A same-depth bound was computed under some parallel
-					// thread's alpha/beta window, which may be narrower than the current
-					// thread's window. Applying it here can cause a false cutoff that
-					// hides the true best move (e.g., pruning an immediate recapture
-					// because a stale UpperBound tightens beta below the recapture's
-					// score). For same-depth entries we still use the bestMove hint below.
 					if entry.EntryType == transposition_table.UpperBound {
 						s := DenormalizeMateScore(entry.Score, int(depth))
 						if s < beta {
