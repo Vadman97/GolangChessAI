@@ -40,7 +40,8 @@ const (
 type StateType string
 
 const (
-	StateTypeGame = "gameState"
+	StateTypeGame     = "gameState"
+	StateTypeGameFull = "gameFull"
 )
 
 type Game struct {
@@ -66,11 +67,12 @@ type Event struct {
 	Challenge *Challenge `json:"challenge"`
 }
 type GameEvent struct {
-	Type        StateType `json:"type"`
-	Moves       string    `json:"moves"`
-	WhiteTimeMS int       `json:"wtime"`
-	BlackTimeMS int       `json:"btime"`
-	Status      string    `json:"status"`
+	Type        StateType  `json:"type"`
+	Moves       string     `json:"moves"`
+	WhiteTimeMS int        `json:"wtime"`
+	BlackTimeMS int        `json:"btime"`
+	Status      string     `json:"status"`
+	State       *GameEvent `json:"state"`
 }
 
 type Lichess struct {
@@ -170,6 +172,22 @@ func (l *Lichess) handleEvent(event *Event) error {
 func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
+	switch event.Type {
+	case StateTypeGameFull:
+		if event.State == nil {
+			log.Warnf("gameFull event missing state %+v", *event)
+			return nil
+		}
+		return l.handleBoardUpdateLocked(event.State)
+	case StateTypeGame:
+		return l.handleBoardUpdateLocked(event)
+	default:
+		log.Warnf("unhandled game event %+v", *event)
+	}
+	return nil
+}
+
+func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 	switch event.Type {
 	case StateTypeGame:
 		if l.Player == nil || l.Game == nil {
