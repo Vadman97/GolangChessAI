@@ -165,9 +165,39 @@ var kingMiddlegamePST = [8][8]int{
 	{20, 30, 10, 0, 0, 10, 30, 20},
 }
 
+// kingEndgamePST rewards central king placement in endgames.
+var kingEndgamePST = [8][8]int{
+	{-50, -40, -30, -20, -20, -30, -40, -50},
+	{-30, -20, -10, 0, 0, -10, -20, -30},
+	{-30, -10, 20, 30, 30, 20, -10, -30},
+	{-30, -10, 30, 40, 40, 30, -10, -30},
+	{-30, -10, 30, 40, 40, 30, -10, -30},
+	{-30, -10, 20, 30, 30, 20, -10, -30},
+	{-30, -30, 0, 0, 0, 0, -30, -30},
+	{-50, -30, -30, -30, -30, -30, -30, -50},
+}
+
+// endgamePhase returns a value 0–256 where 256 = full middlegame, 0 = full endgame.
+// Computed from total non-pawn, non-king material on the board.
+func endgamePhase(pieceCounts map[color.Color]map[byte]uint8) int {
+	const maxPhase = 2*4 + 2*4 + 2*2 // 2 rooks + 2 minors + 1 queen per side * 2 sides
+	phase := 0
+	for _, c := range []color.Color{color.White, color.Black} {
+		phase += int(pieceCounts[c][piece.QueenType]) * 4
+		phase += int(pieceCounts[c][piece.RookType]) * 2
+		phase += int(pieceCounts[c][piece.BishopType])
+		phase += int(pieceCounts[c][piece.KnightType])
+	}
+	if phase > maxPhase {
+		phase = maxPhase
+	}
+	return (phase * 256) / maxPhase
+}
+
 // pstBonus returns the PST bonus for a piece at engine coordinates (row, col).
 // row 0 = White's back rank; col 0 = h-file, col 7 = a-file.
-func pstBonus(pieceType byte, pieceColor color.Color, row, col location.CoordinateType) int {
+// phase 256 = full middlegame, 0 = full endgame (used only for king).
+func pstBonus(pieceType byte, pieceColor color.Color, row, col location.CoordinateType, phase int) int {
 	rank := int(row)
 	if pieceColor == color.Black {
 		rank = 7 - int(row)
@@ -185,7 +215,10 @@ func pstBonus(pieceType byte, pieceColor color.Color, row, col location.Coordina
 	case piece.QueenType:
 		return queenPST[rank][file] * pstScale
 	case piece.KingType:
-		return kingMiddlegamePST[rank][file] * pstScale
+		// Taper between middlegame and endgame king tables based on remaining material.
+		mg := kingMiddlegamePST[rank][file]
+		eg := kingEndgamePST[rank][file]
+		return ((mg*phase + eg*(256-phase)) / 256) * pstScale
 	}
 	return 0
 }
@@ -349,13 +382,22 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		// want to discourage us from stalemating other player or getting stalemated
 		eval.TotalScore = StalemateScore
 	} else {
+		// First pass: count pieces so endgamePhase can be computed before PST scoring.
+		for row := location.CoordinateType(0); row < board.Height; row++ {
+			for col := location.CoordinateType(0); col < board.Width; col++ {
+				if gamePiece := b.GetPiece(location.NewLocation(row, col)); gamePiece != nil {
+					eval.PieceCounts[gamePiece.GetColor()][gamePiece.GetPieceType()]++
+				}
+			}
+		}
+		phase := endgamePhase(eval.PieceCounts)
+
 		pstScores := [color.NumColors]int{}
 		for row := location.CoordinateType(0); row < board.Height; row++ {
 			for col := location.CoordinateType(0); col < board.Width; col++ {
 				if gamePiece := b.GetPiece(location.NewLocation(row, col)); gamePiece != nil {
 					c := gamePiece.GetColor()
 					pt := gamePiece.GetPieceType()
-					eval.PieceCounts[c][pt]++
 
 					// Use pseudo-legal (attackable) squares for mobility — avoids willMoveLeaveKingInCheck
 					// per candidate, which would copy the board for every move of every piece.
@@ -363,7 +405,7 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 					numPseudoLegal := int(hamming.CountBitsUint64(uint64(gamePiece.GetAttackableMoves(b))))
 					eval.NumMoves[c] += uint16(numPseudoLegal)
 
-					pstScores[c] += pstBonus(pt, c, row, col)
+					pstScores[c] += pstBonus(pt, c, row, col, phase)
 
 					if pt == piece.PawnType {
 						eval.PawnColumns[c][col]++

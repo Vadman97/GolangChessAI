@@ -17,7 +17,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"io"
-	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -62,9 +61,10 @@ type Challenge struct {
 }
 
 type Event struct {
-	Type      EventType  `json:"type"`
-	Game      *Game      `json:"game"`
-	Challenge *Challenge `json:"challenge"`
+	Type               EventType  `json:"type"`
+	Game               *Game      `json:"game"`
+	Challenge          *Challenge `json:"challenge"`
+	ChallengeDirection string     `json:"direction"`
 }
 type GameEvent struct {
 	Type        StateType  `json:"type"`
@@ -75,20 +75,36 @@ type GameEvent struct {
 	State       *GameEvent `json:"state"`
 }
 
+type ChallengeConfig struct {
+	Username      string
+	ClockLimitSec int
+	ClockIncSec   int
+	Rated         bool
+}
+
 type Lichess struct {
 	Client *Client
 	// TODO(vkorolik) per game mutex
 	Mutex sync.Mutex
 	// TODO(vkorolik)
 	// store a map of gameID -> game for concurrent games?
-	GameID     string
-	Player     *ai.AIPlayer
-	Game       *game.Game
-	Events     chan Event
-	GameEvents chan GameEvent
+	GameID           string
+	Player           *ai.AIPlayer
+	Game             *game.Game
+	Events           chan Event
+	GameEvents       chan GameEvent
+	ChallengeOnStart *ChallengeConfig
+
+	// Pondering: search during the opponent's turn to warm the TT.
+	ponderStop chan struct{}
+	ponderDone chan struct{}
 }
 
 func ConnectLichess() Server {
+	return ConnectLichessWithChallenge(nil)
+}
+
+func ConnectLichessWithChallenge(challenge *ChallengeConfig) Server {
 	base, _ := url.Parse("https://lichess.org/api")
 	return &Lichess{
 		Mutex: sync.Mutex{},
@@ -98,9 +114,82 @@ func ConnectLichess() Server {
 			APIKey:     os.Getenv("LICHESS_TOKEN"),
 			HttpClient: new(http.Client),
 		},
-		Events:     make(chan Event),
-		GameEvents: make(chan GameEvent),
+		Events:           make(chan Event),
+		GameEvents:       make(chan GameEvent),
+		ChallengeOnStart: challenge,
 	}
+}
+
+// startPonder begins a background search on the current board position so the
+// transposition table is warm when it's our turn again. Must be called with
+// the Lichess mutex held (it snapshots the board and then releases into a goroutine).
+func (l *Lichess) startPonder() {
+	if l.Player == nil || l.Game == nil {
+		return
+	}
+	boardSnap := l.Game.CurrentBoard.Copy()
+	prevMove := l.Game.PreviousMove
+	player := l.Player
+
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	l.ponderStop = stop
+	l.ponderDone = done
+
+	go func() {
+		defer close(done)
+		// When stop is closed, set the abort flag so the search returns promptly.
+		go func() {
+			select {
+			case <-stop:
+				player.Abort()
+			case <-done:
+			}
+		}()
+		player.MaxThinkTime = 60 * time.Second
+		player.GetBestMove(boardSnap, prevMove, nil)
+		log.Debugf("ponder finished naturally")
+	}()
+	log.Debugf("pondering started")
+}
+
+// stopPonder aborts any in-progress ponder and waits for it to finish.
+// Safe to call when no ponder is running. Must be called before starting
+// the main search so the two searches don't race on the abort flag.
+func (l *Lichess) stopPonder() {
+	stop, done := l.ponderStop, l.ponderDone
+	if stop == nil {
+		return
+	}
+	select {
+	case <-stop:
+		// already stopped (ponder finished naturally before opponent moved)
+	default:
+		close(stop)
+	}
+	if done != nil {
+		<-done
+	}
+	l.ponderStop = nil
+	l.ponderDone = nil
+	if l.Player != nil {
+		l.Player.ResetAbort()
+	}
+	log.Debugf("ponder stopped")
+}
+
+// thinkTimeForClock allocates think time from the remaining clock.
+// Uses 1/30 of remaining time, capped at 10s, with a 50ms floor so the
+// bot can always make a legal move even in severe time pressure.
+func thinkTimeForClock(timeLeft time.Duration) time.Duration {
+	think := timeLeft / 30
+	if think < 50*time.Millisecond {
+		think = 50 * time.Millisecond
+	}
+	if think > 10*time.Second {
+		think = 10 * time.Second
+	}
+	return think
 }
 
 func (l *Lichess) handleEvent(event *Event) error {
@@ -122,7 +211,7 @@ func (l *Lichess) handleEvent(event *Event) error {
 		enemyPlayer := player.NewHumanPlayer(enemyColor)
 		l.Player = ai.NewAIPlayer(playerColor, ai.NameToAlgorithm[ai.AlgorithmABDADA])
 		l.Player.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
-		l.Player.MaxThinkTime = 5 * time.Second
+		l.Player.MaxThinkTime = thinkTimeForClock(time.Duration(event.Game.SecondsLeft * float64(time.Second)))
 
 		// Create game and start game loop
 		if playerColor == color.White {
@@ -147,16 +236,24 @@ func (l *Lichess) handleEvent(event *Event) error {
 				return err
 			}
 		}
+		// Ponder while waiting for the opponent's first move.
+		l.startPonder()
 		// otherwise we wait for board updates and react there..
 	case EventTypeGameFinish:
 		if l.Game == nil {
 			return errors.New("game does not exists")
 		}
+		l.stopPonder()
 		l.Player = nil
 		l.Game = nil
 	case EventTypeChallenge:
 		if event.Challenge == nil {
 			return errors.New("challenge event missing challenge data")
+		}
+		// Only accept incoming challenges; outgoing ones (direction=="out") cannot be accepted.
+		if event.ChallengeDirection == "out" {
+			log.Debugf("ignoring our own outgoing challenge %s", event.Challenge.ID)
+			break
 		}
 		if err := l.AcceptChallenge(event.Challenge.ID); err != nil {
 			log.Errorf("failed to accept challenge %s: %s", event.Challenge.ID, err)
@@ -194,6 +291,10 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 			log.Errorf("received board event after game over %+v", event)
 			return nil
 		}
+		if event.Moves == "" {
+			// No moves yet — game just started and it is white's turn.
+			return nil
+		}
 		moves := strings.Split(event.Moves, " ")
 		if len(moves)%2 != int(l.Player.PlayerColor) {
 			return nil
@@ -223,6 +324,8 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 			End:   endLoc,
 		}
 		log.Infof("saw opponent move %s (%s)", m.String(), m.UCIString())
+		// Stop any in-progress ponder before touching the board or the player.
+		l.stopPonder()
 		// TODO(vkorolik) centralize this with the gameStart
 		l.Game.PlayTurnMove(m)
 		playerTimeMS := event.WhiteTimeMS
@@ -230,10 +333,7 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 			playerTimeMS = event.BlackTimeMS
 		}
 		playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
-		// Allocate 1/30 of remaining time per move, min 1s, max 10s
-		thinkSeconds := math.Max(playerTimeLeft.Seconds()/30.0, 1.0)
-		thinkSeconds = math.Min(thinkSeconds, 10.0)
-		l.Player.MaxThinkTime = time.Duration(thinkSeconds*1000) * time.Millisecond
+		l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft)
 		log.Infof("player thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
 		// TODO(vkorolik) partition by gameID to allow concurrent games
 		if l.Game.GameStatus == game.Active {
@@ -242,13 +342,52 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
 			return err
 		}
+		// Begin pondering on the resulting position while the opponent thinks.
+		l.startPonder()
 	default:
 		log.Warnf("unhandled game event %+v", *event)
 	}
 	return nil
 }
 
+func (l *Lichess) ChallengeUser(cfg *ChallengeConfig) error {
+	u := fmt.Sprintf("/api/challenge/%s", cfg.Username)
+	params := url.Values{}
+	params.Set("rated", fmt.Sprintf("%t", cfg.Rated))
+	params.Set("clock.limit", fmt.Sprintf("%d", cfg.ClockLimitSec))
+	params.Set("clock.increment", fmt.Sprintf("%d", cfg.ClockIncSec))
+	params.Set("color", "random")
+	params.Set("variant", "standard")
+
+	rel := &url.URL{Path: u}
+	fullURL := l.Client.BaseURL.ResolveReference(rel)
+	req, err := http.NewRequest("POST", fullURL.String(), strings.NewReader(params.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", l.Client.APIKey))
+	req.Header.Set("User-Agent", l.Client.UserAgent)
+
+	resp, err := l.Client.HttpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Infof("challenge %s status %s %s", cfg.Username, resp.Status, string(bodyBytes))
+	return nil
+}
+
 func (l *Lichess) Run() {
+	if l.ChallengeOnStart != nil {
+		if err := l.ChallengeUser(l.ChallengeOnStart); err != nil {
+			log.Errorf("failed to send challenge: %s", err)
+		}
+	}
+
 	var g errgroup.Group
 	g.Go(func() error {
 		err := l.Stream(l.Events)

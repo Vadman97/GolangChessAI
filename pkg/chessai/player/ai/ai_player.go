@@ -261,6 +261,12 @@ func (p *AIPlayer) trackThinkTime(stop, done chan bool, start time.Time) {
 	done <- true
 }
 
+// Abort requests the in-progress search to stop as soon as possible.
+func (p *AIPlayer) Abort() { p.abort = true }
+
+// ResetAbort clears the abort flag so a new search can start cleanly.
+func (p *AIPlayer) ResetAbort() { p.abort = false }
+
 func (p *AIPlayer) terminalNode(b *board.Board, moves *[]location.Move) bool {
 	return len(*moves) == 0 || b.PreviousPositionsSeen >= 3 || b.MovesSinceNoDraw >= 100 || b.IsInsufficientMaterial()
 }

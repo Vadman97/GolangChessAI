@@ -37,6 +37,32 @@ func main() {
 		if os.Args[1] == "lichess" {
 			server.ConnectLichess().Run()
 			return
+		} else if os.Args[1] == "lichess-challenge" {
+			// Usage: ./main lichess-challenge <username> [limitSecs] [incrementSecs] [rated]
+			if len(os.Args) < 3 {
+				log.Fatal("usage: lichess-challenge <username> [limitSecs] [incrementSecs] [rated]")
+			}
+			cfg := &server.ChallengeConfig{
+				Username:      os.Args[2],
+				ClockLimitSec: 180,
+				ClockIncSec:   0,
+				Rated:         true,
+			}
+			if len(os.Args) > 3 {
+				if n, err := strconv.Atoi(os.Args[3]); err == nil {
+					cfg.ClockLimitSec = n
+				}
+			}
+			if len(os.Args) > 4 {
+				if n, err := strconv.Atoi(os.Args[4]); err == nil {
+					cfg.ClockIncSec = n
+				}
+			}
+			if len(os.Args) > 5 {
+				cfg.Rated = os.Args[5] != "false"
+			}
+			server.ConnectLichessWithChallenge(cfg).Run()
+			return
 		} else if os.Args[1] == "stockfish-analysis" {
 			// Usage: ./main stockfish-analysis [games] [thinkMs] [sfDepth] [stockfishPath]
 			numGames := 2

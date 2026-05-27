@@ -1,6 +1,13 @@
 package ai
 
-import "github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+import (
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
+)
+
+// deltaMargin is the centipawn safety buffer for delta pruning — roughly a minor piece.
+// Keeps the pruning conservative so we don't incorrectly prune positional swings.
+const deltaMargin = 3 * PawnValueWeight
 
 func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
 	// Generate all moves first so terminal detection uses correct previousMove (en passant included).
@@ -14,6 +21,13 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 	} else if alpha < standPat {
 		alpha = standPat
 	}
+
+	// Futility delta prune: if even capturing the queen can't raise alpha, skip all captures.
+	maxCapture := PawnValueWeight * PieceValue[piece.QueenType]
+	if standPat+maxCapture+deltaMargin < alpha {
+		return alpha
+	}
+
 	// Examine captures and pawn promotions to empty squares.
 	// Promotions must be included even when the destination is empty: a pawn advancing
 	// to the back rank and becoming a queen is an 8-pawn swing that standPat cannot see.
@@ -24,6 +38,17 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 		isPromotion, _ := m.End.GetPawnPromotion()
 		isEnPassant := isEnPassantMove(root, m)
 		if !root.IsEmpty(m.End) || isPromotion || isEnPassant {
+			// Per-capture delta prune: skip if even winning this piece won't raise alpha.
+			if !isPromotion {
+				capturedPiece := root.GetPiece(m.End)
+				if capturedPiece != nil {
+					gain := PawnValueWeight * PieceValue[capturedPiece.GetPieceType()]
+					if standPat+gain+deltaMargin < alpha {
+						continue
+					}
+				}
+			}
+
 			child := root.Copy()
 			lastMove := board.MakeMove(&m, child)
 			p.Metrics.MovesConsidered++
