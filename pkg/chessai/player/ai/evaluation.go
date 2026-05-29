@@ -82,6 +82,9 @@ const (
 	PawnAdvancedWeight  = 1
 	// IsolatedPawnPenalty: a pawn with no friendly pawns on adjacent files is weak.
 	IsolatedPawnPenalty = -15
+	// BishopPairBonus: having both bishops is worth ~50cp in open positions.
+	// Tapered so it's worth less in closed pawn structures (many pawns on board).
+	BishopPairBonus = 50
 	// Rook file activity bonuses.
 	RookOpenFileBonus     = 15 // no pawns of either color on the file
 	RookSemiOpenFileBonus = 8  // no friendly pawns but enemy pawns present
@@ -659,6 +662,14 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 			// Weight intentionally lower than the old legal-moves weight because pseudo-legal counts
 			// defended friendly squares too, which inflates the count vs strictly legal moves.
 			score += PieceNumMovesWeight * int(eval.NumMoves[pColor])
+
+			// Bishop pair bonus: tapered by total pawn count so it's weaker in closed positions.
+			if eval.PieceCounts[pColor][piece.BishopType] >= 2 {
+				totalPawns := int(eval.PieceCounts[color.White][piece.PawnType]) + int(eval.PieceCounts[color.Black][piece.PawnType])
+				// Full bonus at 0 pawns, half at 8 pawns, zero at 16 pawns.
+				tapered := BishopPairBonus * (16 - totalPawns) / 16
+				score += tapered
+			}
 
 			if pColor == whoMoves {
 				eval.TotalScore += score

@@ -257,6 +257,7 @@ func (l *Lichess) handleEvent(event *Event) error {
 				l.resetGame()
 				return nil
 			}
+			l.movesApplied++ // our move is now on the board; keep movesApplied in sync
 		}
 		// Ponder while waiting for the opponent's first move.
 		l.startPonder()
@@ -388,6 +389,7 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 			l.resetGame()
 			return nil
 		}
+		l.movesApplied++ // our reply is now on the board; keep movesApplied in sync
 	}
 	l.startPonder()
 	return nil
@@ -442,6 +444,7 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 			l.resetGame()
 			return nil
 		}
+		l.movesApplied++ // our reply is now on the board; keep movesApplied in sync
 		// Begin pondering on the resulting position while the opponent thinks.
 		l.startPonder()
 	default:
@@ -490,12 +493,15 @@ func (l *Lichess) Run() {
 
 	var g errgroup.Group
 	g.Go(func() error {
-		err := l.Stream(l.Events)
-		if err != nil {
-			log.Errorf("failed to stream event %s", err)
-			return err
+		for {
+			err := l.Stream(l.Events)
+			if err != nil {
+				log.Errorf("failed to stream event %s — reconnecting in 3s", err)
+				time.Sleep(3 * time.Second)
+				continue
+			}
+			return nil
 		}
-		return nil
 	})
 	g.Go(func() error {
 		// exitAfterGame is nil when not in challenge mode; a nil channel in
