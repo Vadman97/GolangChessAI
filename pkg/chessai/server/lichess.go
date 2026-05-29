@@ -187,6 +187,15 @@ func (l *Lichess) stopPonder() {
 	log.Debugf("ponder stopped")
 }
 
+// resetGame tears down any active game and clears all game-level state.
+// Safe to call when no game is running. Must be called with the mutex held.
+func (l *Lichess) resetGame() {
+	l.stopPonder()
+	l.Player = nil
+	l.Game = nil
+	l.movesApplied = 0
+}
+
 // thinkTimeForClock allocates think time from the remaining clock.
 // Uses 1/30 of remaining time, capped at 10s, with a 50ms floor so the
 // bot can always make a legal move even in severe time pressure.
@@ -207,7 +216,8 @@ func (l *Lichess) handleEvent(event *Event) error {
 	switch event.Type {
 	case EventTypeGameStart:
 		if l.Game != nil {
-			return errors.New("game already exists")
+			log.Warnf("gameStart received while game %s active — resetting stale game state", l.GameID)
+			l.resetGame()
 		}
 		l.GameID = event.Game.GameID
 		// human is the other player
@@ -243,7 +253,9 @@ func (l *Lichess) handleEvent(event *Event) error {
 		if l.Game.CurrentTurnColor == playerColor {
 			l.Game.PlayTurn()
 			if err := l.MakeMove(event.Game.GameID, l.Game.PreviousMove); err != nil {
-				return err
+				log.Errorf("first move rejected by lichess, resetting game state: %s", err)
+				l.resetGame()
+				return nil
 			}
 		}
 		// Ponder while waiting for the opponent's first move.
@@ -251,11 +263,10 @@ func (l *Lichess) handleEvent(event *Event) error {
 		// otherwise we wait for board updates and react there..
 	case EventTypeGameFinish:
 		if l.Game == nil {
-			return errors.New("game does not exists")
+			log.Warnf("gameFinish received but no active game — ignoring")
+			break
 		}
-		l.stopPonder()
-		l.Player = nil
-		l.Game = nil
+		l.resetGame()
 		if l.exitAfterGame != nil {
 			select {
 			case <-l.exitAfterGame:
@@ -270,6 +281,10 @@ func (l *Lichess) handleEvent(event *Event) error {
 		// Only accept incoming challenges; outgoing ones (direction=="out") cannot be accepted.
 		if event.ChallengeDirection == "out" {
 			log.Debugf("ignoring our own outgoing challenge %s", event.Challenge.ID)
+			break
+		}
+		if l.Game != nil {
+			log.Infof("ignoring challenge %s: game %s already active", event.Challenge.ID, l.GameID)
 			break
 		}
 		if err := l.AcceptChallenge(event.Challenge.ID); err != nil {
@@ -366,7 +381,9 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 			l.Game.PlayTurn()
 		}
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
-			return err
+			log.Errorf("move rejected by lichess, resetting game state: %s", err)
+			l.resetGame()
+			return nil
 		}
 		// Begin pondering on the resulting position while the opponent thinks.
 		l.startPonder()
