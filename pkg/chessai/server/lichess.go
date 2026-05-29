@@ -298,6 +298,33 @@ func (l *Lichess) handleEvent(event *Event) error {
 	return nil
 }
 
+// parseUCIMove converts a UCI move string (e.g. "e2e4", "a7a8q") to a Move.
+func parseUCIMove(uci string) *location.Move {
+	sCol := 7 - (uci[0] - 'a')
+	sRow := uci[1] - '0' - 1
+	fCol := 7 - (uci[2] - 'a')
+	fRow := uci[3] - '0' - 1
+	endLoc := location.NewLocation(fRow, fCol)
+	if len(uci) == 5 {
+		var promoType byte
+		switch uci[4] {
+		case 'q':
+			promoType = piece.QueenType
+		case 'r':
+			promoType = piece.RookType
+		case 'b':
+			promoType = piece.BishopType
+		case 'n':
+			promoType = piece.KnightType
+		}
+		endLoc = endLoc.CreatePawnPromotion(promoType)
+	}
+	return &location.Move{
+		Start: location.NewLocation(sRow, sCol),
+		End:   endLoc,
+	}
+}
+
 func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
@@ -307,12 +334,62 @@ func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 			log.Warnf("gameFull event missing state %+v", *event)
 			return nil
 		}
-		return l.handleBoardUpdateLocked(event.State)
+		// Reconnect path: replay the full move history to sync the board, then
+		// act if it's our turn. handleBoardUpdateLocked is not used here because
+		// its "not our turn" early-return would skip the board sync entirely.
+		return l.handleGameFullLocked(event.State)
 	case StateTypeGame:
 		return l.handleBoardUpdateLocked(event)
 	default:
 		log.Warnf("unhandled game event %+v", *event)
 	}
+	return nil
+}
+
+// handleGameFullLocked syncs the board from a gameFull event by replaying all
+// historical moves, then responds if it is our turn. Must be called with the
+// mutex held.
+func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
+	if l.Player == nil || l.Game == nil {
+		log.Errorf("gameFull received but no active game")
+		return nil
+	}
+	if state.Moves == "" {
+		// No moves yet: game just started. If we're White, gameStart already
+		// handled our first move; if Black, just wait for the opponent.
+		l.startPonder()
+		return nil
+	}
+	moves := strings.Split(state.Moves, " ")
+	// Replay any moves we haven't applied yet (all of them on a fresh reconnect).
+	log.Infof("gameFull: replaying moves %d..%d to sync board", l.movesApplied, len(moves)-1)
+	l.stopPonder()
+	l.Player.IncrementTTGeneration()
+	for l.movesApplied < len(moves) {
+		m := parseUCIMove(moves[l.movesApplied])
+		l.Game.PlayTurnMove(m)
+		l.movesApplied++
+	}
+	// After replay, check whose turn it is.
+	playerTimeMS := state.WhiteTimeMS
+	if l.Player.PlayerColor == color.Black {
+		playerTimeMS = state.BlackTimeMS
+	}
+	playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
+	l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft)
+	if len(moves)%2 == int(l.Player.PlayerColor) {
+		// It's our turn.
+		log.Infof("gameFull: our turn after replay, thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
+		if l.Game.GameStatus == game.Active {
+			l.Game.PlayTurn()
+		}
+		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
+			log.Errorf("move rejected after gameFull replay: %s", err)
+			l.resetGame()
+			return nil
+		}
+	}
+	l.startPonder()
 	return nil
 }
 
@@ -336,37 +413,18 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 			log.Debugf("skipping already-applied event (event has %d moves, applied %d)", len(moves), l.movesApplied)
 			return nil
 		}
-		lastMove := moves[len(moves)-1]
-		sCol := 7 - (lastMove[0] - 'a')
-		sRow := lastMove[1] - '0' - 1
-		fCol := 7 - (lastMove[2] - 'a')
-		fRow := lastMove[3] - '0' - 1
-		endLoc := location.NewLocation(fRow, fCol)
-		if len(lastMove) == 5 {
-			var promoType byte
-			switch lastMove[4] {
-			case 'q':
-				promoType = piece.QueenType
-			case 'r':
-				promoType = piece.RookType
-			case 'b':
-				promoType = piece.BishopType
-			case 'n':
-				promoType = piece.KnightType
-			}
-			endLoc = endLoc.CreatePawnPromotion(promoType)
+		// Catch up on any missed intermediate moves (e.g. after a brief stream gap).
+		for l.movesApplied < len(moves)-1 {
+			l.Game.PlayTurnMove(parseUCIMove(moves[l.movesApplied]))
+			l.movesApplied++
 		}
-		m := &location.Move{
-			Start: location.NewLocation(sRow, sCol),
-			End:   endLoc,
-		}
+		m := parseUCIMove(moves[len(moves)-1])
 		log.Infof("saw opponent move %s (%s)", m.String(), m.UCIString())
 		// Stop any in-progress ponder before touching the board or the player.
 		l.stopPonder()
 		// Invalidate ponder TT entries: opponent deviated from our predicted move,
 		// so entries written during the ponder are from the wrong subtree.
 		l.Player.IncrementTTGeneration()
-		// TODO(vkorolik) centralize this with the gameStart
 		l.Game.PlayTurnMove(m)
 		l.movesApplied = len(moves)
 		playerTimeMS := event.WhiteTimeMS
@@ -376,7 +434,6 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
 		l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft)
 		log.Infof("player thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
-		// TODO(vkorolik) partition by gameID to allow concurrent games
 		if l.Game.GameStatus == game.Active {
 			l.Game.PlayTurn()
 		}

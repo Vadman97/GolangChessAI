@@ -177,6 +177,12 @@ const (
 	// MopupWeight: 8 is a mild increase from the original 5 — enough to push the winning
 	// king towards the enemy without dominating the eval in near-equal positions.
 	MopupWeight = PawnValueWeight * 2 / 25
+
+	// KingPassedPawnSupportWeight: in endgames, reward the winning king for being
+	// close to its own passed pawns. The escort king is essential for converting
+	// passed pawns against a defending king. Scaled by (256-phase)/256 so it
+	// fades out completely in the middlegame.
+	KingPassedPawnSupportWeight = 4
 )
 
 // pstScale converts raw PST centipawn values to the internal score scale.
@@ -692,6 +698,34 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 				eval.TotalScore += mopup
 			} else {
 				eval.TotalScore -= mopup
+			}
+		}
+
+		// King-to-passed-pawn support: in endgames, the winning king needs to escort
+		// its own passed pawns. Reward proximity (max Manhattan distance 14 → 0 bonus,
+		// distance 0 → +14 bonus). Scaled by endgame factor so it's irrelevant with
+		// major pieces on the board.
+		if phase < 128 {
+			endgameFactor := (128 - phase) // 0 at mid-game, 128 at full endgame
+			for row := location.CoordinateType(0); row < board.Height; row++ {
+				for col := location.CoordinateType(0); col < board.Width; col++ {
+					p := b.GetPiece(location.NewLocation(row, col))
+					if p == nil || p.GetPieceType() != piece.PawnType {
+						continue
+					}
+					c := p.GetColor()
+					if !isPassedPawn(b, row, col, c) {
+						continue
+					}
+					kingLoc := b.KingLocations[c]
+					dist := abs(int(kingLoc.GetRow())-int(row)) + abs(int(kingLoc.GetCol())-int(col))
+					bonus := KingPassedPawnSupportWeight * (14 - dist) * endgameFactor / 128
+					if c == whoMoves {
+						eval.TotalScore += bonus
+					} else {
+						eval.TotalScore -= bonus
+					}
+				}
 			}
 		}
 	}

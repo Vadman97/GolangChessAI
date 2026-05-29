@@ -292,7 +292,11 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 		// On failure, widen exponentially until the full window is used.
 		alpha, beta := NegInf, PosInf
 		delta := aspirationDelta
-		if ab.currentSearchDepth > iterativeIncrement && best.Score != NegInf {
+		// Skip aspiration windows when the previous score was a mate — the window
+		// would be centered on a huge value, causing repeated fail-lows as normal
+		// evals fall outside it, wasting time on re-searches.
+		isMate := best.Score >= WinScore || best.Score <= LossScore
+		if ab.currentSearchDepth > iterativeIncrement && best.Score != NegInf && !isMate {
 			alpha = best.Score - delta
 			beta = best.Score + delta
 		}
@@ -557,17 +561,19 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 						} else if s > answer.alpha {
 							answer.alpha = s
 						}
-					} else if entry.Depth > depth {
+					} else if entry.Depth >= depth {
 						if entry.EntryType == transposition_table.UpperBound {
 							s := DenormalizeMateScore(entry.Score, int(depth))
 							if s < beta {
 								answer.beta = s
+								atomic.AddUint64(&ab.player.Metrics.MovesABImprovedTransposition, 1)
 							}
 						} else if entry.EntryType == transposition_table.LowerBound {
 							s := DenormalizeMateScore(entry.Score, int(depth))
 							if s > alpha {
 								answer.score = s
 								answer.alpha = s
+								atomic.AddUint64(&ab.player.Metrics.MovesABImprovedTransposition, 1)
 							}
 						}
 					}
