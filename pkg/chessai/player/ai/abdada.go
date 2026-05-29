@@ -423,7 +423,11 @@ func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location
 	ordered := make([]location.Move, 0, len(moves))
 	var captures, killerMoves, quiets []location.Move
 
-	hasTT := !ttMove.Start.Equals(ttMove.End)
+	// Validate the TT move is actually legal on this board before placing it first.
+	// A stale or hash-colliding TT entry can carry over a move that is no longer legal
+	// (e.g. wrong piece type at the start square), and evaluating it produces a bogus
+	// score that can become the "best" move.
+	hasTT := !ttMove.Start.Equals(ttMove.End) && isMoveInList(ttMove, &moves)
 	ttIsCapture := hasTT && (b.GetPiece(ttMove.End) != nil || isEnPassantMove(b, ttMove))
 
 	for _, m := range moves {
