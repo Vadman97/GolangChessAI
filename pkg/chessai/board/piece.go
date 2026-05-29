@@ -33,6 +33,10 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		pieceCaptured := b.GetPiece(end)
 		b.move(m)
 		pieceMoved := b.GetPiece(end)
+		if pieceMoved == nil {
+			// Start position had no piece — board is out of sync with the game state.
+			panic(fmt.Sprintf("MakeMove: no piece at start %+v (end %+v after move)", start, end))
+		}
 		pieceMoved.Move(m, b)
 		// If a rook was captured from its starting column, invalidate that side's castling right.
 		if capturedRook, ok := pieceCaptured.(*Rook); ok {

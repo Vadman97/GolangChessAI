@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
@@ -89,6 +90,9 @@ type AIPlayer struct {
 	transpositionTable *util.ConcurrentBoardMap
 	printer            chan string
 	abort              bool
+	// ttGeneration is incremented on ponder miss so stale ponder entries
+	// are demoted to move-ordering-only and cannot cause alpha/beta cutoffs.
+	ttGeneration uint32
 }
 
 func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
@@ -266,6 +270,14 @@ func (p *AIPlayer) Abort() { p.abort = true }
 
 // ResetAbort clears the abort flag so a new search can start cleanly.
 func (p *AIPlayer) ResetAbort() { p.abort = false }
+
+// IncrementTTGeneration advances the TT generation counter.
+// Call this after a ponder miss (opponent played a different move than predicted)
+// so stale ponder entries are demoted to move-ordering-only and cannot produce
+// incorrect alpha/beta cutoffs in the real search.
+func (p *AIPlayer) IncrementTTGeneration() {
+	atomic.AddUint32(&p.ttGeneration, 1)
+}
 
 func (p *AIPlayer) terminalNode(b *board.Board, moves *[]location.Move) bool {
 	return len(*moves) == 0 || b.PreviousPositionsSeen >= 3 || b.MovesSinceNoDraw >= 100 || b.IsInsufficientMaterial()

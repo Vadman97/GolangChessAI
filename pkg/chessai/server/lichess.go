@@ -96,6 +96,9 @@ type Lichess struct {
 	ChallengeOnStart *ChallengeConfig
 	// exitAfterGame signals Run() to stop after the first game finishes.
 	exitAfterGame chan struct{}
+	// movesApplied tracks how many total moves from lichess events we've applied
+	// to our local board. Used to skip duplicate events (e.g. after stream reconnect).
+	movesApplied int
 
 	// Pondering: search during the opponent's turn to warm the TT.
 	ponderStop chan struct{}
@@ -228,6 +231,7 @@ func (l *Lichess) handleEvent(event *Event) error {
 
 		l.Game.MoveLimit = game_config.Get().MovesToPlay
 		l.Game.TimeLimit = game_config.Get().SecondsToPlay * time.Second
+		l.movesApplied = 0
 
 		go func() {
 			err := l.StreamBoardUpdate(event.Game.GameID, l.GameEvents)
@@ -312,6 +316,11 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		if len(moves)%2 != int(l.Player.PlayerColor) {
 			return nil
 		}
+		// Skip events we've already applied — lichess can resend after a stream reconnect.
+		if len(moves) <= l.movesApplied {
+			log.Debugf("skipping already-applied event (event has %d moves, applied %d)", len(moves), l.movesApplied)
+			return nil
+		}
 		lastMove := moves[len(moves)-1]
 		sCol := 7 - (lastMove[0] - 'a')
 		sRow := lastMove[1] - '0' - 1
@@ -339,8 +348,12 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		log.Infof("saw opponent move %s (%s)", m.String(), m.UCIString())
 		// Stop any in-progress ponder before touching the board or the player.
 		l.stopPonder()
+		// Invalidate ponder TT entries: opponent deviated from our predicted move,
+		// so entries written during the ponder are from the wrong subtree.
+		l.Player.IncrementTTGeneration()
 		// TODO(vkorolik) centralize this with the gameStart
 		l.Game.PlayTurnMove(m)
+		l.movesApplied = len(moves)
 		playerTimeMS := event.WhiteTimeMS
 		if l.Player.PlayerColor == color.Black {
 			playerTimeMS = event.BlackTimeMS
@@ -483,6 +496,9 @@ func (l *Lichess) MakeMove(gameID string, move *board.LastMove) error {
 		return err
 	}
 	log.Infof("make move %s status %+v %d %s", u, resp.Status, resp.StatusCode, string(bodyBytes))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("make move rejected: %s", string(bodyBytes))
+	}
 	return nil
 }
 

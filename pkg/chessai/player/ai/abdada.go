@@ -489,6 +489,7 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 			entryType = transposition_table.UpperBound
 		}
 		normalizedScore := NormalizeMateScore(sm.Score, int(depth))
+		gen := atomic.LoadUint32(&ab.player.ttGeneration)
 
 		if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
 			entry := e.(*transposition_table.TranspositionTableEntryABDADA)
@@ -503,6 +504,7 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				entry.Score = normalizedScore
 				entry.BestMove = sm.Move
 				entry.Depth = depth
+				entry.Generation = gen
 				entry.Lock.Unlock()
 			}
 		} else {
@@ -512,6 +514,7 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				Score:         normalizedScore,
 				BestMove:      sm.Move,
 				NumProcessors: 0,
+				Generation:    gen,
 			}
 			ab.player.transpositionTable.Store(&h, currentPlayer, &entry)
 		}
@@ -530,34 +533,44 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 			entry := e.(*transposition_table.TranspositionTableEntryABDADA)
 			entry.Lock.Lock()
 
+			currentGen := atomic.LoadUint32(&ab.player.ttGeneration)
+			// Stale entries (written by a ponder run that has since been invalidated)
+			// are demoted to move-ordering-only: we keep the best move hint so the
+			// search is guided well, but skip score-based cutoffs to avoid acting on
+			// results from a subtree that was never actually reached.
+			stale := entry.Generation < currentGen
+
 			if entry.Depth == depth && exclusiveProbe && entry.NumProcessors > 0 {
 				answer.score = OnEvaluation
 			} else if entry.Depth >= depth {
-				if entry.EntryType == transposition_table.TrueScore {
-					s := DenormalizeMateScore(entry.Score, int(depth))
-					answer.score = s
-					if entry.Depth > depth {
-						answer.alpha = s
-						answer.beta = s
-					} else if s > answer.alpha {
-						answer.alpha = s
-					}
-				} else if entry.Depth > depth {
-					if entry.EntryType == transposition_table.UpperBound {
+				if !stale {
+					if entry.EntryType == transposition_table.TrueScore {
 						s := DenormalizeMateScore(entry.Score, int(depth))
-						if s < beta {
-							answer.beta = s
-						}
-					} else if entry.EntryType == transposition_table.LowerBound {
-						s := DenormalizeMateScore(entry.Score, int(depth))
-						if s > alpha {
-							answer.score = s
+						answer.score = s
+						if entry.Depth > depth {
 							answer.alpha = s
+							answer.beta = s
+						} else if s > answer.alpha {
+							answer.alpha = s
+						}
+					} else if entry.Depth > depth {
+						if entry.EntryType == transposition_table.UpperBound {
+							s := DenormalizeMateScore(entry.Score, int(depth))
+							if s < beta {
+								answer.beta = s
+							}
+						} else if entry.EntryType == transposition_table.LowerBound {
+							s := DenormalizeMateScore(entry.Score, int(depth))
+							if s > alpha {
+								answer.score = s
+								answer.alpha = s
+							}
 						}
 					}
 				}
+				// Always use the best move for move ordering, even from stale entries.
 				answer.bestMove = entry.BestMove
-				if entry.Depth == depth && answer.alpha < answer.beta {
+				if !stale && entry.Depth == depth && answer.alpha < answer.beta {
 					entry.NumProcessors++
 				}
 			} else {

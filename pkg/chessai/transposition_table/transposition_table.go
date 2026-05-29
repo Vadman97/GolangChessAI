@@ -30,6 +30,11 @@ type TranspositionTableEntryABDADA struct {
 	// The number of processors currently evaluating the node related to the transposition table entry
 	NumProcessors uint16
 
+	// Generation tags the search iteration that wrote this entry.
+	// Entries from an older generation are used for move ordering only,
+	// not for alpha/beta cutoffs, preventing ponder-miss contamination.
+	Generation uint32
+
 	Lock sync.Mutex
 }
 

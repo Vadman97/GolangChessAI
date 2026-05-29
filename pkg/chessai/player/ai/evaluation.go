@@ -88,7 +88,18 @@ const (
 	// KnightOutpostBonus: knight on ranks 3-5 (from own back rank) that no enemy
 	// pawn can attack. Outpost knights dominate the middlegame.
 	KnightOutpostBonus = 20
+	// KnightPasserBlockadeBonus: per passed pawn whose next-advance square is
+	// attacked by a friendly knight. Scaled by pawn rank (rank/6 × base value).
+	// Prevents the engine from undervaluing defensive knight maneuvers that
+	// simultaneously blockade multiple advanced passed pawns (K+PP vs K+N endings).
+	KnightPasserBlockadeBonus = 150
 )
+
+// knightMoveDeltas lists all 8 relative (row, col) offsets for knight moves.
+var knightMoveDeltas = [8][2]int{
+	{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2},
+	{2, -1}, {2, 1}, {1, -2}, {1, 2},
+}
 
 // isKnightOutpost returns true if no enemy pawn can attack the given square,
 // meaning the knight sitting there cannot be chased away by a pawn push.
@@ -538,6 +549,54 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 					pstScores[c] += RookOpenFileBonus
 				} else if !friendlyPawns {
 					pstScores[c] += RookSemiOpenFileBonus
+				}
+			}
+		}
+
+		// Knight passer blockade: bonus for a knight that attacks the square
+		// directly in front of an enemy passed pawn. Discourages the engine from
+		// ignoring defensive knight maneuvers in K+PP vs K+N-type endings.
+		for row := location.CoordinateType(0); row < board.Height; row++ {
+			for col := location.CoordinateType(0); col < board.Width; col++ {
+				p := b.GetPiece(location.NewLocation(row, col))
+				if p == nil || p.GetPieceType() != piece.KnightType {
+					continue
+				}
+				c := p.GetColor()
+				enemy := c ^ 1
+				// enemyForward: direction enemy pawns advance (+1 for White, -1 for Black).
+				enemyForward := 1
+				if enemy == color.Black {
+					enemyForward = -1
+				}
+				for _, d := range knightMoveDeltas {
+					tr := int(row) + d[0]
+					tc := int(col) + d[1]
+					if tr < 0 || tr >= board.Height || tc < 0 || tc >= board.Width {
+						continue
+					}
+					// The enemy pawn that would be blocked sits one step behind targetRow.
+					pr := tr - enemyForward
+					if pr < 0 || pr >= board.Height {
+						continue
+					}
+					ep := b.GetPiece(location.NewLocation(location.CoordinateType(pr), location.CoordinateType(tc)))
+					if ep == nil || ep.GetColor() != enemy || ep.GetPieceType() != piece.PawnType {
+						continue
+					}
+					pawnRow := location.CoordinateType(pr)
+					pawnCol := location.CoordinateType(tc)
+					if !isPassedPawn(b, pawnRow, pawnCol, enemy) {
+						continue
+					}
+					// Rank of the enemy pawn from its own back rank (0=start, 6=one step from promo).
+					rank := int(pawnRow)
+					if enemy == color.Black {
+						rank = 7 - int(pawnRow)
+					}
+					if rank >= 3 {
+						pstScores[c] += KnightPasserBlockadeBonus * rank / 6
+					}
 				}
 			}
 		}
