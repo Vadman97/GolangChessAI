@@ -74,12 +74,14 @@ type Event struct {
 	ChallengeDirection string     `json:"direction"`
 }
 type GameEvent struct {
-	Type        StateType  `json:"type"`
-	Moves       string     `json:"moves"`
-	WhiteTimeMS int        `json:"wtime"`
-	BlackTimeMS int        `json:"btime"`
-	Status      string     `json:"status"`
-	State       *GameEvent `json:"state"`
+	Type         StateType  `json:"type"`
+	Moves        string     `json:"moves"`
+	WhiteTimeMS  int        `json:"wtime"`
+	BlackTimeMS  int        `json:"btime"`
+	WhiteIncMS   int        `json:"winc"`
+	BlackIncMS   int        `json:"binc"`
+	Status       string     `json:"status"`
+	State        *GameEvent `json:"state"`
 	// GameID is set locally (not from JSON) so the handler can discard stale
 	// events from a previous game's stream that are still in the channel.
 	GameID string `json:"-"`
@@ -109,6 +111,10 @@ type Lichess struct {
 	// movesApplied tracks how many total moves from lichess events we've applied
 	// to our local board. Used to skip duplicate events (e.g. after stream reconnect).
 	movesApplied int
+
+	// clockIncrement is the per-move increment for the current game, set from
+	// the first gameState event and used by thinkTimeForClock.
+	clockIncrement time.Duration
 
 	// boardStreamCancel cancels the active game board stream so stale goroutines
 	// from previous games don't corrupt the current game's board state.
@@ -226,27 +232,34 @@ func (l *Lichess) resetGame() {
 }
 
 // thinkTimeForClock allocates think time from the remaining clock.
-// Adapts to game phase: more time per move in the middlegame and endgame
-// where precision is critical, less in the opening where fewer decisions matter.
-// Capped at 10s so we never burn the clock on one move.
-func thinkTimeForClock(timeLeft time.Duration, turnCount int) time.Duration {
-	// Estimated remaining moves for THIS side based on how many moves we've made.
-	// Early: expect ~30 more; middlegame: ~20; endgame: ~12.
-	var divisor time.Duration
+// Uses the standard time-management formula: think = usableTime/movesLeft + increment.
+// A 3s reserve is kept to avoid flagging in long endgames.
+// Capped at 8s so we never burn the clock on a single move.
+func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Duration {
+	const reserve = 3 * time.Second
+
+	// Estimated moves remaining for THIS side. Conservative early to preserve
+	// clock for endgames, which can run much longer than expected.
+	var movesLeft time.Duration
 	switch {
 	case turnCount < 10:
-		divisor = 30
-	case turnCount < 25:
-		divisor = 20
+		movesLeft = 45
+	case turnCount < 30:
+		movesLeft = 25
 	default:
-		divisor = 12
+		movesLeft = 20
 	}
-	think := timeLeft / divisor
+
+	usable := timeLeft - reserve
+	if usable < 0 {
+		usable = 0
+	}
+	think := usable/movesLeft + increment
 	if think < 50*time.Millisecond {
 		think = 50 * time.Millisecond
 	}
-	if think > 10*time.Second {
-		think = 10 * time.Second
+	if think > 8*time.Second {
+		think = 8 * time.Second
 	}
 	return think
 }
@@ -271,7 +284,7 @@ func (l *Lichess) handleEvent(event *Event) error {
 		enemyPlayer := player.NewHumanPlayer(enemyColor)
 		l.Player = ai.NewAIPlayer(playerColor, ai.NameToAlgorithm[ai.AlgorithmABDADA])
 		l.Player.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
-		l.Player.MaxThinkTime = thinkTimeForClock(time.Duration(event.Game.SecondsLeft*float64(time.Second)), l.Player.TurnCount)
+		l.Player.MaxThinkTime = thinkTimeForClock(time.Duration(event.Game.SecondsLeft*float64(time.Second)), l.clockIncrement, l.Player.TurnCount)
 
 		// Create game and start game loop
 		if playerColor == color.White {
@@ -436,14 +449,17 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 	}
 	// After replay, check whose turn it is.
 	playerTimeMS := state.WhiteTimeMS
+	playerIncMS := state.WhiteIncMS
 	if l.Player.PlayerColor == color.Black {
 		playerTimeMS = state.BlackTimeMS
+		playerIncMS = state.BlackIncMS
 	}
+	l.clockIncrement = time.Duration(playerIncMS) * time.Millisecond
 	playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
-	l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft, l.Player.TurnCount)
+	l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft, l.clockIncrement, l.Player.TurnCount)
 	if len(moves)%2 == int(l.Player.PlayerColor) {
 		// It's our turn.
-		log.Infof("gameFull: our turn after replay, thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
+		log.Infof("gameFull: our turn after replay, thinking... have time %s, inc %s, set max to %s", playerTimeLeft, l.clockIncrement, l.Player.MaxThinkTime)
 		if l.Game.GameStatus != game.Active {
 			log.Infof("gameFull: local game already ended (status %d) — not making a move", l.Game.GameStatus)
 			return nil
@@ -508,12 +524,15 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 			return nil
 		}
 		playerTimeMS := event.WhiteTimeMS
+		playerIncMS := event.WhiteIncMS
 		if l.Player.PlayerColor == color.Black {
 			playerTimeMS = event.BlackTimeMS
+			playerIncMS = event.BlackIncMS
 		}
+		l.clockIncrement = time.Duration(playerIncMS) * time.Millisecond
 		playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
-		l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft, l.Player.TurnCount)
-		log.Infof("player thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
+		l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft, l.clockIncrement, l.Player.TurnCount)
+		log.Infof("player thinking... have time %s, inc %s, set max to %s", playerTimeLeft, l.clockIncrement, l.Player.MaxThinkTime)
 		l.Game.PlayTurn()
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
 			l.recoverFromRejectedMove(err)
