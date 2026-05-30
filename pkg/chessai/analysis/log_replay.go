@@ -23,15 +23,16 @@ var (
 )
 
 type logEntry struct {
-	plyNum   int
-	clr      color.Color
-	fromRow  uint8
-	fromCol  uint8
-	toRow    uint8
-	toCol    uint8
-	aiScore  int
-	hasScore bool
-	grid     [board.Height]string // raw "|"-separated piece strings per row
+	gameIndex int
+	plyNum    int
+	clr       color.Color
+	fromRow   uint8
+	fromCol   uint8
+	toRow     uint8
+	toCol     uint8
+	aiScore   int
+	hasScore  bool
+	grid      [board.Height]string // raw "|"-separated piece strings per row
 }
 
 // parseLichessLog reads the internal game log and extracts one entry per AI move.
@@ -54,6 +55,7 @@ func parseLichessLog(path string) ([]logEntry, error) {
 		// state for reading board grid after a move header
 		readingBoard bool
 		pendingEntry logEntry
+		gameIndex    int
 	)
 
 	reGameOver := regexp.MustCompile(`Game Over!|Game state:.*(?:Win|Draw|Resign)`)
@@ -90,6 +92,7 @@ func parseLichessLog(path string) ([]logEntry, error) {
 		if reGameOver.MatchString(line) {
 			hasLastMove = false
 			hasPendingScore = false
+			gameIndex++
 			continue
 		}
 
@@ -121,12 +124,13 @@ func parseLichessLog(path string) ([]logEntry, error) {
 			isNullMove := lastFromRow == 0 && lastFromCol == 0 && lastToRow == 0 && lastToCol == 0
 			if hasLastMove && !isNullMove {
 				pendingEntry = logEntry{
-					plyNum:  ply,
-					clr:     clr,
-					fromRow: lastFromRow,
-					fromCol: lastFromCol,
-					toRow:   lastToRow,
-					toCol:   lastToCol,
+					gameIndex: gameIndex,
+					plyNum:    ply,
+					clr:       clr,
+					fromRow:   lastFromRow,
+					fromCol:   lastFromCol,
+					toRow:     lastToRow,
+					toCol:     lastToCol,
 				}
 				if hasPendingScore {
 					pendingEntry.aiScore = pendingScore
@@ -388,6 +392,130 @@ func colorName(c color.Color) string {
 	return "Black"
 }
 
+type replayEntry struct {
+	logEntry
+	before      *board.Board
+	after       *board.Board
+	prevMove    *board.LastMove
+	afterMove   *board.LastMove
+	move        location.Move
+	engineUCI   string
+	fullMoveNum int
+}
+
+func boardsEqual(a, b *board.Board) bool {
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		for col := location.CoordinateType(0); col < board.Width; col++ {
+			l := location.NewLocation(row, col)
+			ap := a.GetPiece(l)
+			bp := b.GetPiece(l)
+			if ap == nil || bp == nil {
+				if ap != bp {
+					return false
+				}
+				continue
+			}
+			if ap.GetColor() != bp.GetColor() || ap.GetPieceType() != bp.GetPieceType() {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func sameMoveSquare(a, b location.Move) bool {
+	return a.Start.Equals(b.Start) && a.End.GetRow() == b.End.GetRow() && a.End.GetCol() == b.End.GetCol()
+}
+
+func matchingLegalMove(b *board.Board, c color.Color, previousMove *board.LastMove, target location.Move) (location.Move, bool) {
+	moves := b.GetAllMoves(c, previousMove)
+	for _, m := range *moves {
+		if sameMoveSquare(m, target) {
+			return m, true
+		}
+	}
+	return location.Move{}, false
+}
+
+func replayLogEntries(entries []logEntry) ([]replayEntry, error) {
+	var replayed []replayEntry
+	state := &board.Board{}
+	state.ResetDefault()
+	sideToMove := color.White
+	var previousMove *board.LastMove
+	currentGame := -1
+
+	for _, entry := range entries {
+		if entry.gameIndex != currentGame {
+			state = &board.Board{}
+			state.ResetDefault()
+			sideToMove = color.White
+			previousMove = nil
+			currentGame = entry.gameIndex
+		}
+
+		targetAfter := boardFromGrid(entry.grid)
+		knownMove := location.Move{
+			Start: location.NewLocation(entry.fromRow, entry.fromCol),
+			End:   location.NewLocation(entry.toRow, entry.toCol),
+		}
+		if sideToMove != entry.clr {
+			var inferredBefore *board.Board
+			var inferredPrev *board.LastMove
+			ok := false
+			moves := state.GetAllMoves(sideToMove, previousMove)
+			for _, opponentMove := range *moves {
+				candidateBefore := state.Copy()
+				opponentLast := board.MakeMove(&opponentMove, candidateBefore)
+				legalAI, legalOK := matchingLegalMove(candidateBefore, entry.clr, opponentLast, knownMove)
+				if !legalOK {
+					continue
+				}
+				candidateAfter := candidateBefore.Copy()
+				board.MakeMove(&legalAI, candidateAfter)
+				if boardsEqual(candidateAfter, targetAfter) {
+					inferredBefore = candidateBefore
+					inferredPrev = opponentLast
+					ok = true
+					break
+				}
+			}
+			if !ok {
+				return nil, fmt.Errorf("could not infer opponent move before ply %d logged move %s side %s", entry.plyNum, knownMove, colorName(entry.clr))
+			}
+			state = inferredBefore
+			previousMove = inferredPrev
+			sideToMove = entry.clr
+		}
+
+		legalMove, ok := matchingLegalMove(state, entry.clr, previousMove, knownMove)
+		if !ok {
+			return nil, fmt.Errorf("logged move %s is not legal at ply %d", knownMove, entry.plyNum)
+		}
+		before := state.Copy()
+		prevForFEN := previousMove
+		after := state.Copy()
+		afterMove := board.MakeMove(&legalMove, after)
+		previousMove = afterMove
+		if !boardsEqual(after, targetAfter) {
+			return nil, fmt.Errorf("logged board does not match replay after ply %d", entry.plyNum)
+		}
+		replayed = append(replayed, replayEntry{
+			logEntry:    entry,
+			before:      before,
+			after:       after,
+			prevMove:    prevForFEN,
+			afterMove:   afterMove,
+			move:        legalMove,
+			engineUCI:   MoveToUCI(legalMove),
+			fullMoveNum: (entry.plyNum + 1) / 2,
+		})
+		state = after
+		sideToMove = entry.clr ^ 1
+	}
+	return replayed, nil
+}
+
 // RunLogReplay parses the internal lichess game log, replays each AI move through
 // local Stockfish, and prints a blunder report. The log typically contains only
 // one side's moves (the side the AI is playing); White moves from the opponent
@@ -403,6 +531,10 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 		fmt.Println("No moves found in log.")
 		return
 	}
+	replayed, err := replayLogEntries(entries)
+	if err != nil {
+		log.Fatalf("Failed to replay log %s: %v", logPath, err)
+	}
 
 	fmt.Printf("Parsed %d moves from %s\n\n", len(entries), logPath)
 
@@ -414,54 +546,26 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 
 	totalBlunders, totalMistakes, totalInaccuracies := 0, 0, 0
 
-	for i, entry := range entries {
+	for _, replay := range replayed {
+		entry := replay.logEntry
 		// Use the color recorded in each entry — the log may contain games where
 		// the AI plays White in one game and Black in another.
 		entryColor := entry.clr
 
-		// Board after AI's move (B_n), active color = opponent
-		bn := boardFromGrid(entry.grid)
-
-		// Derive fullmove number from ply
-		fullMove := (entry.plyNum + 1) / 2
-
-		// Reconstruct position before AI's move
-		var bPrevGrid *[board.Height]string
-		if i > 0 && entries[i-1].clr == entryColor {
-			// Only use prev grid for capture restoration if it's the same color
-			// (same game, same side).  Across game boundaries the grid belongs to
-			// a different game and would give wrong capture information.
-			bPrevGrid = &entries[i-1].grid
-		}
-		wn := unApplyMove(bn, entry.fromRow, entry.fromCol, entry.toRow, entry.toCol,
-			entryColor, &entry.grid, bPrevGrid)
-
 		// FEN before AI's move: AI's color is to move
-		fenBefore := BoardToFEN(wn, entryColor, nil, fullMove)
+		fenBefore := BoardToFEN(replay.before, entryColor, replay.prevMove, replay.fullMoveNum)
 		sfBefore := sf.Analyze(fenBefore, sfDepth)
-
-		// Build UCI for what the AI played
-		fromLoc := location.NewLocation(entry.fromRow, entry.fromCol)
-		toLoc := location.NewLocation(entry.toRow, entry.toCol)
-		// Add promotion if pawn reaches back rank
-		if movingP := wn.GetPiece(fromLoc); movingP != nil && movingP.GetPieceType() == piece.PawnType {
-			if entry.toRow == board.StartRow[entryColor^1]["Piece"] {
-				toLoc = toLoc.CreatePawnPromotion(piece.QueenType)
-			}
-		}
-		engineMove := location.Move{Start: fromLoc, End: toLoc}
-		engineUCI := MoveToUCI(engineMove)
 
 		// FEN after AI's move: opponent's turn
 		opponent := entryColor ^ 1
-		fenAfter := BoardToFEN(bn, opponent, nil, fullMove)
+		fenAfter := BoardToFEN(replay.after, opponent, replay.afterMove, replay.fullMoveNum)
 		sfAfter := sf.Analyze(fenAfter, sfDepth)
 
 		// centipawn loss for the side that moved (AI)
 		cpSTMBefore := sfBefore.CentipawnsSTM
 		cpSTMAfterOpponent := sfAfter.CentipawnsSTM
 		cpLoss := cpSTMBefore + cpSTMAfterOpponent
-		if cpLoss < 0 || engineUCI == sfBefore.BestMove {
+		if cpLoss < 0 || replay.engineUCI == sfBefore.BestMove {
 			// Clamp negatives (noise) and moves that match SF's recommendation
 			// (apparent loss is a depth-consistency artifact, not a real error).
 			cpLoss = 0
@@ -471,7 +575,7 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 			cpLoss = 2000
 		}
 
-		label := classifyLoss(cpLoss, engineUCI, sfBefore.BestMove)
+		label := classifyLoss(cpLoss, replay.engineUCI, sfBefore.BestMove)
 		switch label {
 		case "BLUNDER":
 			totalBlunders++
@@ -482,9 +586,9 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 		}
 
 		// Format move number for display
-		moveLabel := fmt.Sprintf("%d.", fullMove)
+		moveLabel := fmt.Sprintf("%d.", replay.fullMoveNum)
 		if entryColor == color.Black {
-			moveLabel = fmt.Sprintf("%d...", fullMove)
+			moveLabel = fmt.Sprintf("%d...", replay.fullMoveNum)
 		}
 
 		sfEvalStr := ""
@@ -509,15 +613,15 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 		}
 
 		fmt.Printf("Ply %2d  %s%s  SF: %s  loss: %+d  SF-best: %s%s%s\n",
-			entry.plyNum, moveLabel, engineUCI, sfEvalStr, cpLoss, sfBefore.BestMove, aiEvalStr, flagStr)
+			entry.plyNum, moveLabel, replay.engineUCI, sfEvalStr, cpLoss, sfBefore.BestMove, aiEvalStr, flagStr)
 
 		if label == "BLUNDER" || label == "MISTAKE" {
-			fmt.Printf("  AI played %-6s but SF recommends %-6s  (diff: %+d cp)\n", engineUCI, sfBefore.BestMove, cpLoss)
+			fmt.Printf("  AI played %-6s but SF recommends %-6s  (diff: %+d cp)\n", replay.engineUCI, sfBefore.BestMove, cpLoss)
 			fmt.Printf("  FEN: %s\n\n", fenBefore)
 		}
 	}
 
-	total := len(entries)
+	total := len(replayed)
 	fmt.Printf("\n=== Summary: %d AI half-moves ===\n", total)
 	fmt.Printf("  Blunders     (>=%d cp): %d\n", BlunderThreshold, totalBlunders)
 	fmt.Printf("  Mistakes     (>=%d cp): %d\n", mistakeThreshold, totalMistakes)

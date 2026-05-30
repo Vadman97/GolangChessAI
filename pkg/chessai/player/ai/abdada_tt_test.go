@@ -71,3 +71,31 @@ func TestABDADATTWriteDoesNotUnderflowProcessorCount(t *testing.T) {
 		t.Fatalf("expected processor count to stay at 0, got %d", entry.NumProcessors)
 	}
 }
+
+func TestNewPonderPlayerUsesRequestedColorAndIsolatedAlgorithm(t *testing.T) {
+	p := NewAIPlayer(color.White, &ABDADA{NumThreads: 2})
+	ponder := p.NewPonderPlayer(color.Black)
+
+	if ponder.PlayerColor != color.Black {
+		t.Fatalf("expected ponder player to search as black, got %d", ponder.PlayerColor)
+	}
+	if ponder == p {
+		t.Fatal("expected distinct ponder player")
+	}
+	if ponder.Algorithm == p.Algorithm {
+		t.Fatal("expected distinct algorithm instance")
+	}
+	if ponder.transpositionTable != p.transpositionTable {
+		t.Fatal("expected ponder player to share transposition table")
+	}
+	if ponder.evaluationMap != p.evaluationMap {
+		t.Fatal("expected ponder player to share evaluation cache")
+	}
+	abdada, ok := ponder.Algorithm.(*ABDADA)
+	if !ok {
+		t.Fatalf("expected ABDADA ponder algorithm, got %T", ponder.Algorithm)
+	}
+	if abdada.NumThreads != 2 {
+		t.Fatalf("expected copied thread count, got %d", abdada.NumThreads)
+	}
+}

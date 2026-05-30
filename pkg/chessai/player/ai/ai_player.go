@@ -138,6 +138,50 @@ func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
 	return p
 }
 
+func newAlgorithmLike(algorithm Algorithm) Algorithm {
+	switch a := algorithm.(type) {
+	case *ABDADA:
+		return &ABDADA{NumThreads: a.NumThreads}
+	case *LazySMP:
+		return &LazySMP{}
+	case *MiniMax:
+		return &MiniMax{}
+	case *AlphaBetaWithMemory:
+		return &AlphaBetaWithMemory{}
+	case *MTDf:
+		return &MTDf{}
+	case *NegaScout:
+		return &NegaScout{}
+	case *Jamboree:
+		return &Jamboree{}
+	case *Random:
+		return &Random{}
+	default:
+		return NameToAlgorithm[algorithm.GetName()]
+	}
+}
+
+// NewPonderPlayer creates an isolated search player for background pondering.
+// It shares the expensive caches with the real player so the ponder warms the
+// TT, but keeps abort/search state and algorithm fields separate.
+func (p *AIPlayer) NewPonderPlayer(c color.Color) *AIPlayer {
+	ponder := &AIPlayer{
+		Algorithm:                 newAlgorithmLike(p.Algorithm),
+		TranspositionTableEnabled: p.TranspositionTableEnabled,
+		PlayerColor:               c,
+		MaxSearchDepth:            p.MaxSearchDepth,
+		MaxThinkTime:              p.MaxThinkTime,
+		Metrics:                   &Metrics{},
+		Debug:                     false,
+		PrintInfo:                 false,
+		evaluationMap:             p.evaluationMap,
+		transpositionTable:        p.transpositionTable,
+		printer:                   make(chan string, 1000000),
+		ttGeneration:              atomic.LoadUint32(&p.ttGeneration),
+	}
+	return ponder
+}
+
 func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove) bool {
 	// Always prefer a move with a valid Move over a zero-move, regardless of score.
 	if currentBest.Move.Start.Equals(currentBest.Move.End) && !candidate.Move.Start.Equals(candidate.Move.End) {

@@ -162,7 +162,9 @@ func (l *Lichess) startPonder() {
 	}
 	boardSnap := l.Game.CurrentBoard.Copy()
 	prevMove := l.Game.PreviousMove
-	player := l.Player
+	ponderColor := l.Game.CurrentTurnColor
+	ponderPlayer := l.Player.NewPonderPlayer(ponderColor)
+	ponderPlayer.MaxThinkTime = 60 * time.Second
 
 	stop := make(chan struct{})
 	done := make(chan struct{})
@@ -175,15 +177,14 @@ func (l *Lichess) startPonder() {
 		go func() {
 			select {
 			case <-stop:
-				player.Abort()
+				ponderPlayer.Abort()
 			case <-done:
 			}
 		}()
-		player.MaxThinkTime = 60 * time.Second
-		player.GetBestMove(boardSnap, prevMove, nil)
-		log.Debugf("ponder finished naturally")
+		ponderPlayer.GetBestMove(boardSnap, prevMove, nil)
+		log.Debugf("ponder finished naturally for %s", color.Names[ponderColor])
 	}()
-	log.Debugf("pondering started")
+	log.Debugf("pondering started for %s", color.Names[ponderColor])
 }
 
 // stopPonder aborts any in-progress ponder and waits for it to finish.
