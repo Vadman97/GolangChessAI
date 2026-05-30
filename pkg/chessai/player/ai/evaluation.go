@@ -601,8 +601,11 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		eval.TotalScore = WinScore
 	} else if b.IsInCheckmate(whoMoves, nil) {
 		eval.TotalScore = LossScore
-	} else if b.IsStalemate(whoMoves, nil) || b.IsStalemate(whoMoves^1, nil) || b.IsInsufficientMaterial() {
-		// want to discourage us from stalemating other player or getting stalemated
+	} else if b.IsStalemate(whoMoves, nil) || b.IsInsufficientMaterial() {
+		// Stalemate: the side to move has no legal moves and is not in check.
+		// Only check the side to move — checking whoMoves^1 (the side NOT to move)
+		// would misidentify positions where the opponent is boxed in (but can still
+		// be checkmated on the next move) as draws instead of wins.
 		eval.TotalScore = StalemateScore
 	} else {
 		// First pass: count pieces so endgamePhase can be computed before PST scoring.

@@ -104,8 +104,6 @@ func (g *Game) PlayTurn() bool {
 			}
 		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor, g.PreviousMove) {
 			g.GameStatus = Stalemate
-		} else if g.CurrentBoard.IsStalemate(g.CurrentTurnColor^1, g.PreviousMove) {
-			g.GameStatus = Stalemate
 		} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
 			// 50 Move Rule (50 moves per color)
 			g.GameStatus = FiftyMoveDraw
