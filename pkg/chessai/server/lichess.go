@@ -107,6 +107,10 @@ type Lichess struct {
 	// to our local board. Used to skip duplicate events (e.g. after stream reconnect).
 	movesApplied int
 
+	// boardStreamCancel cancels the active game board stream so stale goroutines
+	// from previous games don't corrupt the current game's board state.
+	boardStreamCancel context.CancelFunc
+
 	// Pondering: search during the opponent's turn to warm the TT.
 	ponderStop chan struct{}
 	ponderDone chan struct{}
@@ -198,6 +202,10 @@ func (l *Lichess) stopPonder() {
 // Safe to call when no game is running. Must be called with the mutex held.
 func (l *Lichess) resetGame() {
 	l.stopPonder()
+	if l.boardStreamCancel != nil {
+		l.boardStreamCancel()
+		l.boardStreamCancel = nil
+	}
 	l.Player = nil
 	l.Game = nil
 	l.movesApplied = 0
@@ -262,9 +270,11 @@ func (l *Lichess) handleEvent(event *Event) error {
 		l.Game.TimeLimit = game_config.Get().SecondsToPlay * time.Second
 		l.movesApplied = 0
 
+		ctx, cancel := context.WithCancel(context.Background())
+		l.boardStreamCancel = cancel
 		go func() {
-			err := l.StreamBoardUpdate(event.Game.GameID, l.GameEvents)
-			if err != nil {
+			err := l.StreamBoardUpdate(ctx, event.Game.GameID, l.GameEvents)
+			if err != nil && ctx.Err() == nil {
 				log.Errorf("failed to stream board update %s", err)
 			}
 		}()
@@ -693,11 +703,12 @@ func (l *Lichess) Stream(s chan<- Event) error {
 	}
 }
 
-func (l *Lichess) StreamBoardUpdate(gameID string, s chan<- GameEvent) error {
+func (l *Lichess) StreamBoardUpdate(ctx context.Context, gameID string, s chan<- GameEvent) error {
 	r, err := l.Client.newRequest("GET", fmt.Sprintf("/api/bot/game/stream/%s", gameID), nil)
 	if err != nil {
 		return err
 	}
+	r = r.WithContext(ctx)
 
 	response, err := l.Client.HttpClient.Do(r)
 	if err != nil {
