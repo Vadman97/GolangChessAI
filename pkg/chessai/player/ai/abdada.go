@@ -160,8 +160,10 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	}
 
 	// Null Move Pruning: pass the turn and search at reduced depth.
+	// Skip at ply=0 (root): pruning here returns ScoredMove{Score:beta, Move:zero}
+	// with no valid move, which propagates up and triggers a random-move fallback.
 	// Skip when in check, in zugzwang-prone endgames, or after a prior null move.
-	if nullMoveOk && !inCheck && depth >= nullMoveMinDepth && !onlyKingAndPawns(root, currentPlayer) {
+	if nullMoveOk && !inCheck && depth >= nullMoveMinDepth && !onlyKingAndPawns(root, currentPlayer) && ply > 0 {
 		R := nullMoveR
 		if depth >= 7 {
 			R = 3
@@ -186,7 +188,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 
 		// Razoring at depth 1: if the static eval is far below alpha, drop to qsearch.
 		// If qsearch also fails low, prune this whole branch.
-		if depth == razorDepth && standPat+razorMargin < alpha {
+		// Skip at ply=0 (root): returning a null move here is never safe.
+		if depth == razorDepth && standPat+razorMargin < alpha && ply > 0 {
 			qScore := ab.player.Quiesce(root, alpha-1, alpha, currentPlayer, previousMove)
 			if qScore < alpha {
 				atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(*movesArr)))

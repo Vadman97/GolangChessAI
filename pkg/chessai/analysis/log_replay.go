@@ -56,6 +56,8 @@ func parseLichessLog(path string) ([]logEntry, error) {
 		pendingEntry logEntry
 	)
 
+	reGameOver := regexp.MustCompile(`Game Over!|Game state:.*(?:Win|Draw|Resign)`)
+
 	scanner := bufio.NewScanner(f)
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 	for scanner.Scan() {
@@ -83,6 +85,14 @@ func parseLichessLog(path string) ([]logEntry, error) {
 			readingBoard = false
 		}
 
+		// Game boundary: reset move state so the last move from one game
+		// doesn't contaminate the first (book-move) entry of the next game.
+		if reGameOver.MatchString(line) {
+			hasLastMove = false
+			hasPendingScore = false
+			continue
+		}
+
 		if m := reBestMove.FindStringSubmatch(line); m != nil {
 			r1, _ := strconv.Atoi(m[1])
 			c1, _ := strconv.Atoi(m[2])
@@ -106,7 +116,10 @@ func parseLichessLog(path string) ([]logEntry, error) {
 			if m[2] == "Black" {
 				clr = color.Black
 			}
-			if hasLastMove {
+			// Skip entries where the last Best D move was a null/zero move
+			// (engine fell back to random; we don't know the actual move played).
+			isNullMove := lastFromRow == 0 && lastFromCol == 0 && lastToRow == 0 && lastToCol == 0
+			if hasLastMove && !isNullMove {
 				pendingEntry = logEntry{
 					plyNum:  ply,
 					clr:     clr,
@@ -391,9 +404,7 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 		return
 	}
 
-	// Determine which color the AI is playing (should be consistent across all entries)
-	aiColor := entries[0].clr
-	fmt.Printf("Parsed %d moves from %s (AI plays %s)\n\n", len(entries), logPath, colorName(aiColor))
+	fmt.Printf("Parsed %d moves from %s\n\n", len(entries), logPath)
 
 	sf, err := NewStockfishEngine(stockfishPath)
 	if err != nil {
@@ -404,22 +415,29 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 	totalBlunders, totalMistakes, totalInaccuracies := 0, 0, 0
 
 	for i, entry := range entries {
+		// Use the color recorded in each entry — the log may contain games where
+		// the AI plays White in one game and Black in another.
+		entryColor := entry.clr
+
 		// Board after AI's move (B_n), active color = opponent
 		bn := boardFromGrid(entry.grid)
 
-		// Derive fullmove number from ply: ply 2=Black move 1, ply 4=Black move 2, ...
+		// Derive fullmove number from ply
 		fullMove := (entry.plyNum + 1) / 2
 
-		// Reconstruct position before AI's move (W_n = before Black played)
+		// Reconstruct position before AI's move
 		var bPrevGrid *[board.Height]string
-		if i > 0 {
+		if i > 0 && entries[i-1].clr == entryColor {
+			// Only use prev grid for capture restoration if it's the same color
+			// (same game, same side).  Across game boundaries the grid belongs to
+			// a different game and would give wrong capture information.
 			bPrevGrid = &entries[i-1].grid
 		}
 		wn := unApplyMove(bn, entry.fromRow, entry.fromCol, entry.toRow, entry.toCol,
-			aiColor, &entry.grid, bPrevGrid)
+			entryColor, &entry.grid, bPrevGrid)
 
 		// FEN before AI's move: AI's color is to move
-		fenBefore := BoardToFEN(wn, aiColor, nil, fullMove)
+		fenBefore := BoardToFEN(wn, entryColor, nil, fullMove)
 		sfBefore := sf.Analyze(fenBefore, sfDepth)
 
 		// Build UCI for what the AI played
@@ -427,7 +445,7 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 		toLoc := location.NewLocation(entry.toRow, entry.toCol)
 		// Add promotion if pawn reaches back rank
 		if movingP := wn.GetPiece(fromLoc); movingP != nil && movingP.GetPieceType() == piece.PawnType {
-			if entry.toRow == board.StartRow[aiColor^1]["Piece"] {
+			if entry.toRow == board.StartRow[entryColor^1]["Piece"] {
 				toLoc = toLoc.CreatePawnPromotion(piece.QueenType)
 			}
 		}
@@ -435,7 +453,7 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 		engineUCI := MoveToUCI(engineMove)
 
 		// FEN after AI's move: opponent's turn
-		opponent := aiColor ^ 1
+		opponent := entryColor ^ 1
 		fenAfter := BoardToFEN(bn, opponent, nil, fullMove)
 		sfAfter := sf.Analyze(fenAfter, sfDepth)
 
@@ -465,7 +483,7 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 
 		// Format move number for display
 		moveLabel := fmt.Sprintf("%d.", fullMove)
-		if aiColor == color.Black {
+		if entryColor == color.Black {
 			moveLabel = fmt.Sprintf("%d...", fullMove)
 		}
 

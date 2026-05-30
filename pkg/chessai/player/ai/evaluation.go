@@ -73,9 +73,12 @@ const (
 	// neg 1 pawn if we do nothing in 50 moves
 	Weight50Rule = -PawnValueWeight / PawnValueWeight
 	// King safety: penalize exposed king files and enemy sliders on them.
-	// Values doubled from original (-20/-30) so king exposure outweighs a pawn grab (+100 cp).
-	KingOpenFilePenalty    = -40
-	KingEnemySliderPenalty = -60
+	// Prior run doubled these (-20→-40, -30→-60) but that caused 100-150 cp
+	// over-penalty for a normally-castled king with any slider on adjacent files,
+	// turning winning positions into losing ones in the engine's eval and leading
+	// to desperate moves. Restored to validated values.
+	KingOpenFilePenalty    = -20
+	KingEnemySliderPenalty = -30
 )
 
 const (
@@ -112,11 +115,12 @@ const (
 	KnightPasserBlockadeBonus = 60
 
 	// KingAttackZoneWeight: penalty per enemy-attacked square in the king ring (3×3
-	// around the king). Applied exponentially past a threshold so a concentrated
-	// attack (3+ squares) triggers a much sharper penalty than a diffuse one.
-	// Only active in the middlegame (phase > 64) — in endgames the king should
-	// centralize rather than hide, so we let the PST handle positioning.
-	KingAttackZoneWeight = 12
+	// around the king). Applied quadratically past 2 squares. Reduced from 12 to 6
+	// to prevent stacking too much on top of KingEnemySliderPenalty — the combined
+	// penalty at 3 attacked squares was 90+ cp, turning winning positions into losing
+	// ones in the eval. At 6: 3 squares = 18 cp, 4 squares = 36 cp, still significant
+	// for actual mating attacks.
+	KingAttackZoneWeight = 6
 
 	// ConnectedPasserBonus: extra bonus when two passed pawns are on adjacent files.
 	// Connected passers are drastically harder to stop than isolated passers: one
