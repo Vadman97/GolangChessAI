@@ -80,6 +80,9 @@ type GameEvent struct {
 	BlackTimeMS int        `json:"btime"`
 	Status      string     `json:"status"`
 	State       *GameEvent `json:"state"`
+	// GameID is set locally (not from JSON) so the handler can discard stale
+	// events from a previous game's stream that are still in the channel.
+	GameID string `json:"-"`
 }
 
 type ChallengeConfig struct {
@@ -373,6 +376,11 @@ func parseUCIMove(uci string) *location.Move {
 func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
+	// Discard events from a previous game's stream that are still in the channel.
+	if event.GameID != "" && event.GameID != l.GameID {
+		log.Debugf("discarding stale event from game %s (current: %s)", event.GameID, l.GameID)
+		return nil
+	}
 	switch event.Type {
 	case StateTypeGameFull:
 		if event.State == nil {
@@ -734,6 +742,7 @@ func (l *Lichess) StreamBoardUpdate(ctx context.Context, gameID string, s chan<-
 		if err := json.Unmarshal(line, &event); err != nil {
 			log.Errorf("failed to unmarshal line to game event %s", line)
 		}
+		event.GameID = gameID
 		s <- event
 	}
 }
