@@ -26,6 +26,17 @@ const (
 	lmrMinDepth      = 3   // minimum depth before LMR kicks in
 	lmrMinMoveIdx    = 3   // LMR applies after this many moves have been searched
 	maxExtensions    = 4   // total check-extension budget per branch
+
+	// Futility pruning: skip quiet moves at frontier/pre-frontier nodes when the
+	// static eval is far below alpha. Margins indexed by depth (1 or 2).
+	futilityMaxDepth = 2
+	futilityMargin1  = PawnValueWeight      // 100 cp at depth 1
+	futilityMargin2  = 3 * PawnValueWeight  // 300 cp at depth 2
+
+	// Razoring: if static eval + margin < alpha at depth 1, drop straight to qsearch.
+	// If qsearch also fails low, prune the node.
+	razorDepth  = 1
+	razorMargin = 2 * PawnValueWeight // 200 cp
 )
 
 // squareIdx converts a location to a flat [0,63] index for history/killer tables.
@@ -61,6 +72,9 @@ type ABDADA struct {
 	// history[from][to]: accumulated depth^2 bonuses for quiet moves that caused cutoffs.
 	// Shared across threads; atomic int32 for lock-free updates.
 	history [board.Height * board.Width][board.Height * board.Width]int32
+	// countermove[from][to]: best quiet response to the opponent's last move (from→to).
+	// Cheap heuristic between killers and history in move ordering.
+	countermove [board.Height * board.Width][board.Height * board.Width]location.Move
 }
 
 func (ab *ABDADA) GetName() string {
@@ -160,8 +174,29 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		}
 	}
 
+	// Futility pruning + razoring: compute static eval once for frontier nodes.
+	// Futility: skip quiet moves where standPat + margin can't reach alpha.
+	// Razoring: if standPat + margin < alpha even before any moves, drop to qsearch.
+	// Neither applies when in check (must search all evasions).
+	var standPat int
+	var canFutilityPrune bool
+	if !inCheck && depth <= futilityMaxDepth && alpha < WinScore && beta > LossScore {
+		standPat = ab.player.EvaluateBoard(root, currentPlayer).TotalScore
+		canFutilityPrune = true
+
+		// Razoring at depth 1: if the static eval is far below alpha, drop to qsearch.
+		// If qsearch also fails low, prune this whole branch.
+		if depth == razorDepth && standPat+razorMargin < alpha {
+			qScore := ab.player.Quiesce(root, alpha-1, alpha, currentPlayer, previousMove)
+			if qScore < alpha {
+				atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(*movesArr)))
+				return ScoredMove{Score: qScore}
+			}
+		}
+	}
+
 	killerPair := ab.killers[ply%maxKillerDepth]
-	orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, killerPair, ab, root)
+	orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, killerPair, ab, root, previousMove)
 
 	iteration := 0
 	allDone := false
@@ -204,6 +239,26 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				}
 			}
 
+			// Futility pruning: skip quiet moves at frontier/pre-frontier nodes when
+			// standPat + margin can't possibly reach alpha. This lets us search deeper
+			// on positions that matter without wasting time on hopeless quiet moves.
+			// Not applied to: captures, promotions, killers, TT moves, near-promos,
+			// the first move (we must evaluate at least one), or when aborting.
+			futilityPruned := false
+			if canFutilityPrune && !firstMove && !isCapture && !isPromo && !isKiller && !isTTMove && !isNearPromo && iteration == 1 {
+				var margin int
+				if depth == 1 {
+					margin = futilityMargin1
+				} else {
+					margin = futilityMargin2
+				}
+				if standPat+margin <= alpha {
+					atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, 1)
+					futilityPruned = true
+				}
+			}
+
+			if !futilityPruned {
 			// Late Move Reductions: quietly search less-promising moves at reduced depth.
 			// Conditions: not a capture, not a promotion, not a killer, not the TT move,
 			// not when in check, not a near-promotion pawn advance, only after lmrMinMoveIdx
@@ -252,10 +307,16 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				best = value
 				if best.Score >= beta {
 					atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(moves)))
-					// Update killer and history for quiet cutoff moves.
+					// Update killer, history, and countermove for quiet cutoff moves.
 					if !isCapture && !isPromo {
 						ab.storeKiller(ply, move)
 						ab.updateHistory(move, depth)
+						// Countermove: record this move as a good response to the opponent's last move.
+						if previousMove != nil {
+							from := squareIdx(previousMove.Move.Start)
+							to := squareIdx(previousMove.Move.End)
+							ab.countermove[from][to] = move
+						}
 					}
 					ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
 					return best
@@ -264,6 +325,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 					alpha = best.Score
 				}
 			}
+			} // end if !futilityPruned
 			if len(moves) == 0 {
 				break
 			}
@@ -463,9 +525,17 @@ func isMoveInList(m location.Move, moves *[]location.Move) bool {
 	return false
 }
 
-func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location.Move, ab *ABDADA, b *board.Board) []location.Move {
+// orderMoves returns moves ordered for best alpha-beta pruning:
+//  1. TT best move (if capture)
+//  2. Winning/even captures (SEE >= 0), MVV-LVA sorted
+//  3. TT best move (if quiet)
+//  4. Killer moves
+//  5. Countermove (best response to opponent's last move)
+//  6. Remaining quiet moves (history heuristic score, descending)
+//  7. Losing captures (SEE < 0), MVV-LVA sorted
+func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location.Move, ab *ABDADA, b *board.Board, prevMove *board.LastMove) []location.Move {
 	ordered := make([]location.Move, 0, len(moves))
-	var captures, killerMoves, quiets []location.Move
+	var goodCaptures, badCaptures, killerMoves, counterMoves, quiets []location.Move
 
 	// Validate the TT move is actually legal on this board before placing it first.
 	// A stale or hash-colliding TT entry can carry over a move that is no longer legal
@@ -474,18 +544,51 @@ func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location
 	hasTT := !ttMove.Start.Equals(ttMove.End) && isMoveInList(ttMove, &moves)
 	ttIsCapture := hasTT && (b.GetPiece(ttMove.End) != nil || isEnPassantMove(b, ttMove))
 
+	// Countermove lookup: best known response to the opponent's last move.
+	var counterMove location.Move
+	hasCounter := false
+	if ab != nil && prevMove != nil {
+		from := squareIdx(prevMove.Move.Start)
+		to := squareIdx(prevMove.Move.End)
+		cm := ab.countermove[from][to]
+		if !cm.Start.Equals(cm.End) && isMoveInList(cm, &moves) {
+			counterMove = cm
+			hasCounter = true
+		}
+	}
+
+	// Determine the side to move from the piece on the first non-empty start square.
+	// Used for SEE computation on captures.
+	var stm byte
+	for _, m := range moves {
+		if p := b.GetPiece(m.Start); p != nil {
+			stm = p.GetColor()
+			break
+		}
+	}
+
 	for _, m := range moves {
 		if hasTT && m.Start.Equals(ttMove.Start) && m.End.Equals(ttMove.End) {
 			continue
 		}
 		if b.GetPiece(m.End) != nil || isEnPassantMove(b, m) {
-			captures = append(captures, m)
+			// Use SEE to split captures into winning/even (≥0) and losing (<0).
+			// The TT move was already skipped above so we don't re-score it here.
+			seeScore := b.SEE(m, stm)
+			if seeScore >= 0 {
+				goodCaptures = append(goodCaptures, m)
+			} else {
+				badCaptures = append(badCaptures, m)
+			}
 		} else {
-			// Check killers before adding to quiets.
+			// Quiet move: check killer and countermove tables first.
 			isK := (m.Start.Equals(killers[0].Start) && m.End.Equals(killers[0].End)) ||
 				(m.Start.Equals(killers[1].Start) && m.End.Equals(killers[1].End))
+			isCM := hasCounter && m.Start.Equals(counterMove.Start) && m.End.Equals(counterMove.End)
 			if isK {
 				killerMoves = append(killerMoves, m)
+			} else if isCM {
+				counterMoves = append(counterMoves, m)
 			} else {
 				quiets = append(quiets, m)
 			}
@@ -498,7 +601,6 @@ func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location
 		for i, m := range quiets {
 			scores[i] = ab.historyScore(m)
 		}
-		// Simple insertion sort — quiet lists are usually short.
 		for i := 1; i < len(quiets); i++ {
 			for j := i; j > 0 && scores[j] > scores[j-1]; j-- {
 				quiets[j], quiets[j-1] = quiets[j-1], quiets[j]
@@ -507,18 +609,22 @@ func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location
 		}
 	}
 
-	// Sort captures by MVV-LVA (most-valuable-victim × 10 − least-valuable-attacker).
-	sortCapturesMVVLVA(captures, b)
+	// Sort winning captures by MVV-LVA (best first).
+	sortCapturesMVVLVA(goodCaptures, b)
+	// Sort losing captures by MVV-LVA too (least bad first).
+	sortCapturesMVVLVA(badCaptures, b)
 
 	if hasTT && ttIsCapture {
 		ordered = append(ordered, ttMove)
 	}
-	ordered = append(ordered, captures...)
+	ordered = append(ordered, goodCaptures...)
 	if hasTT && !ttIsCapture {
 		ordered = append(ordered, ttMove)
 	}
 	ordered = append(ordered, killerMoves...)
+	ordered = append(ordered, counterMoves...)
 	ordered = append(ordered, quiets...)
+	ordered = append(ordered, badCaptures...)
 	return ordered
 }
 
@@ -605,7 +711,12 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 					if entry.EntryType == transposition_table.TrueScore {
 						s := DenormalizeMateScore(entry.Score, int(depth))
 						answer.score = s
-						if entry.Depth > depth {
+						hasMove := !entry.BestMove.Start.Equals(entry.BestMove.End)
+						if entry.Depth > depth && hasMove {
+							// Close the window only when we have a valid move to return.
+							// If BestMove is zero (from an aborted search), don't close
+							// alpha==beta or the outer ABDADA loop will be skipped and we'd
+							// propagate a zero-move to the root.
 							answer.alpha = s
 							answer.beta = s
 						} else if s > answer.alpha {
