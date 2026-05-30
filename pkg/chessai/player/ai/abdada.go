@@ -432,7 +432,20 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 		}
 
 		if !ab.player.abort {
+			// Score stability: if this depth's result is dramatically worse than the
+			// previous depth's result, keep the previous best move but accept the new
+			// score. A >200 cp regression between successive depths typically indicates
+			// ABDADA parallel-search TT interference, not a genuine horizon finding.
+			const scoreRegressionThreshold = 200
+			prevBest := best
 			best = newGuess
+			if prevBest.Score != NegInf &&
+				!prevBest.Move.Start.Equals(prevBest.Move.End) &&
+				newGuess.Score < prevBest.Score-scoreRegressionThreshold {
+				// Keep the previous depth's move; the new score may still be accurate.
+				best.Move = prevBest.Move
+				best.MoveSequence = prevBest.MoveSequence
+			}
 			ab.player.LastSearchDepth = ab.currentSearchDepth
 			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s score:%d\n", ab.player.LastSearchDepth, best.Move, best.Score)
 		} else {
@@ -654,6 +667,12 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 		normalizedScore := NormalizeMateScore(sm.Score, int(depth))
 		gen := atomic.LoadUint32(&ab.player.ttGeneration)
 
+		// Only store the best move for TrueScore and LowerBound entries.
+		// For UpperBound (fail-low), all moves scored below alpha so the "best"
+		// is unreliable — storing it overwrites the previous deeper search's move
+		// and corrupts move ordering in aspiration re-searches.
+		storeBestMove := entryType != transposition_table.UpperBound
+
 		if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
 			entry := e.(*transposition_table.TranspositionTableEntryABDADA)
 			if entry.Depth <= depth {
@@ -665,7 +684,7 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				}
 				entry.EntryType = entryType
 				entry.Score = normalizedScore
-				if !sm.Move.Start.Equals(sm.Move.End) {
+				if storeBestMove && !sm.Move.Start.Equals(sm.Move.End) {
 					entry.BestMove = sm.Move
 				}
 				entry.Depth = depth
@@ -680,7 +699,7 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				NumProcessors: 0,
 				Generation:    gen,
 			}
-			if !sm.Move.Start.Equals(sm.Move.End) {
+			if storeBestMove && !sm.Move.Start.Equals(sm.Move.End) {
 				entry.BestMove = sm.Move
 			}
 			ab.player.transpositionTable.Store(&h, currentPlayer, &entry)
