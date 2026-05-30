@@ -66,15 +66,16 @@ const (
 	// Small penalty for moving a rook before castling — not large enough to force premature castling.
 	RookDisplacedWeight = -PawnValueWeight / 5
 	KingCheckedWeight   = -PawnValueWeight / 4
-	// KingCastledWeight reduced from 100 to 40: the old +100 cp bonus (plus ~70 PST swing = +170 total)
-	// was overriding concrete tactical continuations — the engine would castle even in clearly winning
-	// positions where an active rook move or attack was better.
-	KingCastledWeight = PawnValueWeight * 2 / 5
+	// KingCastledWeight: +60 cp for castling. Combined with the ~70 cp PST swing (e1→g1), this
+	// makes castling worth ~130 cp total — enough to outweigh a simple pawn grab (+100 cp) so the
+	// engine doesn't skip castling to capture material in the opening.
+	KingCastledWeight = PawnValueWeight * 3 / 5
 	// neg 1 pawn if we do nothing in 50 moves
 	Weight50Rule = -PawnValueWeight / PawnValueWeight
-	// King safety: penalize exposed king files and enemy sliders on them
-	KingOpenFilePenalty    = -20
-	KingEnemySliderPenalty = -30
+	// King safety: penalize exposed king files and enemy sliders on them.
+	// Values doubled from original (-20/-30) so king exposure outweighs a pawn grab (+100 cp).
+	KingOpenFilePenalty    = -40
+	KingEnemySliderPenalty = -60
 )
 
 const (
@@ -82,12 +83,19 @@ const (
 	PawnAdvancedWeight  = 1
 	// IsolatedPawnPenalty: a pawn with no friendly pawns on adjacent files is weak.
 	IsolatedPawnPenalty = -15
+	// TempoBonus: small bonus for the side to move, reflecting the value of initiative.
+	// Applied at every leaf node; improves handling of zugzwang and forcing sequences.
+	TempoBonus = 10
 	// BishopPairBonus: having both bishops is worth ~50cp in open positions.
 	// Tapered so it's worth less in closed pawn structures (many pawns on board).
 	BishopPairBonus = 50
 	// Rook file activity bonuses.
 	RookOpenFileBonus     = 15 // no pawns of either color on the file
 	RookSemiOpenFileBonus = 8  // no friendly pawns but enemy pawns present
+	// Rook on the 7th rank (rank 7 for White = row 6, rank 2 for Black = row 1).
+	// A rook penetrating to the 7th attacks the enemy pawn chain and restricts the king.
+	// Tapered by endgame phase — most valuable in middlegame with queens still on board.
+	RookOnSeventhBonus = 20
 	// KnightOutpostBonus: knight on ranks 3-5 (from own back rank) that no enemy
 	// pawn can attack. Outpost knights dominate the middlegame.
 	KnightOutpostBonus = 20
@@ -406,6 +414,13 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 			if whoMoves != entry.whoMoves {
 				score = -score
 			}
+			// Tempo bonus applied after cache flip — must NOT be stored in cache
+			// since it's asymmetric (always positive for the side to move).
+			// Skip for terminal positions: adding to WinScore/LossScore breaks
+			// the mate-score threshold comparisons in AdjustMateScore.
+			if score > LossScore && score < WinScore {
+				score += TempoBonus
+			}
 			return &Evaluation{
 				TotalScore: score,
 			}
@@ -415,9 +430,13 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 
 	if p.evaluationMap != nil {
 		p.evaluationMap.Store(&hash, 0, &evaluationPair{
-			score:    eval.TotalScore,
+			score:    eval.TotalScore, // stored WITHOUT tempo bonus so flipping works
 			whoMoves: whoMoves,
 		})
+	}
+	// Tempo bonus applied after storage for same reason: non-terminal positions only.
+	if eval.TotalScore > LossScore && eval.TotalScore < WinScore {
+		eval.TotalScore += TempoBonus
 	}
 	return eval
 }
@@ -559,6 +578,16 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 				} else if !friendlyPawns {
 					pstScores[c] += RookSemiOpenFileBonus
 				}
+				// Rook on 7th rank: penetration into the enemy's pawn zone.
+				// White's 7th = row 6 (rank 7); Black's 7th = row 1 (rank 2).
+				seventhRank := location.CoordinateType(6)
+				if c == color.Black {
+					seventhRank = 1
+				}
+				if row == seventhRank {
+					// Taper: full bonus in middlegame, half in endgame.
+					pstScores[c] += RookOnSeventhBonus * phase / 256
+				}
 			}
 		}
 
@@ -620,12 +649,21 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 			if b.GetFlag(board.FlagCastled, pColor) {
 				score += KingCastledWeight
 			} else {
-				// has not castled but
+				// has not castled
 				if b.GetFlag(board.FlagKingMoved, pColor) {
 					score += KingDisplacedWeight
 				}
 				if b.GetFlag(board.FlagLeftRookMoved, pColor) || b.GetFlag(board.FlagRightRookMoved, pColor) {
 					score += RookDisplacedWeight
+				}
+				// King-in-center urgency: as more pieces are developed, the penalty for
+				// delaying castling grows. 5 cp per developed minor/major piece (max ~40 cp).
+				// Only applies in middlegame (phase > 128) to avoid distorting endgame evals.
+				if phase > 128 {
+					developed := int(eval.PieceAdvanced[pColor][piece.KnightType]) +
+						int(eval.PieceAdvanced[pColor][piece.BishopType]) +
+						int(eval.PieceAdvanced[pColor][piece.RookType])
+					score -= developed * 5
 				}
 			}
 			if b.IsKingInCheck(pColor) {

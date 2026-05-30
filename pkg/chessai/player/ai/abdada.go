@@ -127,9 +127,22 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		}
 	}
 
+	// One-reply extension: only one legal move means we're in a forced position —
+	// extend search so we don't cut off the resolution of a forcing sequence.
+	// Bounded by the extension budget shared with check extensions.
+	if len(*movesArr) == 1 && extensions > 0 {
+		depth++
+		extensions--
+	}
+
 	if alpha >= beta || best.Score == OnEvaluation {
-		atomic.AddUint64(&ab.player.Metrics.MovesPrunedTransposition, uint64(len(*movesArr)))
-		return best
+		// Only prune if we have a valid best move to return. A zero BestMove in
+		// the TT means the entry was written before any move was evaluated (e.g.
+		// after an abort). Returning it would propagate a zero-move to the root.
+		if !best.Move.Start.Equals(best.Move.End) {
+			atomic.AddUint64(&ab.player.Metrics.MovesPrunedTransposition, uint64(len(*movesArr)))
+			return best
+		}
 	}
 
 	// Null Move Pruning: pass the turn and search at reduced depth.
@@ -153,7 +166,9 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	iteration := 0
 	allDone := false
 	for iteration < 2 && alpha < beta && !allDone {
-		if ab.player.abort || ab.kill {
+		// Don't abort before evaluating at least one move: a zero BestMove
+		// would propagate to the root and trigger a random fallback.
+		if (ab.player.abort || ab.kill) && !best.Move.Start.Equals(best.Move.End) {
 			return best
 		}
 		iteration++
@@ -164,7 +179,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		moves = moves[1:]
 		moveIdx := 0
 		for alpha < beta {
-			if ab.player.abort || ab.kill {
+			if (ab.player.abort || ab.kill) && !firstMove {
 				return best
 			}
 			moveIdx++
@@ -174,6 +189,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			isPromo, _ := move.End.GetPawnPromotion()
 			isKiller := ab.isKiller(move, ply)
 			isTTMove := move.Start.Equals(ttAnswer.bestMove.Start) && move.End.Equals(ttAnswer.bestMove.End)
+
+
 
 			// Late Move Reductions: quietly search less-promising moves at reduced depth.
 			// Conditions: not a capture, not a promotion, not a killer, not the TT move,
@@ -337,6 +354,12 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 			ab.player.LastSearchDepth = ab.currentSearchDepth
 			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s score:%d\n", ab.player.LastSearchDepth, best.Move, best.Score)
 		} else {
+			// Use the partial result if we haven't found any valid move yet.
+			// Without this, a timeout on the very first IDA iteration leaves
+			// best as zero-move and the engine falls back to a random move.
+			if best.Move.Start.Equals(best.Move.End) && !newGuess.Move.Start.Equals(newGuess.Move.End) {
+				best = newGuess
+			}
 			ab.player.LastSearchDepth = ab.currentSearchDepth - iterativeIncrement
 			ab.player.printer <- fmt.Sprintf("%s hard abort! evaluated to depth %d\n", ab.GetName(), ab.player.LastSearchDepth)
 			break
@@ -510,7 +533,9 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				}
 				entry.EntryType = entryType
 				entry.Score = normalizedScore
-				entry.BestMove = sm.Move
+				if !sm.Move.Start.Equals(sm.Move.End) {
+					entry.BestMove = sm.Move
+				}
 				entry.Depth = depth
 				entry.Generation = gen
 				entry.Lock.Unlock()
@@ -520,9 +545,11 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				Depth:         depth,
 				EntryType:     entryType,
 				Score:         normalizedScore,
-				BestMove:      sm.Move,
 				NumProcessors: 0,
 				Generation:    gen,
+			}
+			if !sm.Move.Start.Equals(sm.Move.End) {
+				entry.BestMove = sm.Move
 			}
 			ab.player.transpositionTable.Store(&h, currentPlayer, &entry)
 		}

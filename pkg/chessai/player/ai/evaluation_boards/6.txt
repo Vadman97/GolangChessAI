@@ -1,4 +1,4 @@
-Black -12
+Black 23
 W_R|W_N|W_B|   |W_K|   |   |W_R
 W_P|W_P|W_P|W_P|W_B|W_P|W_P|W_P
    |   |   |   |W_P|W_N|   |

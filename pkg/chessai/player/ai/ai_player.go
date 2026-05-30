@@ -30,35 +30,38 @@ const (
 )
 
 // color -> list of openings: { list of moves }
+// Coordinates: col 0=h, col 7=a; row 0=White back rank, row 7=Black back rank.
+// White moves upward (increasing row), Black moves downward (decreasing row).
 var OpeningMoves = map[color.Color][][]*location.Move{
-	color.Black: {{
-		&location.Move{
-			Start: location.NewLocation(board.StartRow[color.Black]["Pawn"], 4),
-			End:   location.NewLocation(board.StartRow[color.Black]["Pawn"]+2, 4),
+	color.White: {
+		// Italian Game: 1.e4 2.Nf3 3.Bc4
+		{
+			{Start: location.NewLocation(1, 3), End: location.NewLocation(3, 3)}, // e2-e4
+			{Start: location.NewLocation(0, 1), End: location.NewLocation(2, 2)}, // Ng1-f3
+			{Start: location.NewLocation(0, 2), End: location.NewLocation(3, 5)}, // Bf1-c4
 		},
-		&location.Move{
-			Start: location.NewLocation(board.StartRow[color.Black]["Piece"], 1),
-			End:   location.NewLocation(board.StartRow[color.Black]["Piece"]+2, 2),
+		// London System: 1.d4 2.Nf3 3.Bf4
+		// c-file=col5, f-file=col2; after 1.d4 the c1-f4 diagonal is open.
+		{
+			{Start: location.NewLocation(1, 4), End: location.NewLocation(3, 4)}, // d2-d4
+			{Start: location.NewLocation(0, 1), End: location.NewLocation(2, 2)}, // Ng1-f3
+			{Start: location.NewLocation(0, 5), End: location.NewLocation(3, 2)}, // Bc1-f4
 		},
-		&location.Move{
-			Start: location.NewLocation(board.StartRow[color.Black]["Piece"], 5),
-			End:   location.NewLocation(board.StartRow[color.Black]["Piece"]+3, 2),
+	},
+	color.Black: {
+		// Classical defence: 1...e5 2...Nf6 3...Bc5
+		{
+			{Start: location.NewLocation(6, 3), End: location.NewLocation(4, 3)}, // e7-e5
+			{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Ng8-f6
+			{Start: location.NewLocation(7, 2), End: location.NewLocation(4, 5)}, // Bf8-c5
 		},
-	}},
-	color.White: {{
-		&location.Move{
-			Start: location.NewLocation(board.StartRow[color.White]["Pawn"], 4),
-			End:   location.NewLocation(board.StartRow[color.White]["Pawn"]-2, 4),
+		// Sicilian-style: 1...c5 2...Nc6 3...d6
+		{
+			{Start: location.NewLocation(6, 5), End: location.NewLocation(4, 5)}, // c7-c5
+			{Start: location.NewLocation(7, 6), End: location.NewLocation(5, 5)}, // Nb8-c6
+			{Start: location.NewLocation(6, 4), End: location.NewLocation(5, 4)}, // d7-d6
 		},
-		&location.Move{
-			Start: location.NewLocation(board.StartRow[color.White]["Piece"], 6),
-			End:   location.NewLocation(board.StartRow[color.White]["Piece"]-2, 5),
-		},
-		&location.Move{
-			Start: location.NewLocation(board.StartRow[color.White]["Piece"], 5),
-			End:   location.NewLocation(board.StartRow[color.White]["Piece"]-3, 2),
-		},
-	}},
+	},
 }
 
 type ScoredMove struct {
@@ -110,7 +113,10 @@ func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
 		printer:                   make(chan string, 1000000),
 	}
 	if config.Get().UseOpenings {
-		p.Opening = rand.Intn(len(OpeningMoves[c]))
+		// Use a separate local source so opening selection doesn't perturb
+		// the global rand state used by tests and random-move generation.
+		localRand := rand.New(rand.NewSource(time.Now().UnixNano()))
+		p.Opening = localRand.Intn(len(OpeningMoves[c]))
 	}
 	return p
 }
@@ -128,8 +134,15 @@ func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove
 
 func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *location.Move {
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
-		return OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
-	} else {
+		bookMove := OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
+		// Only play the book move if the piece is still on the expected starting square.
+		// A custom board position or transposition might have no piece there.
+		if b.GetPiece(bookMove.Start) != nil {
+			return bookMove
+		}
+		p.Opening = OpeningNone // book broken for this position; switch to search
+	}
+	{
 		thinking := make(chan bool)
 		go p.printThread(thinking)
 		defer close(thinking)

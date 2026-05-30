@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -197,10 +198,22 @@ func (l *Lichess) resetGame() {
 }
 
 // thinkTimeForClock allocates think time from the remaining clock.
-// Uses 1/30 of remaining time, capped at 10s, with a 50ms floor so the
-// bot can always make a legal move even in severe time pressure.
-func thinkTimeForClock(timeLeft time.Duration) time.Duration {
-	think := timeLeft / 30
+// Adapts to game phase: more time per move in the middlegame and endgame
+// where precision is critical, less in the opening where fewer decisions matter.
+// Capped at 10s so we never burn the clock on one move.
+func thinkTimeForClock(timeLeft time.Duration, turnCount int) time.Duration {
+	// Estimated remaining moves for THIS side based on how many moves we've made.
+	// Early: expect ~30 more; middlegame: ~20; endgame: ~12.
+	var divisor time.Duration
+	switch {
+	case turnCount < 10:
+		divisor = 30
+	case turnCount < 25:
+		divisor = 20
+	default:
+		divisor = 12
+	}
+	think := timeLeft / divisor
 	if think < 50*time.Millisecond {
 		think = 50 * time.Millisecond
 	}
@@ -230,7 +243,7 @@ func (l *Lichess) handleEvent(event *Event) error {
 		enemyPlayer := player.NewHumanPlayer(enemyColor)
 		l.Player = ai.NewAIPlayer(playerColor, ai.NameToAlgorithm[ai.AlgorithmABDADA])
 		l.Player.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
-		l.Player.MaxThinkTime = thinkTimeForClock(time.Duration(event.Game.SecondsLeft * float64(time.Second)))
+		l.Player.MaxThinkTime = thinkTimeForClock(time.Duration(event.Game.SecondsLeft*float64(time.Second)), l.Player.TurnCount)
 
 		// Create game and start game loop
 		if playerColor == color.White {
@@ -377,7 +390,7 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 		playerTimeMS = state.BlackTimeMS
 	}
 	playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
-	l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft)
+	l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft, l.Player.TurnCount)
 	if len(moves)%2 == int(l.Player.PlayerColor) {
 		// It's our turn.
 		log.Infof("gameFull: our turn after replay, thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
@@ -434,7 +447,7 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 			playerTimeMS = event.BlackTimeMS
 		}
 		playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
-		l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft)
+		l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft, l.Player.TurnCount)
 		log.Infof("player thinking... have time %s, set max to %s", playerTimeLeft, l.Player.MaxThinkTime)
 		if l.Game.GameStatus == game.Active {
 			l.Game.PlayTurn()
@@ -493,13 +506,20 @@ func (l *Lichess) Run() {
 
 	var g errgroup.Group
 	g.Go(func() error {
+		backoff := 3 * time.Second
 		for {
 			err := l.Stream(l.Events)
 			if err != nil {
-				log.Errorf("failed to stream event %s — reconnecting in 3s", err)
-				time.Sleep(3 * time.Second)
+				log.Errorf("failed to stream event %s — reconnecting in %s", err, backoff)
+				time.Sleep(backoff)
+				// Exponential backoff capped at 30s for EOF/context errors
+				// to avoid hammering Lichess when rate-limited.
+				if backoff < 30*time.Second {
+					backoff *= 2
+				}
 				continue
 			}
+			backoff = 3 * time.Second // reset on success
 			return nil
 		}
 	})
@@ -583,14 +603,33 @@ func (l *Lichess) MakeMove(gameID string, move *board.LastMove) error {
 }
 
 func (l *Lichess) Stream(s chan<- Event) error {
+	// Inactivity watchdog: if no data arrives for 2 minutes, cancel the request.
+	// Lichess sends keepalive newlines every ~10s during normal operation; 2 minutes
+	// only fires when rate-limited (connection held open but no data sent).
+	// The watchdog is reset on every successful line read so normal streams stay open.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	const inactivityTimeout = 2 * time.Minute
+	watchdog := time.AfterFunc(inactivityTimeout, cancel)
+	defer watchdog.Stop()
+
 	r, err := l.Client.newRequest("GET", "/api/stream/event", nil)
 	if err != nil {
 		return err
 	}
+	r = r.WithContext(ctx)
 
 	response, err := l.Client.HttpClient.Do(r)
 	if err != nil {
 		return err
+	}
+	if response.StatusCode == 429 {
+		// Rate-limited: back off for 5 minutes before the caller retries.
+		_ = response.Body.Close()
+		log.Warnf("event stream rate limited (HTTP 429) — backing off 5 minutes")
+		time.Sleep(5 * time.Minute)
+		return fmt.Errorf("rate limited (429)")
 	}
 
 	reader := bufio.NewReader(response.Body)
@@ -599,9 +638,17 @@ func (l *Lichess) Stream(s chan<- Event) error {
 		if err != nil {
 			return err
 		}
+		watchdog.Reset(inactivityTimeout) // data received — reset the inactivity timer
 		if len(line) < 3 {
 			s <- Event{Type: EventTypePing}
 			continue
+		}
+		// Detect rate-limit responses delivered as body text (CDN redirect pattern).
+		if bytes.Contains(line, []byte("Too many requests")) || bytes.Contains(line, []byte("/429")) {
+			_ = response.Body.Close()
+			log.Warnf("rate limited in event stream body — backing off 5 minutes")
+			time.Sleep(5 * time.Minute)
+			return fmt.Errorf("rate limited (body 429)")
 		}
 		var event Event
 		if err := json.Unmarshal(line, &event); err != nil {
@@ -620,6 +667,11 @@ func (l *Lichess) StreamBoardUpdate(gameID string, s chan<- GameEvent) error {
 	response, err := l.Client.HttpClient.Do(r)
 	if err != nil {
 		return err
+	}
+	if response.StatusCode == 429 {
+		_ = response.Body.Close()
+		time.Sleep(60 * time.Second)
+		return fmt.Errorf("rate limited (429)")
 	}
 
 	reader := bufio.NewReader(response.Body)
