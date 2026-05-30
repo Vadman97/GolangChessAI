@@ -294,7 +294,7 @@ func (smp *LazySMP) search(root *board.Board, depth, alpha, beta int, currentPla
 		}
 	}
 
-	orderedMoves := orderMoves(*movesArr, ttBestMove, [2]location.Move{}, nil, root)
+	orderedMoves := orderMoves(*movesArr, ttBestMove, [2]location.Move{}, nil, root, previousMove)
 
 	var best ScoredMove
 	best.Score = NegInf

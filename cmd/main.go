@@ -35,8 +35,12 @@ func main() {
 
 	if len(os.Args) > 1 {
 		if os.Args[1] == "lichess" {
-			server.ConnectLichess().Run()
-			return
+			// Restart the server if it exits unexpectedly (rate limits, crashes, etc.)
+			for {
+				server.ConnectLichess().Run()
+				log.Println("lichess server exited — restarting in 30s")
+				time.Sleep(30 * time.Second)
+			}
 		} else if os.Args[1] == "lichess-challenge" {
 			// Usage: ./main lichess-challenge <username> [limitSecs] [incrementSecs] [rated]
 			if len(os.Args) < 3 {

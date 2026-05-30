@@ -6,10 +6,6 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 )
 
-// deltaMargin is the centipawn safety buffer for delta pruning — roughly a minor piece.
-// Keeps the pruning conservative so we don't incorrectly prune positional swings.
-const deltaMargin = 3 * PawnValueWeight
-
 func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
 	// Generate all moves first so terminal detection uses correct previousMove (en passant included).
 	moves := root.GetAllMoves(currentPlayer, previousMove)
@@ -31,7 +27,9 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 			alpha = standPat
 		}
 
-		// Futility delta prune: if even capturing the queen can't raise alpha, skip all captures.
+		// Global delta prune: if standPat + the best possible single capture (queen) still
+		// can't raise alpha, skip all captures — the position is too far behind.
+		const deltaMargin = 3 * PawnValueWeight // safety buffer for positional swings
 		maxCapture := PawnValueWeight * PieceValue[piece.QueenType]
 		if standPat+maxCapture+deltaMargin < alpha {
 			return alpha
@@ -67,15 +65,18 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 			break
 		}
 		isPromotion, _ := m.End.GetPawnPromotion()
-		// Per-capture delta prune: skip if even winning this piece won't raise alpha.
-		// Not applied when in check — we must consider all evasions.
-		if !inCheck && !isPromotion {
-			capturedPiece := root.GetPiece(m.End)
-			if capturedPiece != nil {
-				gain := PawnValueWeight * PieceValue[capturedPiece.GetPieceType()]
-				if standPat+gain+deltaMargin < alpha {
-					continue
-				}
+		// SEE-based pruning: skip captures that lose material (SEE < 0) when not in check.
+		// This is more accurate than delta pruning: SEE accounts for the full exchange
+		// sequence rather than just the immediate captured piece value.
+		// Promotions are always searched regardless of SEE (they can't be meaningfully rated).
+		if !inCheck && !isPromotion && root.GetPiece(m.End) != nil {
+			capturer := root.GetPiece(m.Start)
+			var stm byte
+			if capturer != nil {
+				stm = capturer.GetColor()
+			}
+			if root.SEE(m, stm) < 0 {
+				continue
 			}
 		}
 

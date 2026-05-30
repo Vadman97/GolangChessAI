@@ -83,6 +83,11 @@ const (
 	PawnAdvancedWeight  = 1
 	// IsolatedPawnPenalty: a pawn with no friendly pawns on adjacent files is weak.
 	IsolatedPawnPenalty = -15
+	// BackwardPawnPenalty: a pawn that cannot be supported by a friendly pawn from behind
+	// (no friendly pawn on adjacent files BEHIND this pawn). Backward pawns on semi-open
+	// files are especially weak since the opponent can attack them directly with rooks.
+	BackwardPawnPenalty     = -8
+	BackwardOnSemiOpenBonus = -8 // extra penalty if the file in front has no friendly pawns
 	// TempoBonus: small bonus for the side to move, reflecting the value of initiative.
 	// Applied at every leaf node; improves handling of zugzwang and forcing sequences.
 	TempoBonus = 10
@@ -103,7 +108,20 @@ const (
 	// attacked by a friendly knight. Scaled by pawn rank (rank/6 × base value).
 	// Prevents the engine from undervaluing defensive knight maneuvers that
 	// simultaneously blockade multiple advanced passed pawns (K+PP vs K+N endings).
-	KnightPasserBlockadeBonus = 150
+	// Reduced from 150 (over-valued, caused tactical misses in exchange calculations).
+	KnightPasserBlockadeBonus = 60
+
+	// KingAttackZoneWeight: penalty per enemy-attacked square in the king ring (3×3
+	// around the king). Applied exponentially past a threshold so a concentrated
+	// attack (3+ squares) triggers a much sharper penalty than a diffuse one.
+	// Only active in the middlegame (phase > 64) — in endgames the king should
+	// centralize rather than hide, so we let the PST handle positioning.
+	KingAttackZoneWeight = 12
+
+	// ConnectedPasserBonus: extra bonus when two passed pawns are on adjacent files.
+	// Connected passers are drastically harder to stop than isolated passers: one
+	// supports the other as they advance together. Applied per pawn in a connected pair.
+	ConnectedPasserBonus = 30
 )
 
 // knightMoveDeltas lists all 8 relative (row, col) offsets for knight moves.
@@ -154,6 +172,82 @@ func isKnightOutpost(b *board.Board, row, col location.CoordinateType, knightCol
 // pawn advances; the old "inflation" was caused by LMR under-searching the
 // opponent's promotion threat, not by the eval values themselves.
 var passedPawnBonus = [8]int{0, 0, 0, 5, 20, 80, 130, 0}
+
+// backwardPawnPenalty returns a negative score if the pawn at (row, col) of color c
+// is backward — it has advanced from its starting square but has no friendly pawn on
+// either adjacent file "behind" it (closer to c's own back rank). Unadvanaced pawns
+// (on their starting row) are not penalized. An extra penalty applies when the file
+// ahead has no friendly pawns (semi-open file: rook/queen can target it).
+func backwardPawnPenalty(b *board.Board, row, col location.CoordinateType, c color.Color) int {
+	// Only penalize advanced pawns — starting-position pawns trivially have no
+	// "behind" supporters and should not be flagged.
+	startRow := board.StartRow[c]["Pawn"]
+	if row == startRow {
+		return 0
+	}
+
+	hasSupport := false
+	for _, dc := range [2]int{-1, 1} {
+		adjCol := int(col) + dc
+		if adjCol < 0 || adjCol >= board.Width {
+			continue
+		}
+		// For White (own back rank = row 0): "behind" = row' < row.
+		// For Black (own back rank = row 7): "behind" = row' > row.
+		if c == color.White {
+			for r := location.CoordinateType(0); r < row; r++ {
+				p := b.GetPiece(location.NewLocation(r, location.CoordinateType(adjCol)))
+				if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+					hasSupport = true
+					break
+				}
+			}
+		} else {
+			for r := location.CoordinateType(7); r > row; r-- {
+				p := b.GetPiece(location.NewLocation(r, location.CoordinateType(adjCol)))
+				if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+					hasSupport = true
+					break
+				}
+			}
+		}
+		if hasSupport {
+			break
+		}
+	}
+	if hasSupport {
+		return 0
+	}
+	penalty := BackwardPawnPenalty
+	// Extra penalty if the file ahead has no friendly pawns (semi-open = rook target).
+	hasFriendlyAhead := false
+	if c == color.White {
+		for r := row + 1; int(r) < board.Height; r++ {
+			p := b.GetPiece(location.NewLocation(r, col))
+			if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+				hasFriendlyAhead = true
+				break
+			}
+		}
+	} else {
+		if row > 0 {
+			for r := row - 1; ; r-- {
+				p := b.GetPiece(location.NewLocation(r, col))
+				if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+					hasFriendlyAhead = true
+					break
+				}
+				if r == 0 {
+					break
+				}
+			}
+		}
+	}
+	if !hasFriendlyAhead {
+		penalty += BackwardOnSemiOpenBonus
+	}
+	return penalty
+}
 
 // isPassedPawn returns true if no enemy pawn can block or capture this pawn
 // on the way to promotion — i.e. no enemy pawn on the same file or adjacent
@@ -518,6 +612,12 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		phase := endgamePhase(eval.PieceCounts)
 
 		pstScores := [color.NumColors]int{}
+		// combinedAttacks accumulates the pseudo-legal attack BitBoards for each color.
+		// Used for the king attack zone penalty without an extra board scan.
+		var combinedAttacks [color.NumColors]board.BitBoard
+		// passedPawnCols tracks which columns have a passed pawn for each color.
+		// Used to detect connected passed pawns (adjacent-file passers).
+		var passedPawnCols [color.NumColors][board.Width]bool
 		for row := location.CoordinateType(0); row < board.Height; row++ {
 			for col := location.CoordinateType(0); col < board.Width; col++ {
 				if gamePiece := b.GetPiece(location.NewLocation(row, col)); gamePiece != nil {
@@ -527,8 +627,10 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 					// Use pseudo-legal (attackable) squares for mobility — avoids willMoveLeaveKingInCheck
 					// per candidate, which would copy the board for every move of every piece.
 					// Pseudo-legal mobility is a standard eval heuristic and allows searching much deeper.
-					numPseudoLegal := int(hamming.CountBitsUint64(uint64(gamePiece.GetAttackableMoves(b))))
+					attackableMoves := gamePiece.GetAttackableMoves(b)
+					numPseudoLegal := int(hamming.CountBitsUint64(uint64(attackableMoves)))
 					eval.NumMoves[c] += uint16(numPseudoLegal)
+					combinedAttacks[c] = combinedAttacks[c].CombineBitBoards(attackableMoves)
 
 					pstScores[c] += pstBonus(pt, c, row, col, phase)
 
@@ -545,7 +647,11 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 								rank = 7 - int(row)
 							}
 							pstScores[c] += passedPawnBonus[rank]
+							passedPawnCols[c][col] = true
 						}
+						// Backward pawn: no friendly pawn on adjacent files that is BEHIND this one.
+						// "Behind" = closer to own back rank.
+						pstScores[c] += backwardPawnPenalty(b, row, col, c)
 					} else if pt == piece.KnightType {
 						if row != board.StartRow[c]["Piece"] {
 							eval.PieceAdvanced[c][pt]++
@@ -641,6 +747,17 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 			}
 		}
 
+		// Connected passed pawn bonus: apply after all pieces have been scanned
+		// so passedPawnCols is fully populated.
+		for pColor := byte(0); pColor < color.NumColors; pColor++ {
+			for col := 1; col < board.Width; col++ {
+				if passedPawnCols[pColor][col] && passedPawnCols[pColor][col-1] {
+					// Both col and col-1 have a passed pawn — they're connected.
+					pstScores[pColor] += ConnectedPasserBonus * 2 // once per pawn
+				}
+			}
+		}
+
 		for pColor := byte(0); pColor < color.NumColors; pColor++ {
 			score := 0
 			for pieceType, value := range PieceValue {
@@ -672,6 +789,27 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 				score += KingCheckedWeight
 			}
 			score += kingSafety(b, pColor)
+			// King attack zone: count enemy-attacked squares in the 3×3 ring around our king.
+			// Each additional attacked square triggers a penalty; exponential past 2 squares
+			// so a concentrated attack is penalized more severely than a diffuse one.
+			// Only relevant in the middlegame (phase > 64).
+			if phase > 64 {
+				enemy := pColor ^ 1
+				kingLoc := b.KingLocations[pColor]
+				var kingRing board.BitBoard
+				for dr := int8(-1); dr <= 1; dr++ {
+					for dc := int8(-1); dc <= 1; dc++ {
+						if ringLoc, ok := kingLoc.AddRelative(location.RelativeLocation{Row: dr, Col: dc}); ok {
+							kingRing.SetLocation(ringLoc)
+						}
+					}
+				}
+				attackedInRing := int(hamming.CountBitsUint64(uint64(kingRing.IntersectBitBoards(combinedAttacks[enemy]))))
+				if attackedInRing >= 2 {
+					// Quadratic scaling: 2 squares = 1×weight, 3 = 3×, 4 = 6×, ...
+					score -= KingAttackZoneWeight * attackedInRing * (attackedInRing - 1) / 2
+				}
+			}
 			for column := location.CoordinateType(0); column < board.Width; column++ {
 				cnt := eval.PawnColumns[pColor][column]
 				if cnt == 0 {

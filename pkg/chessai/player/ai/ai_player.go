@@ -34,32 +34,49 @@ const (
 // White moves upward (increasing row), Black moves downward (decreasing row).
 var OpeningMoves = map[color.Color][][]*location.Move{
 	color.White: {
-		// Italian Game: 1.e4 2.Nf3 3.Bc4
+		// Giuoco Piano / Italian Game: 1.e4 2.Nf3 3.Bc4 4.c3 5.d3 6.0-0
+		// c3 prepares d4; d3 keeps solid pawn center; 0-0 for king safety.
+		// These 6 moves are always legally playable as the pieces are on their
+		// expected squares (sanity-checked before playing each book move).
 		{
 			{Start: location.NewLocation(1, 3), End: location.NewLocation(3, 3)}, // e2-e4
 			{Start: location.NewLocation(0, 1), End: location.NewLocation(2, 2)}, // Ng1-f3
 			{Start: location.NewLocation(0, 2), End: location.NewLocation(3, 5)}, // Bf1-c4
+			{Start: location.NewLocation(1, 5), End: location.NewLocation(2, 5)}, // c2-c3
+			{Start: location.NewLocation(1, 4), End: location.NewLocation(2, 4)}, // d2-d3
+			{Start: location.NewLocation(0, 3), End: location.NewLocation(0, 1)}, // 0-0 (e1-g1)
 		},
-		// London System: 1.d4 2.Nf3 3.Bf4
-		// c-file=col5, f-file=col2; after 1.d4 the c1-f4 diagonal is open.
+		// London System: 1.d4 2.Nf3 3.Bf4 4.e3 5.Bd3 6.0-0
+		// e3 supports the pawn chain; Bd3 develops the bishop; 0-0 for king safety.
 		{
 			{Start: location.NewLocation(1, 4), End: location.NewLocation(3, 4)}, // d2-d4
 			{Start: location.NewLocation(0, 1), End: location.NewLocation(2, 2)}, // Ng1-f3
 			{Start: location.NewLocation(0, 5), End: location.NewLocation(3, 2)}, // Bc1-f4
+			{Start: location.NewLocation(1, 3), End: location.NewLocation(2, 3)}, // e2-e3
+			{Start: location.NewLocation(0, 2), End: location.NewLocation(2, 4)}, // Bf1-d3
+			{Start: location.NewLocation(0, 3), End: location.NewLocation(0, 1)}, // 0-0 (e1-g1)
 		},
 	},
 	color.Black: {
-		// Classical defence: 1...e5 2...Nf6 3...Bc5
+		// Classical defence: 1...e5 2...Nf6 3...Bc5 4...c6 5...d6 6...0-0
+		// c6 supports d5; d6 solidifies center; 0-0 for king safety.
 		{
 			{Start: location.NewLocation(6, 3), End: location.NewLocation(4, 3)}, // e7-e5
 			{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Ng8-f6
 			{Start: location.NewLocation(7, 2), End: location.NewLocation(4, 5)}, // Bf8-c5
+			{Start: location.NewLocation(6, 5), End: location.NewLocation(5, 5)}, // c7-c6
+			{Start: location.NewLocation(6, 4), End: location.NewLocation(5, 4)}, // d7-d6
+			{Start: location.NewLocation(7, 3), End: location.NewLocation(7, 1)}, // 0-0 (e8-g8)
 		},
-		// Sicilian-style: 1...c5 2...Nc6 3...d6
+		// Sicilian-style: 1...c5 2...Nc6 3...d6 4...Nf6 5...g6 6...Bg7
+		// Heading toward the Dragon variation with fianchettoed bishop.
 		{
 			{Start: location.NewLocation(6, 5), End: location.NewLocation(4, 5)}, // c7-c5
 			{Start: location.NewLocation(7, 6), End: location.NewLocation(5, 5)}, // Nb8-c6
 			{Start: location.NewLocation(6, 4), End: location.NewLocation(5, 4)}, // d7-d6
+			{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Ng8-f6
+			{Start: location.NewLocation(6, 1), End: location.NewLocation(5, 1)}, // g7-g6
+			{Start: location.NewLocation(7, 2), End: location.NewLocation(6, 1)}, // Bf8-g7
 		},
 	},
 }
@@ -135,9 +152,21 @@ func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove
 func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *location.Move {
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		bookMove := OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
-		// Only play the book move if the piece is still on the expected starting square.
-		// A custom board position or transposition might have no piece there.
-		if b.GetPiece(bookMove.Start) != nil {
+		// Only play the book move if:
+		// 1. Our piece is still on the expected starting square.
+		// 2. The destination square is empty (not blocked by a friendly piece).
+		// 3. The destination square is not immediately attacked by an opponent piece.
+		//    (Prevents playing into immediate captures like Bc4 when d5 can take.)
+		bookOK := b.GetPiece(bookMove.Start) != nil && b.IsEmpty(bookMove.End)
+		if bookOK {
+			// Check if the destination square is safe (not under enemy attack).
+			enemy := p.PlayerColor ^ 1
+			enemyAttacks := b.GetAllAttackableMoves(enemy)
+			if enemyAttacks.IsLocationSet(bookMove.End) {
+				bookOK = false // destination is attacked; skip this book move
+			}
+		}
+		if bookOK {
 			return bookMove
 		}
 		p.Opening = OpeningNone // book broken for this position; switch to search
