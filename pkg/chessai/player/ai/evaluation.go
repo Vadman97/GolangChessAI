@@ -150,10 +150,10 @@ func isKnightOutpost(b *board.Board, row, col location.CoordinateType, knightCol
 // passedPawnBonus is added to the score for a passed pawn at the given rank
 // (distance from own back rank, 0 = back rank, 7 = promotion). Additive on top
 // of pawnPST — passed pawns are far more dangerous than normal advanced pawns.
-// Conservative values prevent the shallow search (depth 6-8) from projecting
-// pawn advances that a deeper search (SF depth 15) knows White can stop.
-// Old values {0,0,0,10,35,75,110} caused 1000+ cp eval inflation at search horizon.
-var passedPawnBonus = [8]int{0, 0, 0, 5, 20, 50, 75, 0}
+// Ranks 5-6 are raised from 50/75 now that LMR correctly skips near-promotion
+// pawn advances; the old "inflation" was caused by LMR under-searching the
+// opponent's promotion threat, not by the eval values themselves.
+var passedPawnBonus = [8]int{0, 0, 0, 5, 20, 80, 130, 0}
 
 // isPassedPawn returns true if no enemy pawn can block or capture this pawn
 // on the way to promotion — i.e. no enemy pawn on the same file or adjacent

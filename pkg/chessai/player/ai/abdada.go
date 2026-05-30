@@ -190,15 +190,28 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			isKiller := ab.isKiller(move, ply)
 			isTTMove := move.Start.Equals(ttAnswer.bestMove.Start) && move.End.Equals(ttAnswer.bestMove.End)
 
-
+			// Near-promotion pawn advances (rank 5 or 6 from own back rank) are tactically
+			// critical — the threat of promoting with check or material gain must be seen
+			// at full depth. LMR on these moves caused false forced-mate hallucinations and
+			// missed Qxd3-type captures in the opponent's response tree.
+			isNearPromo := false
+			if mp := root.GetPiece(move.Start); mp != nil && mp.GetPieceType() == piece.PawnType {
+				endRow := int(move.End.GetRow())
+				if currentPlayer == color.White && endRow >= 5 {
+					isNearPromo = true
+				} else if currentPlayer == color.Black && endRow <= 2 {
+					isNearPromo = true
+				}
+			}
 
 			// Late Move Reductions: quietly search less-promising moves at reduced depth.
 			// Conditions: not a capture, not a promotion, not a killer, not the TT move,
-			// not when in check, only after lmrMinMoveIdx moves already searched.
+			// not when in check, not a near-promotion pawn advance, only after lmrMinMoveIdx
+			// moves already searched.
 			doLMR := iteration == 1 &&
 				depth >= lmrMinDepth &&
 				moveIdx > lmrMinMoveIdx &&
-				!isCapture && !isPromo && !isKiller && !isTTMove && !inCheck
+				!isCapture && !isPromo && !isKiller && !isTTMove && !inCheck && !isNearPromo
 
 			var value ScoredMove
 			child, pm := ab.player.applyMove(root, &move)
