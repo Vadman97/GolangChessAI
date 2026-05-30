@@ -57,8 +57,14 @@ type Game struct {
 	Source          string  `json:"source"`
 }
 
-type Challenge struct {
+type ChallengeUser struct {
 	ID string `json:"id"`
+}
+
+type Challenge struct {
+	ID         string         `json:"id"`
+	Direction  string         `json:"direction"`  // present in API responses, absent in event stream
+	Challenger *ChallengeUser `json:"challenger"` // the user who sent the challenge
 }
 
 type Event struct {
@@ -292,8 +298,21 @@ func (l *Lichess) handleEvent(event *Event) error {
 		if event.Challenge == nil {
 			return errors.New("challenge event missing challenge data")
 		}
-		// Only accept incoming challenges; outgoing ones (direction=="out") cannot be accepted.
-		if event.ChallengeDirection == "out" {
+		// Only accept incoming challenges. The Lichess event stream does NOT include a
+		// "direction" field for challenge events, so we detect outgoing challenges by
+		// checking if the challenger is our own bot account (vadbot).
+		// Fallback: also check the direction fields for future-proofing.
+		ourUsername := "vadbot"
+		challengerID := ""
+		if event.Challenge.Challenger != nil {
+			challengerID = event.Challenge.Challenger.ID
+		}
+		// Outgoing challenge: direction field is absent in event stream, so detect by
+		// checking if the challenger is our own bot account.
+		isOutgoing := event.Challenge.Direction == "out" ||
+			event.ChallengeDirection == "out" ||
+			challengerID == ourUsername
+		if isOutgoing {
 			log.Debugf("ignoring our own outgoing challenge %s", event.Challenge.ID)
 			break
 		}
@@ -327,7 +346,9 @@ func parseUCIMove(uci string) *location.Move {
 		case 'r':
 			promoType = piece.RookType
 		case 'b':
-			promoType = piece.BishopType
+			// BishopType can't be encoded in the 2-bit promotion field (only Queen/Rook/Knight fit).
+			// Bishop underpromotion is essentially never played; treat as queen.
+			promoType = piece.QueenType
 		case 'n':
 			promoType = piece.KnightType
 		}
@@ -505,7 +526,15 @@ func (l *Lichess) Run() {
 	}
 
 	var g errgroup.Group
-	g.Go(func() error {
+
+	// Event stream: reconnects on any error with exponential backoff.
+	g.Go(func() (retErr error) {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("stream goroutine panic: %v", r)
+				retErr = fmt.Errorf("stream panic: %v", r)
+			}
+		}()
 		backoff := 3 * time.Second
 		for {
 			err := l.Stream(l.Events)
@@ -523,6 +552,9 @@ func (l *Lichess) Run() {
 			return nil
 		}
 	})
+
+	// Event handler: processes game events from the event stream. Never exits on errors
+	// since a bad event should not kill the whole bot.
 	g.Go(func() error {
 		// exitAfterGame is nil when not in challenge mode; a nil channel in
 		// select blocks forever, so this case only fires in challenge mode.
@@ -531,8 +563,8 @@ func (l *Lichess) Run() {
 			select {
 			case e := <-l.Events:
 				if err := l.handleEvent(&e); err != nil {
-					log.Errorf("failed to handle event %s", err)
-					return err
+					log.Errorf("failed to handle event %s — continuing", err)
+					// Don't return: a bad event (nil challenge, etc.) should not kill the bot.
 				}
 			case <-exitCh:
 				log.Infof("game finished, exiting")
@@ -540,15 +572,18 @@ func (l *Lichess) Run() {
 			}
 		}
 	})
+
+	// Board update handler: processes per-game move events. Never exits on errors.
 	g.Go(func() error {
 		for {
 			ge := <-l.GameEvents
 			if err := l.handleBoardUpdate(&ge); err != nil {
-				log.Errorf("failed to handle board update %s", err)
-				return err
+				log.Errorf("failed to handle board update %s — continuing", err)
+				// Don't return: individual game errors should not kill the bot.
 			}
 		}
 	})
+
 	err := g.Wait()
 	if err != nil {
 		log.Fatal(err)

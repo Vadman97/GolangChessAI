@@ -37,26 +37,21 @@ func (l *Location) Set(v Location) {
 }
 
 func (l Location) CreatePawnPromotion(promotedType byte) Location {
-	found := false
-	for _, option := range piece.PawnPromotionOptions {
+	// Encode as index+1 into PawnPromotionOptions (0 = no promotion).
+	for i, option := range piece.PawnPromotionOptions {
 		if promotedType == option {
-			found = true
-			break
+			l.data |= byte(i + 1)
+			return l
 		}
 	}
-	if !found {
-		panic("trying to promote pawn to invalid piece type")
-	}
-	// 0 corresponds to no promotion, thus the +1
-	l.data |= promotedType - piece.PawnPromotionOptions[0] + 1
-	return l
+	panic("trying to promote pawn to invalid piece type")
 }
 
 func (l *Location) GetPawnPromotion() (isPromotion bool, promotedType byte) {
 	data := l.data & 0x3
 	if data != 0 {
 		isPromotion = true
-		promotedType = data + piece.PawnPromotionOptions[0] - 1
+		promotedType = piece.PawnPromotionOptions[data-1]
 	}
 	return
 }

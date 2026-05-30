@@ -97,9 +97,10 @@ func (r *Pawn) getCaptureMoves(board *Board, onlyFirstMove bool) *[]location.Mov
 			continue
 		}
 		if r.canPromote(loc) {
+			baseLoc := loc
 			for _, promotedType := range piece.PawnPromotionOptions {
-				loc = loc.CreatePawnPromotion(promotedType)
-				possibleMove := location.Move{Start: r.GetPosition(), End: loc}
+				promoLoc := baseLoc.CreatePawnPromotion(promotedType)
+				possibleMove := location.Move{Start: r.GetPosition(), End: promoLoc}
 				if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
 					moves = append(moves, possibleMove)
 					if onlyFirstMove {
@@ -136,9 +137,10 @@ func (r *Pawn) getForwardMoves(board *Board, onlyFirstMove bool) *[]location.Mov
 			// can only add if empty - no attacking forward with pawns
 			if board.IsEmpty(l) {
 				if r.canPromote(l) {
+					baseLoc := l
 					for _, promotedType := range piece.PawnPromotionOptions {
-						l = l.CreatePawnPromotion(promotedType)
-						possibleMove := location.Move{Start: r.GetPosition(), End: l}
+						promoLoc := baseLoc.CreatePawnPromotion(promotedType)
+						possibleMove := location.Move{Start: r.GetPosition(), End: promoLoc}
 						if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
 							moves = append(moves, possibleMove)
 							if onlyFirstMove {

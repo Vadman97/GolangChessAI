@@ -149,17 +149,18 @@ func TestPawnGetMovesAttack(t *testing.T) {
 }
 
 func TestPawnGetMovesPromoteAttackWhite(t *testing.T) {
+	// 2 capture squares × len(PawnPromotionOptions) promotion types each
 	testPieceGetMoves(t, location.NewLocation(1, 3), &[]location.Move{{
 		Start: location.NewLocation(6, 3),
 		End:   location.NewLocation(1, 3),
-	}}, 2)
+	}}, 2*len(piece.PawnPromotionOptions))
 }
 
 func TestPawnGetMovesPromoteAttackBlack(t *testing.T) {
 	testPieceGetMoves(t, location.NewLocation(6, 3), &[]location.Move{{
 		Start: location.NewLocation(1, 3),
 		End:   location.NewLocation(6, 3),
-	}}, 2)
+	}}, 2*len(piece.PawnPromotionOptions))
 }
 
 func TestPawnGetMovesPromoteWhite(t *testing.T) {
