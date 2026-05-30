@@ -525,6 +525,12 @@ type TTAnswer struct {
 
 func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
 	if ab.player.TranspositionTableEnabled {
+		// PosInf/NegInf are search bounds, not board evaluations.  Writing them
+		// to the TT would poison future lookups with fake mate scores (the
+		// normalise/denormalise roundtrip converts PosInf into ~1999999999).
+		if sm.Score >= PosInf || sm.Score <= NegInf {
+			return
+		}
 		h := root.Hash()
 		entryType := transposition_table.TrueScore
 		if sm.Score >= beta {

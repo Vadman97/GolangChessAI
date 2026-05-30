@@ -357,10 +357,12 @@ func AdjustMateScore(score, depth int) int {
 // NormalizeMateScore removes the depth component before storing a score in the
 // transposition table so that the distance-to-mate is relative to the stored
 // position rather than the root. Pair with DenormalizeMateScore on retrieval.
+// PosInf/NegInf are search sentinels, not board evaluations — skip normalization
+// to prevent them from corrupting TT entries as fake mate scores.
 func NormalizeMateScore(score, depth int) int {
-	if score >= WinScore {
+	if score >= WinScore && score < PosInf {
 		return score - depth
-	} else if score <= LossScore {
+	} else if score <= LossScore && score > NegInf {
 		return score + depth
 	}
 	return score
@@ -369,9 +371,9 @@ func NormalizeMateScore(score, depth int) int {
 // DenormalizeMateScore re-applies the depth component after reading a score
 // from the transposition table at a (possibly different) depth.
 func DenormalizeMateScore(score, depth int) int {
-	if score >= WinScore {
+	if score >= WinScore && score < PosInf {
 		return score + depth
-	} else if score <= LossScore {
+	} else if score <= LossScore && score > NegInf {
 		return score - depth
 	}
 	return score
