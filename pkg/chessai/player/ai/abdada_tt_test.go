@@ -99,3 +99,52 @@ func TestNewPonderPlayerUsesRequestedColorAndIsolatedAlgorithm(t *testing.T) {
 		t.Fatalf("expected copied thread count, got %d", abdada.NumThreads)
 	}
 }
+
+func TestABDADATTWriteSkippedOnAbort(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+
+	p := NewAIPlayer(color.White, &ABDADA{})
+	p.TranspositionTableEnabled = true
+	p.abort = true
+	ab := &ABDADA{player: p}
+
+	best := &ScoredMove{
+		Move: location.Move{
+			Start: location.NewLocation(1, 4),
+			End:   location.NewLocation(3, 4),
+		},
+		Score: 42,
+	}
+
+	ab.syncTTWrite(b, color.White, 3, -100, 100, best)
+
+	h := b.Hash()
+	if _, ok := p.transpositionTable.Read(&h, color.White); ok {
+		t.Fatal("did not expect aborted search to write TT entry")
+	}
+}
+
+func TestABDADATTWriteSkippedForOnEvaluationSentinel(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+
+	p := NewAIPlayer(color.White, &ABDADA{})
+	p.TranspositionTableEnabled = true
+	ab := &ABDADA{player: p}
+
+	best := &ScoredMove{
+		Move: location.Move{
+			Start: location.NewLocation(1, 4),
+			End:   location.NewLocation(3, 4),
+		},
+		Score: OnEvaluation,
+	}
+
+	ab.syncTTWrite(b, color.White, 3, -100, 100, best)
+
+	h := b.Hash()
+	if _, ok := p.transpositionTable.Read(&h, color.White); ok {
+		t.Fatal("did not expect OnEvaluation sentinel to be stored in TT")
+	}
+}
