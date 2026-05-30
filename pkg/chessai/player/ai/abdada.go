@@ -2,7 +2,6 @@ package ai
 
 import (
 	"fmt"
-	"math"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
@@ -11,27 +10,28 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/transposition_table"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"log"
+	"math"
 	"runtime"
 	"sync/atomic"
 	"time"
 )
 
 const (
-	maxKillerDepth   = 64
-	aspirationDelta    = 50   // initial window half-width in centipawns
-	aspirationMaxDelta = 500  // full-window fallback after repeated failures
-	aspirationWiden    = 4    // multiply delta by this on each failure
-	nullMoveMinDepth = 3   // minimum depth to attempt null move
-	nullMoveR        = 2   // null move depth reduction (increases to 3 at depth>=7)
-	lmrMinDepth      = 3   // minimum depth before LMR kicks in
-	lmrMinMoveIdx    = 3   // LMR applies after this many moves have been searched
-	maxExtensions    = 4   // total check-extension budget per branch
+	maxKillerDepth     = 64
+	aspirationDelta    = 50  // initial window half-width in centipawns
+	aspirationMaxDelta = 500 // full-window fallback after repeated failures
+	aspirationWiden    = 4   // multiply delta by this on each failure
+	nullMoveMinDepth   = 3   // minimum depth to attempt null move
+	nullMoveR          = 2   // null move depth reduction (increases to 3 at depth>=7)
+	lmrMinDepth        = 3   // minimum depth before LMR kicks in
+	lmrMinMoveIdx      = 3   // LMR applies after this many moves have been searched
+	maxExtensions      = 4   // total check-extension budget per branch
 
 	// Futility pruning: skip quiet moves at frontier/pre-frontier nodes when the
 	// static eval is far below alpha. Margins indexed by depth (1 or 2).
 	futilityMaxDepth = 2
-	futilityMargin1  = PawnValueWeight      // 100 cp at depth 1
-	futilityMargin2  = 3 * PawnValueWeight  // 300 cp at depth 2
+	futilityMargin1  = PawnValueWeight     // 100 cp at depth 1
+	futilityMargin2  = 3 * PawnValueWeight // 300 cp at depth 2
 
 	// Razoring: if static eval + margin < alpha at depth 1, drop straight to qsearch.
 	// If qsearch also fails low, prune the node.
@@ -133,6 +133,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	ttAnswer := ab.ttRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
 	movesArr := root.GetAllMoves(currentPlayer, previousMove)
 	alpha, beta = ttAnswer.alpha, ttAnswer.beta
+	originalAlpha := alpha
 	best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove
 
 	if ab.player.terminalNode(root, movesArr) {
@@ -262,72 +263,72 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			}
 
 			if !futilityPruned {
-			// Late Move Reductions: quietly search less-promising moves at reduced depth.
-			// Conditions: not a capture, not a promotion, not a killer, not the TT move,
-			// not when in check, not a near-promotion pawn advance, only after lmrMinMoveIdx
-			// moves already searched.
-			// Guard: best.Score must be a real score (> NegInf). When ABDADA threads
-			// return OnEvaluation for the first N moves, best.Score stays NegInf and
-			// -(NegInf+1) = PosInf-1 overflows the LMR window into garbage territory.
-			doLMR := iteration == 1 &&
-				depth >= lmrMinDepth &&
-				moveIdx > lmrMinMoveIdx &&
-				!isCapture && !isPromo && !isKiller && !isTTMove && !inCheck && !isNearPromo &&
-				best.Score > NegInf
+				// Late Move Reductions: quietly search less-promising moves at reduced depth.
+				// Conditions: not a capture, not a promotion, not a killer, not the TT move,
+				// not when in check, not a near-promotion pawn advance, only after lmrMinMoveIdx
+				// moves already searched.
+				// Guard: best.Score must be a real score (> NegInf). When ABDADA threads
+				// return OnEvaluation for the first N moves, best.Score stays NegInf and
+				// -(NegInf+1) = PosInf-1 overflows the LMR window into garbage territory.
+				doLMR := iteration == 1 &&
+					depth >= lmrMinDepth &&
+					moveIdx > lmrMinMoveIdx &&
+					!isCapture && !isPromo && !isKiller && !isTTMove && !inCheck && !isNearPromo &&
+					best.Score > NegInf
 
-			var value ScoredMove
-			child, pm := ab.player.applyMove(root, &move)
+				var value ScoredMove
+				child, pm := ab.player.applyMove(root, &move)
 
-			if doLMR {
-				reduction := int(math.Log(float64(depth)) * math.Log(float64(moveIdx)) / 2.0)
-				if reduction < 1 {
-					reduction = 1
-				}
-				if reduction > depth-2 {
-					reduction = depth - 2
-				}
-				lmr := ab.ABDADA(child, depth-1-reduction, -(util.MaxScore(alpha, best.Score)+1), -util.MaxScore(alpha, best.Score), false, currentPlayer^1, pm, true, ply+1, extensions)
-				lmr.Score = -lmr.Score
-				lmr.Move = move
-				if lmr.Score == -OnEvaluation || lmr.Score > util.MaxScore(alpha, best.Score) {
-					// LMR failed high or deferred — do full-depth re-search.
+				if doLMR {
+					reduction := int(math.Log(float64(depth)) * math.Log(float64(moveIdx)) / 2.0)
+					if reduction < 1 {
+						reduction = 1
+					}
+					if reduction > depth-2 {
+						reduction = depth - 2
+					}
+					lmr := ab.ABDADA(child, depth-1-reduction, -(util.MaxScore(alpha, best.Score) + 1), -util.MaxScore(alpha, best.Score), false, currentPlayer^1, pm, true, ply+1, extensions)
+					lmr.Score = -lmr.Score
+					lmr.Move = move
+					if lmr.Score == -OnEvaluation || lmr.Score > util.MaxScore(alpha, best.Score) {
+						// LMR failed high or deferred — do full-depth re-search.
+						value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1, extensions)
+						value.Score = -value.Score
+						value.Move = move
+					} else {
+						// LMR confirmed: move is not good enough.
+						value = lmr
+					}
+				} else {
 					value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1, extensions)
 					value.Score = -value.Score
 					value.Move = move
-				} else {
-					// LMR confirmed: move is not good enough.
-					value = lmr
 				}
-			} else {
-				value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1, extensions)
-				value.Score = -value.Score
-				value.Move = move
-			}
 
-			if value.Score == -OnEvaluation {
-				allDone = false
-			} else if value.Score > best.Score || best.Move.Start.Equals(best.Move.End) {
-				best = value
-				if best.Score >= beta {
-					atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(moves)))
-					// Update killer, history, and countermove for quiet cutoff moves.
-					if !isCapture && !isPromo {
-						ab.storeKiller(ply, move)
-						ab.updateHistory(move, depth)
-						// Countermove: record this move as a good response to the opponent's last move.
-						if previousMove != nil {
-							from := squareIdx(previousMove.Move.Start)
-							to := squareIdx(previousMove.Move.End)
-							ab.countermove[from][to] = move
+				if value.Score == -OnEvaluation {
+					allDone = false
+				} else if value.Score > best.Score || best.Move.Start.Equals(best.Move.End) {
+					best = value
+					if best.Score >= beta {
+						atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(moves)))
+						// Update killer, history, and countermove for quiet cutoff moves.
+						if !isCapture && !isPromo {
+							ab.storeKiller(ply, move)
+							ab.updateHistory(move, depth)
+							// Countermove: record this move as a good response to the opponent's last move.
+							if previousMove != nil {
+								from := squareIdx(previousMove.Move.Start)
+								to := squareIdx(previousMove.Move.End)
+								ab.countermove[from][to] = move
+							}
 						}
+						ab.syncTTWrite(root, currentPlayer, uint16(depth), originalAlpha, beta, &best)
+						return best
 					}
-					ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
-					return best
+					if best.Score > alpha {
+						alpha = best.Score
+					}
 				}
-				if best.Score > alpha {
-					alpha = best.Score
-				}
-			}
 			} // end if !futilityPruned
 			if len(moves) == 0 {
 				break
@@ -337,7 +338,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			moves = moves[1:]
 		}
 	}
-	ab.syncTTWrite(root, currentPlayer, uint16(depth), alpha, beta, &best)
+	ab.syncTTWrite(root, currentPlayer, uint16(depth), originalAlpha, beta, &best)
 	return best
 }
 
@@ -492,6 +493,7 @@ func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *boa
 //  3. TT best move (if quiet)
 //  4. Killer moves
 //  5. Remaining quiet moves (sorted by history heuristic score, descending)
+//
 // mvvLvaScore returns a score for capture ordering: high victim value and low attacker value
 // are both good. Multiply victim by 10 to ensure victim dominates regardless of attacker type.
 func mvvLvaScore(b *board.Board, m location.Move) int {
@@ -678,7 +680,9 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 			if entry.Depth <= depth {
 				entry.Lock.Lock()
 				if entry.Depth == depth {
-					entry.NumProcessors--
+					if entry.NumProcessors > 0 {
+						entry.NumProcessors--
+					}
 				} else {
 					entry.NumProcessors = 0
 				}
