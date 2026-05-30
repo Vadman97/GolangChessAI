@@ -148,3 +148,70 @@ func TestABDADATTWriteSkippedForOnEvaluationSentinel(t *testing.T) {
 		t.Fatal("did not expect OnEvaluation sentinel to be stored in TT")
 	}
 }
+
+func TestABDADAResetRootSearchHeuristics(t *testing.T) {
+	ab := &ABDADA{}
+	move := location.Move{
+		Start: location.NewLocation(1, 1),
+		End:   location.NewLocation(2, 2),
+	}
+	ab.killers[3][0] = move
+	ab.history[squareIdx(move.Start)][squareIdx(move.End)] = 99
+	ab.countermove[squareIdx(move.Start)][squareIdx(move.End)] = move
+
+	ab.resetRootSearchHeuristics()
+
+	if !ab.killers[3][0].Start.Equals(ab.killers[3][0].End) {
+		t.Fatalf("expected killer table to be reset, got %s", ab.killers[3][0])
+	}
+	if got := ab.historyScore(move); got != 0 {
+		t.Fatalf("expected history table to be reset, got %d", got)
+	}
+	gotCounter := ab.countermove[squareIdx(move.Start)][squareIdx(move.End)]
+	if !gotCounter.Start.Equals(gotCounter.End) {
+		t.Fatalf("expected countermove table to be reset, got %s", gotCounter)
+	}
+}
+
+func TestABDADAStableDepthMoveKeepsPreviousMoveOnLargeRegression(t *testing.T) {
+	safeMove := location.Move{
+		Start: location.NewLocation(5, 3),
+		End:   location.NewLocation(6, 2),
+	}
+	regressedMove := location.Move{
+		Start: location.NewLocation(6, 1),
+		End:   location.NewLocation(5, 2),
+	}
+
+	got := stableDepthMove(
+		ScoredMove{Move: safeMove, Score: -138},
+		ScoredMove{Move: regressedMove, Score: -540},
+	)
+
+	if !got.Move.Equals(&safeMove) {
+		t.Fatalf("expected stable move %s, got %s", safeMove, got.Move)
+	}
+	if got.Score != -540 {
+		t.Fatalf("expected regressed score to be preserved, got %d", got.Score)
+	}
+}
+
+func TestABDADAStableDepthMoveAcceptsSmallRegression(t *testing.T) {
+	prevMove := location.Move{
+		Start: location.NewLocation(5, 3),
+		End:   location.NewLocation(6, 2),
+	}
+	nextMove := location.Move{
+		Start: location.NewLocation(6, 1),
+		End:   location.NewLocation(5, 2),
+	}
+
+	got := stableDepthMove(
+		ScoredMove{Move: prevMove, Score: -138},
+		ScoredMove{Move: nextMove, Score: -250},
+	)
+
+	if !got.Move.Equals(&nextMove) {
+		t.Fatalf("expected newer move %s, got %s", nextMove, got.Move)
+	}
+}

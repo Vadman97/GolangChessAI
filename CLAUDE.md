@@ -137,3 +137,41 @@ grep -i "resign\|no best move" moveDebug.log
 - `pkg/chessai/competition/elo.go` — Elo update formula (K-factor etc.)
 - `conf.json` — toggle transposition table, cache sizes, Elo start value
 - `game_conf.json` — active algorithm, depth limit, time limit
+
+## Current Engine Debugging Notes
+
+### Lichess and post-game analysis workflow
+
+- Lichess bot games are logged to `/tmp/chess.lichess.log`.
+- Use `go run ./cmd log-replay /tmp/chess.lichess.log 12 ./stockfish` for a quick Stockfish blunder report.
+- Prefer the fixed forward replay path in `pkg/chessai/analysis/log_replay.go`; do not reconstruct positions by unapplying only the AI move from post-move boards. That older approach mis-restores captures when the opponent just moved the captured piece, producing false blunders such as normal `Nxf6+` captures.
+- Validate suspicious replay findings directly with Stockfish on the reported FEN before changing search logic. Replay labels are useful triage, not proof.
+- The local `stockfish` binary may be untracked in the repo; do not delete or commit it unless asked.
+
+### ABDADA / TT best practices
+
+- Treat ABDADA bugs as likely state-contamination bugs first: shared TT, abort flag, `NumProcessors`, ponder, killer/history/countermove tables, and iterative-deepening partial results.
+- Never write TT entries from aborted or killed ABDADA searches. Timed-out searches can return partial bounds from inside the tree; storing them under the current generation can poison later searches.
+- Never store sentinel values (`PosInf`, `NegInf`, `OnEvaluation`, `-OnEvaluation`) in TT entries.
+- Classify TT bounds using the original search window alpha, not the alpha after move search has raised it.
+- Keep ABDADA `NumProcessors` bookkeeping saturating; underflow from `0` to `65535` makes nodes look permanently under evaluation.
+- Pondering must search the actual side to move after our move, not always `AIPlayer.PlayerColor`. It should use an isolated search player/algorithm instance while sharing only the expensive caches/TT. Do not let ponder race the live player's abort flag or ABDADA fields.
+- On a ponder miss, stale TT scores must be invalidated/demoted before the real search. Best-move hints may still be useful for ordering, but stale scores must not cut off.
+
+### Known quality weaknesses to focus on next
+
+- The engine still misses endgame tactics under blitz timing, especially quiet defensive moves and king/rook/minor-piece endgames. Recent examples include late-game rook/knight moves where ABDADA chose a move live that a clean local search did not reproduce, pointing to timed-search state contamination or pruning risk.
+- Move quality improved after the ponder-color fix, but remaining blunders often come from search instability around time aborts. When a bad live move is not reproduced by a clean local search from the same FEN, inspect TT writes, abort handling, and per-search state before tuning evaluation.
+- ABDADA's aggressive pruning stack (null move, razoring, futility pruning, LMR, SEE pruning in qsearch) should be treated as suspect in tactical/endgame misses. Disable one heuristic at a time on the exact FEN to isolate regressions.
+- Opening play is weak without a book: early moves like `Nc3`/side pawn moves are often playable but suboptimal. Re-enable or improve openings separately from search correctness.
+- Evaluation still undervalues some tactical liabilities: loose pieces, trapped rooks/bishops, king safety in simplified positions, passed-pawn races, and quiet mate nets.
+- Time management in 3+0 reaches short per-move budgets late. Search correctness under abort is more important than deeper-but-contaminated searches.
+
+### Regression testing habits
+
+- Add focused tests for every TT/search invariant fixed. Existing examples live in `pkg/chessai/player/ai/abdada_tt_test.go`.
+- For a suspicious Lichess move, capture the FEN from `log-replay`, run Stockfish on it, then run ABDADA locally with `NumThreads: 1`, TT on/off, and controlled depth/time. A move that only appears live usually indicates shared-state or abort contamination.
+- Run targeted tests first:
+  - `go test -timeout 60s ./pkg/chessai/player/ai ./pkg/chessai/server ./pkg/chessai/analysis`
+  - Add `./pkg/chessai/board ./pkg/chessai/game ./pkg/chessai/util ./pkg/chessai/transposition_table` when move legality, game state, or board replay changes.
+- `go test ./...` can take a long time in game/search packages; prefer explicit package lists with timeouts during debugging.

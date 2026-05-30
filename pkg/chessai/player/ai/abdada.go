@@ -81,6 +81,12 @@ func (ab *ABDADA) GetName() string {
 	return AlgorithmABDADA
 }
 
+func (ab *ABDADA) resetRootSearchHeuristics() {
+	ab.killers = [maxKillerDepth][2]location.Move{}
+	ab.history = [board.Height * board.Width][board.Height * board.Width]int32{}
+	ab.countermove = [board.Height * board.Width][board.Height * board.Width]location.Move{}
+}
+
 func (ab *ABDADA) isKiller(m location.Move, depth int) bool {
 	k := &ab.killers[depth%maxKillerDepth]
 	return (m.Start.Equals(k[0].Start) && m.End.Equals(k[0].End)) ||
@@ -104,6 +110,17 @@ func (ab *ABDADA) updateHistory(m location.Move, depth int) {
 
 func (ab *ABDADA) historyScore(m location.Move) int32 {
 	return atomic.LoadInt32(&ab.history[squareIdx(m.Start)][squareIdx(m.End)])
+}
+
+func stableDepthMove(previous, current ScoredMove) ScoredMove {
+	const scoreRegressionThreshold = 200
+	if previous.Score != NegInf &&
+		!previous.Move.Start.Equals(previous.Move.End) &&
+		current.Score < previous.Score-scoreRegressionThreshold {
+		current.Move = previous.Move
+		current.MoveSequence = previous.MoveSequence
+	}
+	return current
 }
 
 // ABDADA is the core parallel alpha-beta search function.
@@ -433,20 +450,7 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 		}
 
 		if !ab.player.abort {
-			// Score stability: if this depth's result is dramatically worse than the
-			// previous depth's result, keep the previous best move but accept the new
-			// score. A >200 cp regression between successive depths typically indicates
-			// ABDADA parallel-search TT interference, not a genuine horizon finding.
-			const scoreRegressionThreshold = 200
-			prevBest := best
-			best = newGuess
-			if prevBest.Score != NegInf &&
-				!prevBest.Move.Start.Equals(prevBest.Move.End) &&
-				newGuess.Score < prevBest.Score-scoreRegressionThreshold {
-				// Keep the previous depth's move; the new score may still be accurate.
-				best.Move = prevBest.Move
-				best.MoveSequence = prevBest.MoveSequence
-			}
+			best = stableDepthMove(best, newGuess)
 			ab.player.LastSearchDepth = ab.currentSearchDepth
 			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s score:%d\n", ab.player.LastSearchDepth, best.Move, best.Score)
 		} else {
@@ -469,6 +473,7 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 
 func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
+	ab.resetRootSearchHeuristics()
 	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {
 		log.Printf("Trying to use %s with move caching enabled.\n", ab.GetName())
 		log.Println("Disabling GetAllMoves, GetAllAttackableMoves caching.")
