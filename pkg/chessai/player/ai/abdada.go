@@ -208,10 +208,14 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			// Conditions: not a capture, not a promotion, not a killer, not the TT move,
 			// not when in check, not a near-promotion pawn advance, only after lmrMinMoveIdx
 			// moves already searched.
+			// Guard: best.Score must be a real score (> NegInf). When ABDADA threads
+			// return OnEvaluation for the first N moves, best.Score stays NegInf and
+			// -(NegInf+1) = PosInf-1 overflows the LMR window into garbage territory.
 			doLMR := iteration == 1 &&
 				depth >= lmrMinDepth &&
 				moveIdx > lmrMinMoveIdx &&
-				!isCapture && !isPromo && !isKiller && !isTTMove && !inCheck && !isNearPromo
+				!isCapture && !isPromo && !isKiller && !isTTMove && !inCheck && !isNearPromo &&
+				best.Score > NegInf
 
 			var value ScoredMove
 			child, pm := ab.player.applyMove(root, &move)
