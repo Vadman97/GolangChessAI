@@ -9,6 +9,9 @@ import (
 
 func (m *Random) RandomMove(b *board.Board, c color.Color, previousMove *board.LastMove) *ScoredMove {
 	moves := *b.GetAllMovesUnShuffled(c, previousMove)
+	if len(moves) == 0 {
+		return &ScoredMove{}
+	}
 	idx := m.Rand.Intn(len(moves))
 	return &ScoredMove{
 		Move: moves[idx],

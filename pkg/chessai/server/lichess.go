@@ -157,6 +157,9 @@ func (l *Lichess) startPonder() {
 	// That caused 5+ concurrent GetBestMove calls in game5, corrupting p.printer,
 	// the abort flag, and TT entries, which produced garbage moves.
 	l.stopPonder()
+	if l.Game.GameStatus != game.Active {
+		return
+	}
 	boardSnap := l.Game.CurrentBoard.Copy()
 	prevMove := l.Game.PreviousMove
 	player := l.Player
