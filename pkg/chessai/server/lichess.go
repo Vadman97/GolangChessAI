@@ -227,6 +227,11 @@ func (l *Lichess) resetGame() {
 		l.boardStreamCancel()
 		l.boardStreamCancel = nil
 	}
+	// Stop the old game's background goroutines so they release their reference
+	// to the Game (and its players' caches), letting it all be garbage collected.
+	if l.Game != nil {
+		l.Game.Stop()
+	}
 	l.Player = nil
 	l.Game = nil
 	l.movesApplied = 0
@@ -283,7 +288,11 @@ func (l *Lichess) handleEvent(event *Event) error {
 			enemyColor = color.White
 		}
 		enemyPlayer := player.NewHumanPlayer(enemyColor)
-		l.Player = ai.NewAIPlayer(playerColor, ai.NameToAlgorithm[ai.AlgorithmABDADA])
+		// Fresh algorithm + AIPlayer per game: NewAIPlayer allocates a new
+		// transposition table and evaluation cache, and NewAlgorithm gives an
+		// unshared search instance, so no state (caches or search heuristics)
+		// leaks from the previous game.
+		l.Player = ai.NewAIPlayer(playerColor, ai.NewAlgorithm(ai.AlgorithmABDADA))
 		l.Player.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
 		l.Player.MaxThinkTime = thinkTimeForClock(time.Duration(event.Game.SecondsLeft*float64(time.Second)), l.clockIncrement, l.Player.TurnCount)
 
@@ -467,7 +476,7 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 		}
 		l.Game.PlayTurn()
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
-			l.recoverFromRejectedMove(err)
+			l.handleRejectedMove(err)
 			return nil
 		}
 		l.movesApplied++ // our reply is now on the board; keep movesApplied in sync
@@ -536,7 +545,7 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		log.Infof("player thinking... have time %s, inc %s, set max to %s", playerTimeLeft, l.clockIncrement, l.Player.MaxThinkTime)
 		l.Game.PlayTurn()
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
-			l.recoverFromRejectedMove(err)
+			l.handleRejectedMove(err)
 			return nil
 		}
 		l.movesApplied++ // our reply is now on the board; keep movesApplied in sync
@@ -548,34 +557,24 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 	return nil
 }
 
-// recoverFromRejectedMove handles a move rejection from lichess.
-// If the game is already over on the server, it cleans up silently.
-// Otherwise it attempts one recovery move (first available legal move) before giving up.
+// handleRejectedMove cleans up after Lichess rejects one of our moves, then
+// abandons the game. A benign rejection ("game already over"/"Not your turn") is
+// just a race with the server ending the game. Any other rejection means we
+// generated an illegal move — a real bug — and, because PlayTurn already applied
+// that move locally, the board is now desynced from the server. We do NOT try to
+// guess a replacement move: that previously sent a different move than the one on
+// our local board, compounding the desync until the next opponent move panicked
+// the bot. Resetting drops the corrupted game cleanly; the desync sources are
+// fixed upstream so this path should not be reached in normal play.
 // Must be called with the mutex held.
-func (l *Lichess) recoverFromRejectedMove(originalErr error) {
+func (l *Lichess) handleRejectedMove(originalErr error) {
 	errMsg := originalErr.Error()
 	if strings.Contains(errMsg, "game already over") || strings.Contains(errMsg, "Not your turn") {
 		log.Warnf("move rejected: game already over on server — cleaning up: %s", originalErr)
-		l.resetGame()
-		return
+	} else {
+		log.Errorf("move rejected by Lichess (illegal move / board desync — this is a bug) — abandoning game: %s", originalErr)
 	}
-	// Genuine rejection (illegal move, board desync): try the first available legal move.
-	log.Warnf("move rejected, attempting recovery with first legal move: %s", originalErr)
-	legalMoves := l.Game.CurrentBoard.GetAllMoves(l.Player.PlayerColor, l.Game.PreviousMove)
-	if legalMoves == nil || len(*legalMoves) == 0 {
-		log.Errorf("no legal moves for recovery — resetting game")
-		l.resetGame()
-		return
-	}
-	recoveryMove := &board.LastMove{Move: &(*legalMoves)[0]}
-	if err := l.MakeMove(l.GameID, recoveryMove); err != nil {
-		log.Errorf("recovery move also rejected — resetting game: %s", err)
-		l.resetGame()
-		return
-	}
-	log.Infof("recovery move accepted: %s", recoveryMove.Move.UCIString())
-	l.movesApplied++
-	l.startPonder()
+	l.resetGame()
 }
 
 func (l *Lichess) ChallengeUser(cfg *ChallengeConfig) error {

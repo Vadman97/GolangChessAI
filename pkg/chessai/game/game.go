@@ -141,6 +141,19 @@ func (g *Game) PlayTurn() bool {
 	return g.GameStatus == Active
 }
 
+// Stop marks the game as no longer active so its background goroutines
+// (memoryThread, printThread) fall out of their `for g.GameStatus == Active`
+// loops and exit. Without this, abandoning a game (e.g. between Lichess games,
+// where the game often ends server-side before we detect a terminal status
+// locally) leaks both goroutines — and each keeps a reference to the Game, its
+// players, and their transposition/evaluation caches, so memory is never freed
+// across back-to-back games. Safe to call multiple times.
+func (g *Game) Stop() {
+	if g.GameStatus == Active {
+		g.GameStatus = Aborted
+	}
+}
+
 // PlayTurnMove applies an externally provided move (e.g. from a lichess opponent)
 // and updates game state, without consulting the current player's AI.
 func (g *Game) PlayTurnMove(move *location.Move) {

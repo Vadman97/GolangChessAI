@@ -28,3 +28,12 @@ var NameToAlgorithm = map[string]Algorithm{
 	AlgorithmJamboree:            &Jamboree{},
 	AlgorithmLazySMP:             &LazySMP{},
 }
+
+// NewAlgorithm returns a fresh, unshared instance of the named algorithm. The
+// entries in NameToAlgorithm are singletons; reusing one across games would carry
+// per-search state (e.g. ABDADA's killer/history/countermove tables, abort flag,
+// and thread bookkeeping) from one game into the next. Each game must own its
+// algorithm instance so it starts from a clean slate.
+func NewAlgorithm(name string) Algorithm {
+	return newAlgorithmLike(NameToAlgorithm[name])
+}
