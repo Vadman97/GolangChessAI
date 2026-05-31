@@ -15,7 +15,6 @@ import (
 	"time"
 )
 
-
 // threadRootMove records a thread's best move found at a given search depth.
 type threadRootMove struct {
 	move  location.Move
@@ -69,7 +68,7 @@ func (smp *LazySMP) iterativeLazySMP(b *board.Board, previousMove *board.LastMov
 		result := smp.search(b, smp.currentSearchDepth, NegInf, PosInf, smp.player.PlayerColor, previousMove, 0)
 		close(thinking)
 		<-done
-		if !smp.player.abort {
+		if !smp.player.isAborted() {
 			best = result
 			smp.player.LastSearchDepth = smp.currentSearchDepth
 			smp.rootMoves[0] = threadRootMove{move: best.Move, score: best.Score, depth: smp.currentSearchDepth}
@@ -77,7 +76,7 @@ func (smp *LazySMP) iterativeLazySMP(b *board.Board, previousMove *board.LastMov
 	}
 
 	for smp.currentSearchDepth = iterativeIncrement * 2; smp.currentSearchDepth <= smp.player.MaxSearchDepth; smp.currentSearchDepth += iterativeIncrement {
-		if smp.player.abort {
+		if smp.player.isAborted() {
 			break
 		}
 
@@ -105,7 +104,7 @@ func (smp *LazySMP) iterativeLazySMP(b *board.Board, previousMove *board.LastMov
 		var newBest ScoredMove
 		aspirationFailed := false
 		for {
-			if smp.player.abort {
+			if smp.player.isAborted() {
 				aspirationFailed = true
 				break
 			}
@@ -115,7 +114,7 @@ func (smp *LazySMP) iterativeLazySMP(b *board.Board, previousMove *board.LastMov
 			close(thinking)
 			<-done
 
-			if smp.player.abort {
+			if smp.player.isAborted() {
 				aspirationFailed = true
 				break
 			}
@@ -149,7 +148,7 @@ func (smp *LazySMP) iterativeLazySMP(b *board.Board, previousMove *board.LastMov
 		atomic.StoreInt32(&smp.helperAbort, 1)
 		helperWg.Wait()
 
-		if !aspirationFailed && !smp.player.abort {
+		if !aspirationFailed && !smp.player.isAborted() {
 			smp.rootMovesMu[0].Lock()
 			smp.rootMoves[0] = threadRootMove{move: newBest.Move, score: newBest.Score, depth: smp.currentSearchDepth}
 			smp.rootMovesMu[0].Unlock()
@@ -173,11 +172,11 @@ func (smp *LazySMP) helperSearch(b *board.Board, targetDepth int, previousMove *
 	iterativeIncrement := config.Get().IterativeIncrement
 	var lastBest threadRootMove
 	for d := iterativeIncrement; d <= targetDepth; d += iterativeIncrement {
-		if atomic.LoadInt32(&smp.helperAbort) != 0 || smp.player.abort {
+		if atomic.LoadInt32(&smp.helperAbort) != 0 || smp.player.isAborted() {
 			break
 		}
 		result := smp.search(b, d, NegInf, PosInf, smp.player.PlayerColor, previousMove, threadIdx)
-		if atomic.LoadInt32(&smp.helperAbort) != 0 || smp.player.abort {
+		if atomic.LoadInt32(&smp.helperAbort) != 0 || smp.player.isAborted() {
 			break
 		}
 		lastBest = threadRootMove{move: result.Move, score: result.Score, depth: d}
@@ -300,7 +299,7 @@ func (smp *LazySMP) search(root *board.Board, depth, alpha, beta int, currentPla
 	best.Score = NegInf
 
 	for _, m := range orderedMoves {
-		if smp.player.abort || (threadIdx != 0 && atomic.LoadInt32(&smp.helperAbort) != 0) {
+		if smp.player.isAborted() || (threadIdx != 0 && atomic.LoadInt32(&smp.helperAbort) != 0) {
 			return best
 		}
 		child, pm := smp.player.applyMove(root, &m)
@@ -321,7 +320,7 @@ func (smp *LazySMP) search(root *board.Board, depth, alpha, beta int, currentPla
 	}
 
 	// TT write — only store if the search was not aborted mid-way.
-	if !smp.player.abort && smp.player.TranspositionTableEnabled && !best.Move.Start.Equals(best.Move.End) {
+	if !smp.player.isAborted() && smp.player.TranspositionTableEnabled && !best.Move.Start.Equals(best.Move.End) {
 		h := root.Hash()
 		entryType := transposition_table.TrueScore
 		if best.Score >= beta {

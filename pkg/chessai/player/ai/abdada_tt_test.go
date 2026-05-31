@@ -106,7 +106,7 @@ func TestABDADATTWriteSkippedOnAbort(t *testing.T) {
 
 	p := NewAIPlayer(color.White, &ABDADA{})
 	p.TranspositionTableEnabled = true
-	p.abort = true
+	p.setAbort(true)
 	ab := &ABDADA{player: p}
 
 	best := &ScoredMove{

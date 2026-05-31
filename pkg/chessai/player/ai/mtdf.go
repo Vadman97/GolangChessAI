@@ -47,7 +47,7 @@ func (m *MTDf) IterativeMTDf(b *board.Board, guess *ScoredMove, previousMove *bo
 		close(thinking)
 		<-done
 		// MTDf returns a good move (did not abort search)
-		if !m.player.abort {
+		if !m.player.isAborted() {
 			guess = newGuess
 			m.player.LastSearchDepth = m.currentSearchDepth
 			m.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", m.player.LastSearchDepth, guess.Move)
@@ -73,7 +73,7 @@ func (m *MTDf) GetName() string {
 
 func (m *MTDf) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	m.player = p
-	m.player.abort = false
+	m.player.setAbort(false)
 	m.ab = AlphaBetaWithMemory{player: p}
 
 	if !b.CacheGetAllMoves || !b.CacheGetAllAttackableMoves {

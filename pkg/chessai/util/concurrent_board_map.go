@@ -46,7 +46,7 @@ func (m *ConcurrentBoardMap) Store(hash *BoardHash, currentTurn color.Color, val
 	lock.Lock()
 	defer lock.Unlock()
 
-	m.numWrites[lockIdx]++
+	atomic.AddUint64(&m.numWrites[lockIdx], 1)
 	_, ok := m.entryMap[lockIdx][*hash]
 	if !ok {
 		m.entryMap[lockIdx][*hash] = make(map[color.Color]interface{})
@@ -58,13 +58,13 @@ func (m *ConcurrentBoardMap) Read(hash *BoardHash, currentTurn color.Color) (int
 	lock, lockIdx := m.getLock(hash, currentTurn)
 	lock.RLock()
 	defer lock.RUnlock()
-	m.numQueries[lockIdx]++
+	atomic.AddUint64(&m.numQueries[lockIdx], 1)
 
 	m1, ok := m.entryMap[lockIdx][*hash]
 	if ok {
 		v, ok := m1[currentTurn]
 		if ok {
-			m.numHits[lockIdx]++
+			atomic.AddUint64(&m.numHits[lockIdx], 1)
 			return v, true
 		}
 	}
@@ -86,7 +86,7 @@ func (m ConcurrentBoardMap) String() (result string) {
 func (m *ConcurrentBoardMap) GetTotalLockUsage() uint64 {
 	var totalLockUsage uint64 = 0
 	for i := 0; i < NumSlices; i++ {
-		totalLockUsage += m.lockUsage[i]
+		totalLockUsage += atomic.LoadUint64(&m.lockUsage[i])
 	}
 	return totalLockUsage
 }
@@ -94,7 +94,7 @@ func (m *ConcurrentBoardMap) GetTotalLockUsage() uint64 {
 func (m *ConcurrentBoardMap) GetTotalHits() uint64 {
 	var totalHits uint64 = 0
 	for i := 0; i < NumSlices; i++ {
-		totalHits += m.numHits[i]
+		totalHits += atomic.LoadUint64(&m.numHits[i])
 	}
 	return totalHits
 }
@@ -102,7 +102,7 @@ func (m *ConcurrentBoardMap) GetTotalHits() uint64 {
 func (m *ConcurrentBoardMap) GetTotalReads() uint64 {
 	var totalReads uint64 = 0
 	for i := 0; i < NumSlices; i++ {
-		totalReads += m.numQueries[i]
+		totalReads += atomic.LoadUint64(&m.numQueries[i])
 	}
 	return totalReads
 }
@@ -110,7 +110,7 @@ func (m *ConcurrentBoardMap) GetTotalReads() uint64 {
 func (m *ConcurrentBoardMap) GetTotalWrites() uint64 {
 	var totalWrites uint64 = 0
 	for i := 0; i < NumSlices; i++ {
-		totalWrites += m.numWrites[i]
+		totalWrites += atomic.LoadUint64(&m.numWrites[i])
 	}
 	return totalWrites
 }

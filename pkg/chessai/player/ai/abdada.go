@@ -12,6 +12,7 @@ import (
 	"log"
 	"math"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -64,9 +65,10 @@ func onlyKingAndPawns(b *board.Board, c color.Color) bool {
 
 type ABDADA struct {
 	player             *AIPlayer
-	kill               bool
+	kill               uint32
 	currentSearchDepth int
 	NumThreads         int
+	heuristicMu        sync.RWMutex
 	// killers[depth%maxKillerDepth][0..1]: last two quiet moves causing beta cutoffs at this depth.
 	killers [maxKillerDepth][2]location.Move
 	// history[from][to]: accumulated depth^2 bonuses for quiet moves that caused cutoffs.
@@ -82,18 +84,30 @@ func (ab *ABDADA) GetName() string {
 }
 
 func (ab *ABDADA) resetRootSearchHeuristics() {
+	ab.heuristicMu.Lock()
+	defer ab.heuristicMu.Unlock()
 	ab.killers = [maxKillerDepth][2]location.Move{}
 	ab.history = [board.Height * board.Width][board.Height * board.Width]int32{}
 	ab.countermove = [board.Height * board.Width][board.Height * board.Width]location.Move{}
 }
 
 func (ab *ABDADA) isKiller(m location.Move, depth int) bool {
+	ab.heuristicMu.RLock()
+	defer ab.heuristicMu.RUnlock()
 	k := &ab.killers[depth%maxKillerDepth]
 	return (m.Start.Equals(k[0].Start) && m.End.Equals(k[0].End)) ||
 		(m.Start.Equals(k[1].Start) && m.End.Equals(k[1].End))
 }
 
+func (ab *ABDADA) killerPair(depth int) [2]location.Move {
+	ab.heuristicMu.RLock()
+	defer ab.heuristicMu.RUnlock()
+	return ab.killers[depth%maxKillerDepth]
+}
+
 func (ab *ABDADA) storeKiller(depth int, m location.Move) {
+	ab.heuristicMu.Lock()
+	defer ab.heuristicMu.Unlock()
 	k := &ab.killers[depth%maxKillerDepth]
 	if m.Start.Equals(k[0].Start) && m.End.Equals(k[0].End) {
 		return
@@ -110,6 +124,44 @@ func (ab *ABDADA) updateHistory(m location.Move, depth int) {
 
 func (ab *ABDADA) historyScore(m location.Move) int32 {
 	return atomic.LoadInt32(&ab.history[squareIdx(m.Start)][squareIdx(m.End)])
+}
+
+func (ab *ABDADA) counterMove(prev *board.LastMove, moves *[]location.Move) (location.Move, bool) {
+	if prev == nil {
+		return location.Move{}, false
+	}
+	from := squareIdx(prev.Move.Start)
+	to := squareIdx(prev.Move.End)
+	ab.heuristicMu.RLock()
+	cm := ab.countermove[from][to]
+	ab.heuristicMu.RUnlock()
+	if !cm.Start.Equals(cm.End) && isMoveInList(cm, moves) {
+		return cm, true
+	}
+	return location.Move{}, false
+}
+
+func (ab *ABDADA) storeCounterMove(prev *board.LastMove, m location.Move) {
+	if prev == nil {
+		return
+	}
+	from := squareIdx(prev.Move.Start)
+	to := squareIdx(prev.Move.End)
+	ab.heuristicMu.Lock()
+	ab.countermove[from][to] = m
+	ab.heuristicMu.Unlock()
+}
+
+func (ab *ABDADA) isKilled() bool {
+	return atomic.LoadUint32(&ab.kill) != 0
+}
+
+func (ab *ABDADA) setKilled(v bool) {
+	if v {
+		atomic.StoreUint32(&ab.kill, 1)
+	} else {
+		atomic.StoreUint32(&ab.kill, 0)
+	}
 }
 
 func stableDepthMove(previous, current ScoredMove) ScoredMove {
@@ -216,7 +268,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		}
 	}
 
-	killerPair := ab.killers[ply%maxKillerDepth]
+	killerPair := ab.killerPair(ply)
 	orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, killerPair, ab, root, previousMove)
 
 	iteration := 0
@@ -224,7 +276,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	for iteration < 2 && alpha < beta && !allDone {
 		// Don't abort before evaluating at least one move: a zero BestMove
 		// would propagate to the root and trigger a random fallback.
-		if (ab.player.abort || ab.kill) && !best.Move.Start.Equals(best.Move.End) {
+		if (ab.player.isAborted() || ab.isKilled()) && !best.Move.Start.Equals(best.Move.End) {
 			return best
 		}
 		iteration++
@@ -235,7 +287,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		moves = moves[1:]
 		moveIdx := 0
 		for alpha < beta {
-			if (ab.player.abort || ab.kill) && !firstMove {
+			if (ab.player.isAborted() || ab.isKilled()) && !firstMove {
 				return best
 			}
 			moveIdx++
@@ -333,11 +385,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 							ab.storeKiller(ply, move)
 							ab.updateHistory(move, depth)
 							// Countermove: record this move as a good response to the opponent's last move.
-							if previousMove != nil {
-								from := squareIdx(previousMove.Move.Start)
-								to := squareIdx(previousMove.Move.End)
-								ab.countermove[from][to] = move
-							}
+							ab.storeCounterMove(previousMove, move)
 						}
 						ab.syncTTWrite(root, currentPlayer, uint16(depth), originalAlpha, beta, &best)
 						return best
@@ -360,7 +408,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 }
 
 func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMove *board.LastMove) ScoredMove {
-	ab.player.abort = false
+	ab.player.setAbort(false)
 	if ab.NumThreads == 0 {
 		ab.NumThreads = runtime.NumCPU()
 		log.Printf("ABDADA runs in parallel, defaulting to #%d threads (# cpu cores)\n", ab.NumThreads)
@@ -378,11 +426,11 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	const AbortAfterFirst = true
 	if AbortAfterFirst {
 		bestMoves = append(bestMoves, <-moveChan)
-		ab.kill = true
+		ab.setKilled(true)
 		for i := 0; i < ab.NumThreads-1; i++ {
 			<-moveChan
 		}
-		ab.kill = false
+		ab.setKilled(false)
 	} else {
 		for i := 0; i < ab.NumThreads; i++ {
 			bestMoves = append(bestMoves, <-moveChan)
@@ -426,7 +474,7 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 			close(thinking)
 			<-done
 
-			if ab.player.abort {
+			if ab.player.isAborted() {
 				break
 			}
 
@@ -449,7 +497,7 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 			}
 		}
 
-		if !ab.player.abort {
+		if !ab.player.isAborted() {
 			best = stableDepthMove(best, newGuess)
 			ab.player.LastSearchDepth = ab.currentSearchDepth
 			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s score:%d\n", ab.player.LastSearchDepth, best.Move, best.Score)
@@ -488,7 +536,7 @@ func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.L
 func (p *AIPlayer) applyMove(root *board.Board, move *location.Move) (child *board.Board, previousMove *board.LastMove) {
 	child = root.Copy()
 	previousMove = board.MakeMove(move, child)
-	p.Metrics.MovesConsidered++
+	atomic.AddUint64(&p.Metrics.MovesConsidered, 1)
 	return
 }
 
@@ -570,14 +618,8 @@ func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location
 	// Countermove lookup: best known response to the opponent's last move.
 	var counterMove location.Move
 	hasCounter := false
-	if ab != nil && prevMove != nil {
-		from := squareIdx(prevMove.Move.Start)
-		to := squareIdx(prevMove.Move.End)
-		cm := ab.countermove[from][to]
-		if !cm.Start.Equals(cm.End) && isMoveInList(cm, &moves) {
-			counterMove = cm
-			hasCounter = true
-		}
+	if ab != nil {
+		counterMove, hasCounter = ab.counterMove(prevMove, &moves)
 	}
 
 	// Determine the side to move from the piece on the first non-empty start square.
@@ -658,7 +700,7 @@ type TTAnswer struct {
 
 func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
 	if ab.player.TranspositionTableEnabled {
-		if ab.player.abort || ab.kill {
+		if ab.player.isAborted() || ab.isKilled() {
 			return
 		}
 		// PosInf/NegInf are search bounds, not board evaluations.  Writing them
@@ -685,8 +727,9 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 
 		if e, ok := ab.player.transpositionTable.Read(&h, currentPlayer); ok {
 			entry := e.(*transposition_table.TranspositionTableEntryABDADA)
+			entry.Lock.Lock()
+			defer entry.Lock.Unlock()
 			if entry.Depth <= depth {
-				entry.Lock.Lock()
 				if entry.Depth == depth {
 					if entry.NumProcessors > 0 {
 						entry.NumProcessors--
@@ -701,7 +744,6 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 				}
 				entry.Depth = depth
 				entry.Generation = gen
-				entry.Lock.Unlock()
 			}
 		} else {
 			entry := transposition_table.TranspositionTableEntryABDADA{

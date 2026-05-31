@@ -54,7 +54,7 @@ type TTAnswerJamboree struct {
 func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, currentPlayer color.Color,
 	previousMove *board.LastMove, abortFlag *bool) ScoredMove {
 
-	if j.player.abort || *abortFlag {
+	if j.player.isAborted() || *abortFlag {
 		return ScoredMove{Score: NegInf}
 	}
 
@@ -99,7 +99,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 	// Save the (possibly TT-narrowed) window for TT classification on the way back up.
 	searchAlpha := alpha
 
-	if j.player.abort || *abortFlag {
+	if j.player.isAborted() || *abortFlag {
 		return ScoredMove{Score: NegInf}
 	}
 
@@ -123,7 +123,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 		alpha = b.Score
 	}
 
-	if j.player.abort || *abortFlag {
+	if j.player.isAborted() || *abortFlag {
 		return ScoredMove{Score: NegInf}
 	}
 
@@ -138,7 +138,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 	result := ScoredMove{ReturnThisMove: false}
 
 	for i := 0; i < len(*moves); i++ {
-		if j.player.abort || *abortFlag {
+		if j.player.isAborted() || *abortFlag {
 			return ScoredMove{Score: NegInf}
 		}
 
@@ -187,7 +187,7 @@ func (j *Jamboree) Jamboree(root *board.Board, depth int, alpha int, beta int, c
 
 	// Serially re-search moves whose null-window score beat alpha.
 	for i := 0; i < len(movesToResearch); i++ {
-		if j.player.abort || *abortFlag {
+		if j.player.isAborted() || *abortFlag {
 			return ScoredMove{Score: NegInf}
 		}
 		child, prev := j.player.applyMove(root, &movesToResearch[i])
@@ -282,7 +282,7 @@ func (j *Jamboree) iterativeJamboree(b *board.Board, previousMove *board.LastMov
 		newBest := j.Jamboree(b, j.currentSearchDepth, NegInf, PosInf, j.player.PlayerColor, previousMove, &rootAbortFlag)
 		close(thinking)
 		<-done
-		if !j.player.abort {
+		if !j.player.isAborted() {
 			best = newBest
 			j.player.LastSearchDepth = j.currentSearchDepth
 			j.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", j.player.LastSearchDepth, best.Move)
@@ -297,7 +297,7 @@ func (j *Jamboree) iterativeJamboree(b *board.Board, previousMove *board.LastMov
 
 func (j *Jamboree) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	j.player = p
-	j.player.abort = false
+	j.player.setAbort(false)
 	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {
 		log.Printf("WARNING: Trying to use %s with move caching enabled.\n", AlgorithmJamboree)
 		log.Println("WARNING: Disabling GetAllMoves, GetAllAttackableMoves caching.")

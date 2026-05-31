@@ -109,7 +109,7 @@ type AIPlayer struct {
 	evaluationMap      *util.ConcurrentBoardMap
 	transpositionTable *util.ConcurrentBoardMap
 	printer            chan string
-	abort              bool
+	abort              uint32
 	// ttGeneration is incremented on ponder miss so stale ponder entries
 	// are demoted to move-ordering-only and cannot cause alpha/beta cutoffs.
 	ttGeneration uint32
@@ -219,7 +219,7 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 		thinking := make(chan bool)
 		go p.printThread(thinking)
 		defer close(thinking)
-		p.abort = false
+		p.setAbort(false)
 		// reset metrics for each move
 		p.Metrics = &Metrics{}
 
@@ -341,7 +341,7 @@ func (p *AIPlayer) trackThinkTime(stop, done chan bool, start time.Time) {
 			default:
 				thinkTime := time.Now().Sub(start)
 				if thinkTime > p.MaxThinkTime {
-					p.abort = true
+					p.setAbort(true)
 					p.printer <- fmt.Sprintf("requesting AI hard abort, out of time!\n")
 				}
 			}
@@ -352,10 +352,22 @@ func (p *AIPlayer) trackThinkTime(stop, done chan bool, start time.Time) {
 }
 
 // Abort requests the in-progress search to stop as soon as possible.
-func (p *AIPlayer) Abort() { p.abort = true }
+func (p *AIPlayer) Abort() { p.setAbort(true) }
 
 // ResetAbort clears the abort flag so a new search can start cleanly.
-func (p *AIPlayer) ResetAbort() { p.abort = false }
+func (p *AIPlayer) ResetAbort() { p.setAbort(false) }
+
+func (p *AIPlayer) isAborted() bool {
+	return atomic.LoadUint32(&p.abort) != 0
+}
+
+func (p *AIPlayer) setAbort(v bool) {
+	if v {
+		atomic.StoreUint32(&p.abort, 1)
+	} else {
+		atomic.StoreUint32(&p.abort, 0)
+	}
+}
 
 // IncrementTTGeneration advances the TT generation counter.
 // Call this after a ponder miss (opponent played a different move than predicted)

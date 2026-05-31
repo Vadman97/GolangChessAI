@@ -4,6 +4,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
+	"sync/atomic"
 )
 
 func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byte, previousMove *board.LastMove) int {
@@ -61,7 +62,7 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 	// Promotions must be included even when the destination is empty: a pawn advancing
 	// to the back rank and becoming a queen is an 8-pawn swing that standPat cannot see.
 	for _, m := range ordered {
-		if p.abort {
+		if p.isAborted() {
 			break
 		}
 		isPromotion, _ := m.End.GetPawnPromotion()
@@ -82,11 +83,11 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 
 		child := root.Copy()
 		lastMove := board.MakeMove(&m, child)
-		p.Metrics.MovesConsidered++
+		atomic.AddUint64(&p.Metrics.MovesConsidered, 1)
 		score := -p.Quiesce(child, -beta, -alpha, currentPlayer^1, lastMove)
 
 		if score >= beta {
-			p.Metrics.MovesPrunedAB++
+			atomic.AddUint64(&p.Metrics.MovesPrunedAB, 1)
 			return beta
 		} else if score > alpha {
 			alpha = score

@@ -37,7 +37,7 @@ func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.C
 		best.Score = PosInf
 	}
 	for i, m := range *moves {
-		if i > 0 && miniMax.player.abort {
+		if i > 0 && miniMax.player.isAborted() {
 			break
 		}
 		candidate := miniMax.MiniMaxRecurse(b, m, depth, currentPlayer, previousMove)
@@ -50,7 +50,7 @@ func (miniMax *MiniMax) MiniMax(b *board.Board, depth int, currentPlayer color.C
 }
 
 func (miniMax *MiniMax) IterativeMiniMax(b *board.Board, previousMove *board.LastMove) *ScoredMove {
-	miniMax.player.abort = false
+	miniMax.player.setAbort(false)
 	start := time.Now()
 	best := &ScoredMove{}
 	for miniMax.currentSearchDepth = 1; miniMax.currentSearchDepth <= miniMax.player.MaxSearchDepth; miniMax.currentSearchDepth += 1 {
@@ -61,7 +61,7 @@ func (miniMax *MiniMax) IterativeMiniMax(b *board.Board, previousMove *board.Las
 		close(thinking)
 		<-done
 		// did not abort search, good value
-		if !miniMax.player.abort {
+		if !miniMax.player.isAborted() {
 			best = newBest
 			miniMax.player.LastSearchDepth = miniMax.currentSearchDepth
 			miniMax.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", miniMax.player.LastSearchDepth, best.Move)

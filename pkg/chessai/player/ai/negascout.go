@@ -54,7 +54,7 @@ func (n *NegaScout) NegaScout(root *board.Board, depth int, alpha, beta ScoredMo
 			b = a
 			b.Score++
 
-			if i > 0 && n.player.abort {
+			if i > 0 && n.player.isAborted() {
 				return a
 			}
 		}
@@ -79,7 +79,7 @@ func (n *NegaScout) IterativeNegaScout(b *board.Board, previousMove *board.LastM
 		close(thinking)
 		<-done
 		// did not abort search, good value
-		if !n.player.abort {
+		if !n.player.isAborted() {
 			best = newBest
 			n.player.LastSearchDepth = n.currentSearchDepth
 			n.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", n.player.LastSearchDepth, best.Move)
@@ -104,7 +104,7 @@ func (n *NegaScout) GetName() string {
 
 func (n *NegaScout) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	n.player = p
-	n.player.abort = false
+	n.player.setAbort(false)
 
 	best := n.IterativeNegaScout(b, previousMove)
 

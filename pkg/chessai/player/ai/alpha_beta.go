@@ -90,13 +90,13 @@ func (ab *AlphaBetaWithMemory) AlphaBetaWithMemory(root *board.Board, depth, alp
 			} else {
 				b = util.MinScore(best.Score, b)
 			}
-			if ab.player.abort {
+			if ab.player.isAborted() {
 				break
 			}
 		}
 	}
 
-	if !ab.player.abort && ab.player.TranspositionTableEnabled && !best.Move.Start.Equals(best.Move.End) {
+	if !ab.player.isAborted() && ab.player.TranspositionTableEnabled && !best.Move.Start.Equals(best.Move.End) {
 		if best.Score >= beta {
 			ab.player.transpositionTable.Store(&h, currentPlayer, &transposition_table.TranspositionTableEntryABMemory{
 				Lower:    best.Score,
@@ -140,7 +140,7 @@ func (ab *AlphaBetaWithMemory) iterativeAlphaBeta(b *board.Board, previousMove *
 		newBest := ab.AlphaBetaWithMemory(b, ab.currentSearchDepth, NegInf, PosInf, ab.player.PlayerColor, previousMove)
 		close(thinking)
 		<-done
-		if !ab.player.abort {
+		if !ab.player.isAborted() {
 			best = newBest
 			ab.player.LastSearchDepth = ab.currentSearchDepth
 			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s\n", ab.player.LastSearchDepth, best.Move)
@@ -155,7 +155,7 @@ func (ab *AlphaBetaWithMemory) iterativeAlphaBeta(b *board.Board, previousMove *
 
 func (ab *AlphaBetaWithMemory) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
-	ab.player.abort = false
+	ab.player.setAbort(false)
 	if p.MaxThinkTime != 0 {
 		return ab.iterativeAlphaBeta(b, previousMove)
 	}
