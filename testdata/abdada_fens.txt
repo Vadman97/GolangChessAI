@@ -1,0 +1,9 @@
+# fen | tag | expected-best-move-list | known-bad-move-list | notes
+r1bq1rk1/pp1n2bp/2p1pp1p/3pP3/3P4/2N1QN2/PPP2PPP/2KR1B1R w - - 0 10 | lichess-cdTsyKE6-ply19 | e5f6 | f1d3 | 10.Bd3 blunder; active capture exf6 was needed
+r1bq1rk1/1p1n2bp/p3p2p/2ppP3/8/2NBQN2/PPP2PPP/2KR2R1 w - - 0 13 | lichess-cdTsyKE6-ply25 | g2g4 | b2b3 | 13.b3 blunder; kingside counterplay with g4 was needed
+2b2rk1/rpqn2bp/p3p2p/2ppP3/8/1PNBQN2/P1P2PPP/2K1R1R1 w - - 3 15 | lichess-cdTsyKE6-ply29 | c3d1 | e3e2 | 15.Qe2 blunder; reposition knight/defend instead
+2b2rk1/r1qn2bp/p3p2p/1pppP3/8/1PNB1N2/P1P1QPPP/2K1R1R1 w - b6 0 16 | lichess-cdTsyKE6-ply31 | e2e3 | d3b5 | 16.Bxb5 blunder; avoid speculative bishop capture
+3Q4/1q1n1kbp/4p2p/1bp1P3/3p1rP1/1P2RN2/P1P2P1P/1K1R4 w - - 3 26 | lichess-cdTsyKE6-ply51 | f3d2 | f3d4 | 26.Nxd4 blunder; knight should defend from d2
+2q5/P6p/3Qpk1p/3bn3/7P/1P4R1/2P5/2K2r2 w - - 1 42 | lichess-cdTsyKE6-ply83 | c1d2 | c1b2 | 42.Kb2 blunder; improve king escape
+2q5/P6p/3Qpk1p/4n3/7P/1b4R1/1KP5/5r2 w - - 0 43 | lichess-cdTsyKE6-ply85 | g3c3 | b2b3 | 43.Kxb3 blunder; active rook defense was needed
+2q5/P6p/3Qpk1p/1r2n3/7P/K5R1/2P5/8 w - - 3 45 | lichess-cdTsyKE6-ply89 | g3f3 | a3a4 | 45.Ka4 blunder; walking into forced mate

@@ -421,19 +421,16 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 		}(moveChan, rootCopy)
 	}
 
-	var bestMoves []ScoredMove
-
-	const AbortAfterFirst = true
-	if AbortAfterFirst {
+	bestMoves := make([]ScoredMove, 0, ab.NumThreads)
+	for i := 0; i < ab.NumThreads; i++ {
 		bestMoves = append(bestMoves, <-moveChan)
-		ab.setKilled(true)
-		for i := 0; i < ab.NumThreads-1; i++ {
-			<-moveChan
-		}
-		ab.setKilled(false)
-	} else {
-		for i := 0; i < ab.NumThreads; i++ {
-			bestMoves = append(bestMoves, <-moveChan)
+		if ab.player.isAborted() && i < ab.NumThreads-1 {
+			ab.setKilled(true)
+			for j := i + 1; j < ab.NumThreads; j++ {
+				bestMoves = append(bestMoves, <-moveChan)
+			}
+			ab.setKilled(false)
+			break
 		}
 	}
 
