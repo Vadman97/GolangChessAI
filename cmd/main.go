@@ -17,6 +17,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/api/api_handlers"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/analysis"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/competition"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/server"
 	"github.com/gorilla/mux"
 )
@@ -222,6 +223,21 @@ func main() {
 			}()
 
 			competition.RunABDADATournament(gamesPerMatchup, thinkTime, nil, hub.BroadcastCh())
+			return
+		} else if os.Args[1] == "negascout-matchup" {
+			games := 4
+			thinkTime := 1 * time.Second
+			if len(os.Args) > 2 {
+				if n, err := strconv.Atoi(os.Args[2]); err == nil && n > 0 {
+					games = n
+				}
+			}
+			if len(os.Args) > 3 {
+				if ms, err := strconv.Atoi(os.Args[3]); err == nil && ms > 0 {
+					thinkTime = time.Duration(ms) * time.Millisecond
+				}
+			}
+			competition.RunMatchup("NegaScout", "ABDADA", &ai.NegaScout{}, &ai.ABDADA{}, games, thinkTime, nil)
 			return
 		} else if os.Args[1] == "tournament" {
 			gamesPerMatchup := 2

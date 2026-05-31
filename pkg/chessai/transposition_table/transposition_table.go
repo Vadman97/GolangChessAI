@@ -45,3 +45,11 @@ type TranspositionTableEntryJamboree struct {
 	EntryType byte
 	Lock      sync.Mutex
 }
+
+type TranspositionTableEntryNegaScout struct {
+	Score      int
+	BestMove   location.Move
+	Depth      uint16
+	EntryType  byte
+	Generation uint32
+}

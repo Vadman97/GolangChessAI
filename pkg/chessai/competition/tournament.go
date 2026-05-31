@@ -149,6 +149,43 @@ func RunTournament(gamesPerMatchup int, thinkTime time.Duration, spectatorCh cha
 	}
 }
 
+// RunMatchup runs a targeted match between two algorithms. Games alternate
+// colors so both players get the same opening/color opportunities when games is even.
+func RunMatchup(whiteName, blackName string, whiteAlgorithm, blackAlgorithm ai.Algorithm, games int, thinkTime time.Duration, spectatorCh chan api.ChessMessage) {
+	if games <= 0 {
+		games = 1
+	}
+	p1 := &tournamentPlayer{name: whiteName, algorithm: whiteAlgorithm, elo: 1200}
+	p2 := &tournamentPlayer{name: blackName, algorithm: blackAlgorithm, elo: 1200}
+
+	var p1Wins, p2Wins, draws int
+	for g := 0; g < games; g++ {
+		white, black := p1, p2
+		if g%2 == 1 {
+			white, black = p2, p1
+		}
+		outcome := playGame(white, black, thinkTime, spectatorCh)
+		p1Won := (white == p1 && outcome.Win[color.White]) || (black == p1 && outcome.Win[color.Black])
+		p2Won := (white == p2 && outcome.Win[color.White]) || (black == p2 && outcome.Win[color.Black])
+		switch {
+		case p1Won:
+			p1Wins++
+		case p2Won:
+			p2Wins++
+		default:
+			draws++
+		}
+		result := "draw"
+		if p1Won {
+			result = p1.name + " wins"
+		} else if p2Won {
+			result = p2.name + " wins"
+		}
+		fmt.Printf("Game %d (%s=White, %s=Black): %s\n", g+1, white.name, black.name, result)
+	}
+	fmt.Printf("\nMatch result: %s %d-%d-%d %s\n", p1.name, p1Wins, draws, p2Wins, p2.name)
+}
+
 func playGame(white, black *tournamentPlayer, thinkTime time.Duration, spectatorCh chan api.ChessMessage) game.Outcome {
 	wp := ai.NewAIPlayer(color.White, white.algorithm)
 	bp := ai.NewAIPlayer(color.Black, black.algorithm)
