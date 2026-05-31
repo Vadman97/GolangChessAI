@@ -62,7 +62,7 @@ const (
 	PieceAdvanceWeight    = PawnValueWeight / 5
 	PieceNumMovesWeight   = PawnValueWeight / 20
 	PieceNumAttacksWeight = PawnValueWeight / 10
-	KingDisplacedWeight = -1 * PawnValueWeight
+	KingDisplacedWeight   = -1 * PawnValueWeight
 	// Small penalty for moving a rook before castling — not large enough to force premature castling.
 	RookDisplacedWeight = -PawnValueWeight / 5
 	KingCheckedWeight   = -PawnValueWeight / 4
@@ -94,9 +94,15 @@ const (
 	// TempoBonus: small bonus for the side to move, reflecting the value of initiative.
 	// Applied at every leaf node; improves handling of zugzwang and forcing sequences.
 	TempoBonus = 10
-	// BishopPairBonus: having both bishops is worth ~50cp in open positions.
-	// Tapered so it's worth less in closed pawn structures (many pawns on board).
-	BishopPairBonus = 50
+	// BishopPairBonus: the bishop pair is worth ~half a pawn even in the middlegame
+	// and more as the position opens up. A BASE bonus always applies when a side
+	// keeps both bishops; BishopPairOpenBonus adds extra in open positions (few pawns).
+	// Previously the entire bonus was tapered to ~0 with a full board of pawns
+	// (50*(16-14)/16 ≈ 6cp at 14 pawns), so the engine surrendered the pair almost
+	// for free in the opening (e.g. an early Bxc6 trading bishop for knight). The
+	// base term ensures giving up the pair costs a meaningful amount even early.
+	BishopPairBonus     = 30 // base, applies whenever a side has both bishops
+	BishopPairOpenBonus = 25 // extra, scaled by how open the position is (fewer pawns)
 	// Rook file activity bonuses.
 	RookOpenFileBonus     = 15 // no pawns of either color on the file
 	RookSemiOpenFileBonus = 8  // no friendly pawns but enemy pawns present
@@ -134,36 +140,39 @@ var knightMoveDeltas = [8][2]int{
 	{2, -1}, {2, 1}, {1, -2}, {1, 2},
 }
 
-// isKnightOutpost returns true if no enemy pawn can attack the given square,
-// meaning the knight sitting there cannot be chased away by a pawn push.
+// isKnightOutpost returns true if the square can never be attacked by an enemy
+// pawn — i.e. there is no enemy pawn on either adjacent file that sits "in front"
+// of the square and could advance to challenge the knight. This is the standard
+// outpost definition. The previous version only checked the single square an enemy
+// pawn would attack FROM right now, so it wrongly treated easily-kicked advanced
+// knights as outposts (e.g. a knight on e4 with the enemy f-pawn still on f7, which
+// simply plays ...f5 to chase it). Such phantom outpost bonuses encouraged the
+// engine to make premature, unstable knight sorties.
 func isKnightOutpost(b *board.Board, row, col location.CoordinateType, knightColor color.Color) bool {
 	enemy := knightColor ^ 1
-	// Enemy pawns attack diagonally forward. For White (attacking toward Black's back rank
-	// = higher rows), White pawns at (row-1, col±1) attack (row, col).
-	// For Black (attacking toward White's back rank = lower rows), Black pawns at
-	// (row+1, col±1) attack (row, col).
-	var attackRow location.CoordinateType
-	if enemy == color.White {
-		// White pawns attack upward: they'd be at row-1 to attack row.
-		if row == 0 {
-			return true
-		}
-		attackRow = row - 1
-	} else {
-		// Black pawns attack downward: they'd be at row+1 to attack row.
-		if row == board.Height-1 {
-			return true
-		}
-		attackRow = row + 1
-	}
+	// An enemy pawn on an adjacent file can attack the square only if it is "ahead"
+	// of the knight from the knight owner's perspective (toward the enemy back rank),
+	// since pawns advance toward us. For a White knight, enemy (Black) pawns come from
+	// higher rows, so any Black pawn on an adjacent file at a row > this row can
+	// eventually reach an attacking square. For a Black knight, the mirror holds.
 	for _, dc := range []int{-1, 1} {
 		ac := int(col) + dc
 		if ac < 0 || ac >= board.Width {
 			continue
 		}
-		p := b.GetPiece(location.NewLocation(attackRow, location.CoordinateType(ac)))
-		if p != nil && p.GetColor() == enemy && p.GetPieceType() == piece.PawnType {
-			return false
+		var rStart, rEnd, rStep int
+		if knightColor == color.White {
+			// Black pawns at rows above the knight can advance down to attack it.
+			rStart, rEnd, rStep = int(row)+1, board.Height, 1
+		} else {
+			// White pawns at rows below the knight can advance up to attack it.
+			rStart, rEnd, rStep = int(row)-1, -1, -1
+		}
+		for r := rStart; r != rEnd; r += rStep {
+			p := b.GetPiece(location.NewLocation(location.CoordinateType(r), location.CoordinateType(ac)))
+			if p != nil && p.GetColor() == enemy && p.GetPieceType() == piece.PawnType {
+				return false
+			}
 		}
 	}
 	return true
@@ -851,9 +860,10 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 			// Bishop pair bonus: tapered by total pawn count so it's weaker in closed positions.
 			if eval.PieceCounts[pColor][piece.BishopType] >= 2 {
 				totalPawns := int(eval.PieceCounts[color.White][piece.PawnType]) + int(eval.PieceCounts[color.Black][piece.PawnType])
-				// Full bonus at 0 pawns, half at 8 pawns, zero at 16 pawns.
-				tapered := BishopPairBonus * (16 - totalPawns) / 16
-				score += tapered
+				// Base bonus always applies; the open-position term adds up to
+				// BishopPairOpenBonus more as pawns leave the board.
+				// e.g. 30cp at 16 pawns, ~33cp at 14, ~42cp at 8, 55cp at 0.
+				score += BishopPairBonus + BishopPairOpenBonus*(16-totalPawns)/16
 			}
 
 			if pColor == whoMoves {
