@@ -187,6 +187,17 @@ func stableDepthMove(previous, current ScoredMove) ScoredMove {
 // ply: distance from the root (0 at root), used for killer indexing.
 // extensions: remaining check-extension budget (starts at maxExtensions at root).
 func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove, nullMoveOk bool, ply int, extensions int) ScoredMove {
+	// Repetition draw: a position recurring for the first time (against the game
+	// history or earlier in this search path) is scored as a draw. A side that can
+	// force one repetition can force three, so treating the first recurrence as a
+	// draw lets the search recognize a perpetual ~2 plies sooner than waiting for
+	// the third occurrence — decisive under blitz time pressure, where the real
+	// game only reached depth 5 and walked into a perpetual it scored as +6.
+	// Never at the root (ply 0): we still owe a move there.
+	if ply > 0 && root.CurrentPositionRepeats >= 1 {
+		return ScoredMove{Score: StalemateScore}
+	}
+
 	inCheck := root.IsKingInCheck(currentPlayer)
 
 	// Check extension: when the side to move is in check, extend by 1 ply so the

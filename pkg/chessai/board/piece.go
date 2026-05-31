@@ -73,15 +73,25 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 		b.UpdateDrawCounter(lm)
 
 		h := b.Hash()
-		// check the current position
-		for i := len(b.PreviousPositions) - 1; i >= 0; i-- {
-			// iterate in reverse because it is faster: more likely to have seen previous position recently
-			hash := b.PreviousPositions[i]
-			if h == hash {
-				// increment keeps track of previous seen count to reduce work - no need to do from scratch
-				b.PreviousPositionsSeen++
-				break
+		// Count how many times the position we just reached has occurred before.
+		// repeats == 0 means it is new, 1 means this is its first recurrence, etc.
+		// Only positions an even number of plies back can be a true repetition (the
+		// same side is to move). The board hash does NOT encode whose turn it is, so
+		// without the parity filter a same-placement / opposite-to-move position would
+		// be miscounted as a repeat — harmless under the old >=3 game-end threshold but
+		// poisonous to the search, which now treats the first recurrence as a draw.
+		n := len(b.PreviousPositions)
+		repeats := 0
+		for i := n - 2; i >= 0; i -= 2 {
+			if h == b.PreviousPositions[i] {
+				repeats++
 			}
+		}
+		b.CurrentPositionRepeats = repeats
+		if repeats > 0 {
+			// Preserve the historical cumulative-repetition counter (incremented by one
+			// per repetition event) used by game-end / 50-move bookkeeping.
+			b.PreviousPositionsSeen++
 		}
 
 		return lm

@@ -87,6 +87,12 @@ type Board struct {
 	PreviousPositions []util.BoardHash
 	// number of previous positions we have seen
 	PreviousPositionsSeen int
+	// CurrentPositionRepeats is how many times the current position has already
+	// occurred earlier in PreviousPositions (0 = first occurrence, 1 = this is the
+	// second occurrence / first repetition, 2 = threefold). Used by the search to
+	// score a repetition as a draw on its first recurrence, which is what lets it
+	// detect perpetual checks before they have cycled three times.
+	CurrentPositionRepeats int
 
 	// Pin data cached for the duration of a single getAllMoves call.
 	// pinMaskValid is true only inside getAllMoves; willMoveLeaveKingInCheck uses it
@@ -151,8 +157,12 @@ func (b *Board) Copy() *Board {
 	newBoard.MovesSinceNoDraw = b.MovesSinceNoDraw
 	newBoard.CacheGetAllMoves = b.CacheGetAllMoves
 	newBoard.CacheGetAllAttackableMoves = b.CacheGetAllAttackableMoves
-	newBoard.PreviousPositions = b.PreviousPositions
+	// Full slice expression (cap == len) so the child's MakeMove append always
+	// allocates a fresh backing array instead of writing into the parent's (which
+	// is shared across sibling searches and, under ABDADA, across goroutines).
+	newBoard.PreviousPositions = b.PreviousPositions[:len(b.PreviousPositions):len(b.PreviousPositions)]
 	newBoard.PreviousPositionsSeen = b.PreviousPositionsSeen
+	newBoard.CurrentPositionRepeats = b.CurrentPositionRepeats
 	return &newBoard
 }
 

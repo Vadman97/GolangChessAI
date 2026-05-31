@@ -471,8 +471,14 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 		// It's our turn.
 		log.Infof("gameFull: our turn after replay, thinking... have time %s, inc %s, set max to %s", playerTimeLeft, l.clockIncrement, l.Player.MaxThinkTime)
 		if l.Game.GameStatus != game.Active {
-			log.Infof("gameFull: local game already ended (status %d) — not making a move", l.Game.GameStatus)
-			return nil
+			if !game.IsClaimableDraw(l.Game.GameStatus) {
+				log.Infof("gameFull: local game already ended (status %d) — not making a move", l.Game.GameStatus)
+				return nil
+			}
+			// Claimable draw on our turn after replay — play on and offer the draw
+			// rather than going idle (see handleBoardUpdateLocked for rationale).
+			log.Infof("gameFull: claimable draw (status %d) on our turn — playing on and offering the draw", l.Game.GameStatus)
+			l.Game.GameStatus = game.Active
 		}
 		l.Game.PlayTurn()
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
@@ -526,12 +532,24 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		l.Player.IncrementTTGeneration()
 		l.Game.PlayTurnMove(m)
 		l.movesApplied = len(moves)
-		// If the local board is already over (e.g. checkmate we didn't detect via
-		// status above), don't try to make a move — PreviousMove still holds the
-		// opponent's last move, and posting it would send their move as ours.
+		// If the local board is already over after the opponent's move, decide
+		// whether we still owe a move.
 		if l.Game.GameStatus != game.Active {
-			log.Infof("local game ended (status %d) after opponent's move — not making a move", l.Game.GameStatus)
-			return nil
+			if !game.IsClaimableDraw(l.Game.GameStatus) {
+				// Checkmate / stalemate / insufficient material: no move to make.
+				// PreviousMove still holds the opponent's last move, and posting it
+				// would send their move as ours — so stay idle.
+				log.Infof("local game ended (status %d) after opponent's move — not making a move", l.Game.GameStatus)
+				return nil
+			}
+			// Threefold repetition / fifty-move: Lichess does NOT end the game
+			// automatically, so going idle here flags us (this lost a drawn-and-then-
+			// winning game). Re-activate and play on: PlayTurn re-detects the draw and
+			// MakeMove attaches offeringDraw=true to claim it. If the opponent declines
+			// and we keep repeating, Lichess auto-draws at fivefold — either way we
+			// never sit idle and lose on time.
+			log.Infof("claimable draw (status %d) after opponent's move — playing on and offering the draw", l.Game.GameStatus)
+			l.Game.GameStatus = game.Active
 		}
 		playerTimeMS := event.WhiteTimeMS
 		playerIncMS := event.WhiteIncMS
@@ -718,7 +736,7 @@ func (l *Lichess) MakeMove(gameID string, move *board.LastMove) error {
 		moveStr += strings.ToLower(string((*move.PromotionPiece).GetChar()))
 	}
 	oferringDraw := "false"
-	if l.Game.GameStatus == game.RepeatedActionThreeTimeDraw {
+	if game.IsClaimableDraw(l.Game.GameStatus) {
 		oferringDraw = "true"
 	}
 	u := fmt.Sprintf("/api/bot/game/%s/move/%s?offeringDraw=%s", gameID, moveStr, oferringDraw)
