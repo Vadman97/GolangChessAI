@@ -38,6 +38,13 @@ const (
 	// If qsearch also fails low, prune the node.
 	razorDepth  = 1
 	razorMargin = 2 * PawnValueWeight // 200 cp
+
+	// At the root, keep a short grace period after the first worker returns so
+	// similarly-fast workers can contribute their completed result. Waiting for
+	// every duplicate root worker at every depth wastes too much time, while
+	// aborting immediately after the first result makes the chosen move depend on
+	// goroutine scheduling.
+	rootResultGrace = 15 * time.Millisecond
 )
 
 // squareIdx converts a location to a flat [0,63] index for history/killer tables.
@@ -422,26 +429,63 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	}
 
 	bestMoves := make([]ScoredMove, 0, ab.NumThreads)
-	for i := 0; i < ab.NumThreads; i++ {
-		bestMoves = append(bestMoves, <-moveChan)
-		if ab.player.isAborted() && i < ab.NumThreads-1 {
-			ab.setKilled(true)
-			for j := i + 1; j < ab.NumThreads; j++ {
-				bestMoves = append(bestMoves, <-moveChan)
+	bestMoves = append(bestMoves, <-moveChan)
+	if !ab.player.isAborted() && ab.NumThreads > 1 {
+		timer := time.NewTimer(rootResultGrace)
+	collectRootResults:
+		for len(bestMoves) < ab.NumThreads {
+			select {
+			case sm := <-moveChan:
+				bestMoves = append(bestMoves, sm)
+			case <-timer.C:
+				break collectRootResults
 			}
-			ab.setKilled(false)
-			break
+		}
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+	}
+	if len(bestMoves) < ab.NumThreads {
+		ab.setKilled(true)
+		for len(bestMoves) < ab.NumThreads {
+			bestMoves = append(bestMoves, <-moveChan)
+		}
+		ab.setKilled(false)
+	}
+
+	type rootVote struct {
+		move  ScoredMove
+		count int
+	}
+	votes := make([]rootVote, 0, len(bestMoves))
+	for _, sm := range bestMoves {
+		found := false
+		for i := range votes {
+			if sm.Move.Equals(&votes[i].move.Move) {
+				votes[i].count++
+				if sm.Score > votes[i].move.Score {
+					votes[i].move = sm
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			votes = append(votes, rootVote{move: sm, count: 1})
 		}
 	}
 
-	var bestMove ScoredMove
-	bestMove.Score = NegInf
-	for _, sm := range bestMoves {
-		if sm.Score >= bestMove.Score {
-			bestMove = sm
+	bestVote := rootVote{move: ScoredMove{Score: NegInf}}
+	for _, vote := range votes {
+		if vote.count > bestVote.count ||
+			(vote.count == bestVote.count && vote.move.Score > bestVote.move.Score) {
+			bestVote = vote
 		}
 	}
-	return bestMove
+	return bestVote.move
 }
 
 func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) ScoredMove {
