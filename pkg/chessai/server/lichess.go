@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -667,10 +668,24 @@ func (l *Lichess) Run() {
 	g.Go(func() error {
 		for {
 			ge := <-l.GameEvents
-			if err := l.handleBoardUpdate(&ge); err != nil {
-				log.Errorf("failed to handle board update %s — continuing", err)
-				// Don't return: individual game errors should not kill the bot.
-			}
+			// Contain panics per-event: a desynced board (e.g. an illegal move that
+			// Lichess rejected, leaving local state out of sync) must not crash the
+			// whole bot and forfeit every game on time. Recover, drop the corrupted
+			// game, and keep serving future games.
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Errorf("panic handling board update: %v\n%s", r, debug.Stack())
+						l.Mutex.Lock()
+						l.resetGame()
+						l.Mutex.Unlock()
+					}
+				}()
+				if err := l.handleBoardUpdate(&ge); err != nil {
+					log.Errorf("failed to handle board update %s — continuing", err)
+					// Don't return: individual game errors should not kill the bot.
+				}
+			}()
 		}
 	})
 

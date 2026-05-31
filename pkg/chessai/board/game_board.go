@@ -435,7 +435,11 @@ func (b *Board) getEnPassantMoves(c color.Color, previousMove *LastMove) *[]loca
 		endRow, _ := move.End.Get()
 		expectedEnd := StartRow[pawn.Color]["Pawn"] + location.CoordinateType(pawn.forward(2).Row)
 		if (startRow == StartRow[pawn.Color]["Pawn"]) && (endRow == expectedEnd) {
-			l, _ := move.End.AddRelative(pawn.forward(1))
+			// The capturing pawn lands on the square the double-pushed pawn skipped
+			// over: one step ahead of where that pawn started (e.g. black f7-f5 is
+			// captured on f6). Using move.End + forward(1) here pointed the wrong way
+			// (toward f4) and produced an illegal backwards capture.
+			l, _ := move.Start.AddRelative(pawn.forward(1))
 			captureLocation = &l
 		}
 		if captureLocation != nil {

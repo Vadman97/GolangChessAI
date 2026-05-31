@@ -357,6 +357,36 @@ func TestBoard_getEnPassantMovesBlack(t *testing.T) {
 	}, 1)
 }
 
+// TestBoard_getEnPassantDestinationSquare guards the en passant landing square,
+// not just the move count. Regression for the bug where the capturer's
+// destination was computed in the wrong direction (move.End + forward instead of
+// the skipped square), producing illegal backwards captures such as e5f4 instead
+// of e5f6. That illegal move was rejected by Lichess and desynced the board,
+// crashing the bot. See lichess game MiPqIkz5.
+func TestBoard_getEnPassantDestinationSquare(t *testing.T) {
+	// White captures: white pawn on e5 (4,3); black plays f7-f5 (6,2)->(4,2).
+	// The capture must land on f6 (5,2), the square the black pawn skipped.
+	whiteCap, lastMove := buildBoardWithInitialMoves(&[]location.Move{
+		{Start: location.NewLocation(1, 3), End: location.NewLocation(4, 3)},
+		{Start: location.NewLocation(6, 2), End: location.NewLocation(4, 2)},
+	})
+	moves := whiteCap.getEnPassantMoves(color.White, lastMove)
+	assert.Equal(t, 1, len(*moves))
+	assert.Equal(t, location.NewLocation(4, 3), (*moves)[0].Start)
+	assert.Equal(t, location.NewLocation(5, 2), (*moves)[0].End)
+
+	// Black captures: black pawn on d4 (3,4); white plays e2-e4 (1,3)->(3,3).
+	// The capture must land on e3 (2,3), the square the white pawn skipped.
+	blackCap, lastMove := buildBoardWithInitialMoves(&[]location.Move{
+		{Start: location.NewLocation(6, 4), End: location.NewLocation(3, 4)},
+		{Start: location.NewLocation(1, 3), End: location.NewLocation(3, 3)},
+	})
+	moves = blackCap.getEnPassantMoves(color.Black, lastMove)
+	assert.Equal(t, 1, len(*moves))
+	assert.Equal(t, location.NewLocation(3, 4), (*moves)[0].Start)
+	assert.Equal(t, location.NewLocation(2, 3), (*moves)[0].End)
+}
+
 func TestPieceFromTypeNilType(t *testing.T) {
 	assert.Nil(t, PieceFromType(piece.NilType))
 }
