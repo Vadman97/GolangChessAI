@@ -1,4 +1,5 @@
 # fen | tag | expected-best-move-list | known-bad-move-list | notes
+7k/P7/8/8/8/8/8/4K3 w - - 0 1 | promotion-ordering | a7a8q |  | immediate queen promotion should be searched before ordinary king moves
 r1bq1rk1/pp1n2bp/2p1pp1p/3pP3/3P4/2N1QN2/PPP2PPP/2KR1B1R w - - 0 10 | lichess-cdTsyKE6-ply19 | e5f6 | f1d3 | 10.Bd3 blunder; active capture exf6 was needed
 r1bq1rk1/1p1n2bp/p3p2p/2ppP3/8/2NBQN2/PPP2PPP/2KR2R1 w - - 0 13 | lichess-cdTsyKE6-ply25 | g2g4 | b2b3 | 13.b3 blunder; kingside counterplay with g4 was needed
 2b2rk1/rpqn2bp/p3p2p/2ppP3/8/1PNBQN2/P1P2PPP/2K1R1R1 w - - 3 15 | lichess-cdTsyKE6-ply29 | c3d1 | e3e2 | 15.Qe2 blunder; reposition knight/defend instead
@@ -7,3 +8,9 @@ r1bq1rk1/1p1n2bp/p3p2p/2ppP3/8/2NBQN2/PPP2PPP/2KR2R1 w - - 0 13 | lichess-cdTsyK
 2q5/P6p/3Qpk1p/3bn3/7P/1P4R1/2P5/2K2r2 w - - 1 42 | lichess-cdTsyKE6-ply83 | c1d2 | c1b2 | 42.Kb2 blunder; improve king escape
 2q5/P6p/3Qpk1p/4n3/7P/1b4R1/1KP5/5r2 w - - 0 43 | lichess-cdTsyKE6-ply85 | g3c3 | b2b3 | 43.Kxb3 blunder; active rook defense was needed
 2q5/P6p/3Qpk1p/1r2n3/7P/K5R1/2P5/8 w - - 3 45 | lichess-cdTsyKE6-ply89 | g3f3 | a3a4 | 45.Ka4 blunder; walking into forced mate
+8/8/1n1np3/4Kp1p/1P6/P1P5/6k1/5R2 w - - 4 50 | lichess-gdKA8SFK-ply99 | f1b1,f1f4 | f1c1 | 50.Rc1 blunder; active rook defense was needed
+8/8/3nK3/5p2/1Pn4p/P1P5/6k1/2R5 w - - 0 52 | lichess-gdKA8SFK-ply103 | c1c2,e6f6 | c1d1 | 52.Rd1 blunder; king activity was needed
+8/8/4K3/1P2R3/P7/2q3nk/8/5n2 w - - 0 62 | lichess-gdKA8SFK-ply123 | e6d6,a4a5 | e6f6 | 62.Kf6 walked into forced mate
+r4rk1/2p2ppp/b1pqpn2/p2p4/Pb1PP3/1PN2N2/2PB1PPP/R2QR1K1 b - - 0 12 | lichess-5Yxb8FI8-ply24 | f6d7,d6e7 | b4c3 | 12...Bxc3 released too much pressure; Qe7 was preferred
+1r5k/2p2p1p/P1p1p3/5p2/2pP1P1P/3r4/4R1P1/R6K b - - 0 30 | lichess-5Yxb8FI8-ply60 | h8g7,b8a8 | h7h6 | 30...h6 missed active rook defense
+r7/P1p2p1k/R1p1p2p/5p2/2pP1P1P/1r6/6P1/R6K b - - 6 34 | lichess-5Yxb8FI8-ply68 | b3b6,b3b7 | c4c3 | 34...c3 missed active rook counterplay

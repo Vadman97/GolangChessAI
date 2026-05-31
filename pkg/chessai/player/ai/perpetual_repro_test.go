@@ -51,7 +51,7 @@ const qc7 = "b6c7" // the perpetual-allowing blunder
 func TestPerpetualAvoidance(t *testing.T) {
 	for depth := 5; depth <= 7; depth++ {
 		b := loadMove48Position()
-		player := NewAIPlayer(color.White, NameToAlgorithm[AlgorithmABDADA])
+		player := NewAIPlayer(color.White, &ABDADA{NumThreads: 1})
 		player.MaxSearchDepth = depth
 		player.MaxThinkTime = 60 * time.Second // depth-limited
 		sm := player.Algorithm.GetBestMove(player, b, nil)
@@ -67,7 +67,7 @@ func TestPerpetualAvoidance(t *testing.T) {
 func TestPerpetualSeenAsDraw(t *testing.T) {
 	b := loadMove48Position()
 	board.MakeMove(&location.Move{Start: location.NewLocation(5, 6), End: location.NewLocation(6, 5)}, b) // Qc7
-	player := NewAIPlayer(color.Black, NameToAlgorithm[AlgorithmABDADA])
+	player := NewAIPlayer(color.Black, &ABDADA{NumThreads: 1})
 	player.MaxSearchDepth = 6
 	player.MaxThinkTime = 60 * time.Second
 	sm := player.Algorithm.GetBestMove(player, b, nil)

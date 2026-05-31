@@ -39,12 +39,6 @@ const (
 	razorDepth  = 1
 	razorMargin = 2 * PawnValueWeight // 200 cp
 
-	// At the root, keep a short grace period after the first worker returns so
-	// similarly-fast workers can contribute their completed result. Waiting for
-	// every duplicate root worker at every depth wastes too much time, while
-	// aborting immediately after the first result makes the chosen move depend on
-	// goroutine scheduling.
-	rootResultGrace = 15 * time.Millisecond
 )
 
 // squareIdx converts a location to a flat [0,63] index for history/killer tables.
@@ -84,6 +78,11 @@ type ABDADA struct {
 	// countermove[from][to]: best quiet response to the opponent's last move (from→to).
 	// Cheap heuristic between killers and history in move ordering.
 	countermove [board.Height * board.Width][board.Height * board.Width]location.Move
+}
+
+type RootMoveScore struct {
+	Move  location.Move
+	Score int
 }
 
 func (ab *ABDADA) GetName() string {
@@ -431,45 +430,99 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 		ab.NumThreads = runtime.NumCPU()
 		log.Printf("ABDADA runs in parallel, defaulting to #%d threads (# cpu cores)\n", ab.NumThreads)
 	}
-	moveChan := make(chan ScoredMove, ab.NumThreads)
-	for i := 0; i < ab.NumThreads; i++ {
-		rootCopy := b.Copy()
-		go func(moveChan chan ScoredMove, root *board.Board) {
-			moveChan <- ab.ABDADA(root, depth, alpha, beta, false, ab.player.PlayerColor, previousMove, true, 0, 4)
-		}(moveChan, rootCopy)
+	if runtime.GOMAXPROCS(0) < ab.NumThreads {
+		runtime.GOMAXPROCS(ab.NumThreads)
 	}
 
-	bestMoves := make([]ScoredMove, 0, ab.NumThreads)
-	bestMoves = append(bestMoves, <-moveChan)
-	if !ab.player.isAborted() && ab.NumThreads > 1 {
-		timer := time.NewTimer(rootResultGrace)
-	collectRootResults:
-		for len(bestMoves) < ab.NumThreads {
-			select {
-			case sm := <-moveChan:
-				bestMoves = append(bestMoves, sm)
-			case <-timer.C:
-				break collectRootResults
-			}
-		}
-		if !timer.Stop() {
-			select {
-			case <-timer.C:
-			default:
-			}
-		}
+	movesArr := b.GetAllMoves(ab.player.PlayerColor, previousMove)
+	if len(*movesArr) == 0 {
+		return ScoredMove{Score: ab.player.EvaluateBoard(b, ab.player.PlayerColor).TotalScore}
 	}
-	if len(bestMoves) < ab.NumThreads {
-		ab.setKilled(true)
-		for len(bestMoves) < ab.NumThreads {
-			bestMoves = append(bestMoves, <-moveChan)
-		}
-		ab.setKilled(false)
-	}
+	ttAnswer := ab.ttRead(b, ab.player.PlayerColor, uint16(depth), alpha, beta, false)
+	orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, [2]location.Move{}, ab, b, previousMove)
 
-	type rootVote struct {
-		move  ScoredMove
-		count int
+	workerCount := ab.NumThreads
+	if workerCount > len(orderedMoves) {
+		workerCount = len(orderedMoves)
+	}
+	jobs := make(chan location.Move, len(orderedMoves))
+	results := make(chan ScoredMove, len(orderedMoves))
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			for move := range jobs {
+				if ab.player.isAborted() {
+					continue
+				}
+				child, pm := ab.player.applyMove(b, &move)
+				value := ab.ABDADA(child, depth-1, NegInf, PosInf, false, ab.player.PlayerColor^1, pm, true, 1, maxExtensions)
+				value.Score = -value.Score
+				value.Move = move
+				results <- value
+			}
+		}()
+	}
+	for _, move := range orderedMoves {
+		jobs <- move
+	}
+	close(jobs)
+
+	best := ScoredMove{Score: NegInf}
+	ticker := time.NewTicker(time.Millisecond)
+	defer ticker.Stop()
+collectResults:
+	for completed := 0; completed < len(orderedMoves); completed++ {
+		var result ScoredMove
+		select {
+		case result = <-results:
+		case <-ticker.C:
+			if ab.player.isAborted() {
+				break collectResults
+			}
+			completed--
+			continue
+		}
+		if result.Score == OnEvaluation || result.Score == -OnEvaluation {
+			continue
+		}
+		if result.Score > best.Score || best.Move.Start.Equals(best.Move.End) {
+			best = result
+		}
+	}
+	if !best.Move.Start.Equals(best.Move.End) {
+		ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), NegInf, PosInf, &best)
+	}
+	return best
+}
+
+func (ab *ABDADA) ScoreRootMoves(p *AIPlayer, b *board.Board, previousMove *board.LastMove, depth int) []RootMoveScore {
+	ab.player = p
+	ab.resetRootSearchHeuristics()
+	movesArr := b.GetAllMoves(p.PlayerColor, previousMove)
+	if len(*movesArr) == 0 {
+		return nil
+	}
+	orderedMoves := orderMoves(*movesArr, location.Move{}, [2]location.Move{}, ab, b, previousMove)
+	scores := make([]RootMoveScore, 0, len(orderedMoves))
+	for _, move := range orderedMoves {
+		child, pm := p.applyMove(b, &move)
+		value := ab.ABDADA(child, depth-1, NegInf, PosInf, false, p.PlayerColor^1, pm, true, 1, maxExtensions)
+		value.Score = -value.Score
+		if value.Score == OnEvaluation || value.Score == -OnEvaluation {
+			continue
+		}
+		scores = append(scores, RootMoveScore{Move: move, Score: value.Score})
+	}
+	return scores
+}
+
+type rootVote struct {
+	move  ScoredMove
+	count int
+}
+
+func selectRootBest(bestMoves []ScoredMove) ScoredMove {
+	if len(bestMoves) == 0 {
+		return ScoredMove{Score: NegInf}
 	}
 	votes := make([]rootVote, 0, len(bestMoves))
 	for _, sm := range bestMoves {
@@ -491,8 +544,8 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 
 	bestVote := rootVote{move: ScoredMove{Score: NegInf}}
 	for _, vote := range votes {
-		if vote.count > bestVote.count ||
-			(vote.count == bestVote.count && vote.move.Score > bestVote.move.Score) {
+		if vote.move.Score > bestVote.move.Score ||
+			(vote.move.Score == bestVote.move.Score && vote.count > bestVote.count) {
 			bestVote = vote
 		}
 	}
@@ -649,16 +702,17 @@ func isMoveInList(m location.Move, moves *[]location.Move) bool {
 }
 
 // orderMoves returns moves ordered for best alpha-beta pruning:
-//  1. TT best move (if capture)
-//  2. Winning/even captures (SEE >= 0), MVV-LVA sorted
-//  3. TT best move (if quiet)
-//  4. Killer moves
-//  5. Countermove (best response to opponent's last move)
-//  6. Remaining quiet moves (history heuristic score, descending)
-//  7. Losing captures (SEE < 0), MVV-LVA sorted
+//  1. TT best move (if capture or promotion)
+//  2. Promotions
+//  3. Winning/even captures (SEE >= 0), MVV-LVA sorted
+//  4. TT best move (if quiet non-promotion)
+//  5. Killer moves
+//  6. Countermove (best response to opponent's last move)
+//  7. Remaining quiet moves (history heuristic score, descending)
+//  8. Losing captures (SEE < 0), MVV-LVA sorted
 func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location.Move, ab *ABDADA, b *board.Board, prevMove *board.LastMove) []location.Move {
 	ordered := make([]location.Move, 0, len(moves))
-	var goodCaptures, badCaptures, killerMoves, counterMoves, quiets []location.Move
+	var promotions, goodCaptures, badCaptures, killerMoves, counterMoves, quiets []location.Move
 
 	// Validate the TT move is actually legal on this board before placing it first.
 	// A stale or hash-colliding TT entry can carry over a move that is no longer legal
@@ -666,6 +720,10 @@ func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location
 	// score that can become the "best" move.
 	hasTT := !ttMove.Start.Equals(ttMove.End) && isMoveInList(ttMove, &moves)
 	ttIsCapture := hasTT && (b.GetPiece(ttMove.End) != nil || isEnPassantMove(b, ttMove))
+	ttIsPromotion := false
+	if hasTT {
+		ttIsPromotion, _ = ttMove.End.GetPawnPromotion()
+	}
 
 	// Countermove lookup: best known response to the opponent's last move.
 	var counterMove location.Move
@@ -688,7 +746,10 @@ func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location
 		if hasTT && m.Start.Equals(ttMove.Start) && m.End.Equals(ttMove.End) {
 			continue
 		}
-		if b.GetPiece(m.End) != nil || isEnPassantMove(b, m) {
+		isPromotion, _ := m.End.GetPawnPromotion()
+		if isPromotion {
+			promotions = append(promotions, m)
+		} else if b.GetPiece(m.End) != nil || isEnPassantMove(b, m) {
 			// Use SEE to split captures into winning/even (≥0) and losing (<0).
 			// The TT move was already skipped above so we don't re-score it here.
 			seeScore := b.SEE(m, stm)
@@ -731,11 +792,12 @@ func orderMoves(moves []location.Move, ttMove location.Move, killers [2]location
 	// Sort losing captures by MVV-LVA too (least bad first).
 	sortCapturesMVVLVA(badCaptures, b)
 
-	if hasTT && ttIsCapture {
+	if hasTT && (ttIsCapture || ttIsPromotion) {
 		ordered = append(ordered, ttMove)
 	}
+	ordered = append(ordered, promotions...)
 	ordered = append(ordered, goodCaptures...)
-	if hasTT && !ttIsCapture {
+	if hasTT && !ttIsCapture && !ttIsPromotion {
 		ordered = append(ordered, ttMove)
 	}
 	ordered = append(ordered, killerMoves...)

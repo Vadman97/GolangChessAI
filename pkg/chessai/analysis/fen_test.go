@@ -74,3 +74,34 @@ func TestMoveToUCI(t *testing.T) {
 		})
 	}
 }
+
+func TestParseFENStartingPosition(t *testing.T) {
+	parsed, err := ParseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := BoardToFEN(parsed.Board, parsed.Active, parsed.Previous, parsed.FullMove)
+	gotParts := strings.Fields(got)
+	if gotParts[0] != "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" {
+		t.Fatalf("piece placement mismatch: %s", gotParts[0])
+	}
+	if parsed.Active != color.White {
+		t.Fatalf("expected white to move, got %d", parsed.Active)
+	}
+	if parsed.Previous != nil {
+		t.Fatal("did not expect previous move without en-passant target")
+	}
+}
+
+func TestParseFENEnPassantPreviousMove(t *testing.T) {
+	parsed, err := ParseFEN("2b2rk1/r1qn2bp/p3p2p/1pppP3/8/1PNB1N2/P1P1QPPP/2K1R1R1 w - b6 0 16")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Previous == nil {
+		t.Fatal("expected previous move for en-passant target")
+	}
+	if got := MoveToUCI(*parsed.Previous.Move); got != "b7b5" {
+		t.Fatalf("expected inferred previous move b7b5, got %s", got)
+	}
+}

@@ -1,0 +1,394 @@
+package analysis
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
+)
+
+type ABDADABenchConfig struct {
+	FENPath        string
+	Threads        []int
+	Depth          int
+	ThinkTime      time.Duration
+	Runs           int
+	StockfishPath  string
+	StockfishDepth int
+	ShowRoot       int
+}
+
+type benchPosition struct {
+	FEN      string
+	Tag      string
+	Expected []string
+	Bad      []string
+	Notes    string
+}
+
+type benchRun struct {
+	Move          string
+	Score         int
+	Depth         int
+	Elapsed       time.Duration
+	Considered    uint64
+	PrunedAB      uint64
+	PrunedTT      uint64
+	TTImproved    uint64
+	TimedOut      bool
+	StockfishLoss *int
+}
+
+// RunABDADABench executes the repeatable ABDADA optimization benchmark described
+// in docs/abdada-optimization-plan.md.
+func RunABDADABench(cfg ABDADABenchConfig) error {
+	if cfg.FENPath == "" {
+		cfg.FENPath = "testdata/abdada_fens.txt"
+	}
+	if len(cfg.Threads) == 0 {
+		cfg.Threads = []int{1, 2, 4, 8}
+	}
+	if cfg.Runs <= 0 {
+		cfg.Runs = 1
+	}
+	if cfg.Depth <= 0 && cfg.ThinkTime <= 0 {
+		cfg.Depth = 5
+	}
+
+	positions, err := loadBenchPositions(cfg.FENPath)
+	if err != nil {
+		return err
+	}
+	if len(positions) == 0 {
+		return fmt.Errorf("no benchmark FENs found in %s", cfg.FENPath)
+	}
+
+	var sf *StockfishEngine
+	if cfg.StockfishPath != "" && cfg.StockfishDepth > 0 {
+		sf, err = NewStockfishEngine(cfg.StockfishPath)
+		if err != nil {
+			return err
+		}
+		defer sf.Close()
+	}
+
+	for posIdx, pos := range positions {
+		fmt.Printf("FEN %d/%d: %s\n", posIdx+1, len(positions), pos.FEN)
+		if pos.Tag != "" {
+			fmt.Printf("Tag: %s\n", pos.Tag)
+		}
+		if pos.Notes != "" {
+			fmt.Printf("Notes: %s\n", pos.Notes)
+		}
+		var sfBest EvalResult
+		if sf != nil {
+			sfBest = sf.Analyze(pos.FEN, cfg.StockfishDepth)
+			fmt.Printf("Stockfish depth=%d best=%s score=%+d\n", cfg.StockfishDepth, sfBest.BestMove, sfBest.CentipawnsSTM)
+		}
+		if cfg.ShowRoot > 0 {
+			if err := printRootMoveScores(pos.FEN, cfg.Depth, cfg.ShowRoot, sf, cfg.StockfishDepth, sfBest); err != nil {
+				return fmt.Errorf("%s root scores: %w", pos.Tag, err)
+			}
+		}
+
+		singleThreadMove := ""
+		var singleThreadLoss *int
+		for _, threads := range cfg.Threads {
+			results := make([]benchRun, 0, cfg.Runs)
+			for run := 0; run < cfg.Runs; run++ {
+				result, err := runABDADABenchSearch(pos.FEN, threads, cfg.Depth, cfg.ThinkTime)
+				if err != nil {
+					return fmt.Errorf("%s threads=%d run=%d: %w", pos.Tag, threads, run+1, err)
+				}
+				if sf != nil && result.Move != "" {
+					candidate := sf.AnalyzeMove(pos.FEN, result.Move, cfg.StockfishDepth)
+					loss := sfBest.CentipawnsSTM - candidate.CentipawnsSTM
+					if loss < 0 {
+						loss = 0
+					}
+					result.StockfishLoss = &loss
+				}
+				results = append(results, result)
+			}
+			summary := summarizeBenchRuns(results)
+			if threads == 1 {
+				singleThreadMove = summary.move
+				singleThreadLoss = summary.avgLoss
+			}
+			flag := ""
+			if threads > 1 {
+				if singleThreadLoss != nil && summary.avgLoss != nil {
+					if *summary.avgLoss > *singleThreadLoss+50 {
+						flag = " Flag: parallel regression"
+					}
+				} else if singleThreadMove != "" && summary.move != singleThreadMove {
+					flag = " Flag: parallel regression"
+				}
+			}
+			if len(pos.Expected) > 0 && !containsString(pos.Expected, summary.move) {
+				flag += " Flag: missed expected"
+			}
+			if len(pos.Bad) > 0 && containsString(pos.Bad, summary.move) {
+				flag += " Flag: known bad move"
+			}
+			fmt.Printf("ABDADA threads=%d: best=%s score=%+d stable=%d/%d avg=%s depth=%d nodes/s=%d pruned=%d tt-pruned=%d timeout=%t",
+				threads,
+				summary.move,
+				summary.score,
+				summary.count,
+				len(results),
+				summary.avgElapsed.Round(time.Millisecond),
+				summary.depth,
+				summary.nodesPerSecond,
+				summary.prunedAB,
+				summary.prunedTT,
+				summary.timedOut,
+			)
+			if summary.avgLoss != nil {
+				fmt.Printf(" loss=%dcp", *summary.avgLoss)
+			}
+			fmt.Printf("%s\n", flag)
+		}
+		fmt.Println()
+	}
+	return nil
+}
+
+func printRootMoveScores(fen string, depth, limit int, sf *StockfishEngine, sfDepth int, sfBest EvalResult) error {
+	if depth <= 0 {
+		depth = 4
+	}
+	parsed, err := ParseFEN(fen)
+	if err != nil {
+		return err
+	}
+	algorithm := &ai.ABDADA{NumThreads: 1}
+	player := ai.NewAIPlayer(parsed.Active, algorithm)
+	player.MaxSearchDepth = depth
+	player.PrintInfo = false
+	player.Debug = false
+	scores := algorithm.ScoreRootMoves(player, parsed.Board, parsed.Previous, depth)
+	sort.Slice(scores, func(i, j int) bool {
+		if scores[i].Score == scores[j].Score {
+			return MoveToUCI(scores[i].Move) < MoveToUCI(scores[j].Move)
+		}
+		return scores[i].Score > scores[j].Score
+	})
+	if limit > len(scores) {
+		limit = len(scores)
+	}
+	fmt.Printf("Root scores depth=%d top=%d:\n", depth, limit)
+	for i := 0; i < limit; i++ {
+		uci := MoveToUCI(scores[i].Move)
+		fmt.Printf("  %2d. %s score=%+d", i+1, uci, scores[i].Score)
+		if sf != nil && sfDepth > 0 {
+			candidate := sf.AnalyzeMove(fen, uci, sfDepth)
+			loss := sfBest.CentipawnsSTM - candidate.CentipawnsSTM
+			if loss < 0 {
+				loss = 0
+			}
+			fmt.Printf(" sf=%+d loss=%dcp", candidate.CentipawnsSTM, loss)
+		}
+		fmt.Println()
+	}
+	return nil
+}
+
+func runABDADABenchSearch(fen string, threads, depth int, thinkTime time.Duration) (benchRun, error) {
+	parsed, err := ParseFEN(fen)
+	if err != nil {
+		return benchRun{}, err
+	}
+	parsed.Board.CacheGetAllMoves = false
+	parsed.Board.CacheGetAllAttackableMoves = false
+	maxDepth := depth
+	if maxDepth <= 0 {
+		maxDepth = 64
+	}
+	algorithm := &ai.ABDADA{NumThreads: threads}
+	player := ai.NewAIPlayer(parsed.Active, algorithm)
+	player.MaxSearchDepth = maxDepth
+	player.MaxThinkTime = thinkTime
+	player.PrintInfo = false
+	player.Debug = false
+
+	start := time.Now()
+	best := algorithm.GetBestMove(player, parsed.Board, parsed.Previous)
+	elapsed := time.Since(start)
+
+	return benchRun{
+		Move:       MoveToUCI(best.Move),
+		Score:      best.Score,
+		Depth:      player.LastSearchDepth,
+		Elapsed:    elapsed,
+		Considered: player.Metrics.MovesConsidered,
+		PrunedAB:   player.Metrics.MovesPrunedAB,
+		PrunedTT:   player.Metrics.MovesPrunedTransposition,
+		TTImproved: player.Metrics.MovesABImprovedTransposition,
+		TimedOut:   thinkTime > 0 && elapsed >= thinkTime,
+	}, nil
+}
+
+type benchSummary struct {
+	move           string
+	score          int
+	count          int
+	depth          int
+	avgElapsed     time.Duration
+	nodesPerSecond int64
+	prunedAB       uint64
+	prunedTT       uint64
+	timedOut       bool
+	avgLoss        *int
+}
+
+func summarizeBenchRuns(results []benchRun) benchSummary {
+	type vote struct {
+		count int
+		best  benchRun
+	}
+	votes := map[string]vote{}
+	var totalElapsed time.Duration
+	var totalNodes, totalPrunedAB, totalPrunedTT uint64
+	totalLoss := 0
+	lossCount := 0
+	timedOut := false
+	for _, result := range results {
+		v := votes[result.Move]
+		v.count++
+		if v.best.Move == "" || result.Score > v.best.Score {
+			v.best = result
+		}
+		votes[result.Move] = v
+		totalElapsed += result.Elapsed
+		totalNodes += result.Considered
+		totalPrunedAB += result.PrunedAB
+		totalPrunedTT += result.PrunedTT
+		timedOut = timedOut || result.TimedOut
+		if result.StockfishLoss != nil {
+			totalLoss += *result.StockfishLoss
+			lossCount++
+		}
+	}
+	keys := make([]string, 0, len(votes))
+	for move := range votes {
+		keys = append(keys, move)
+	}
+	sort.Strings(keys)
+	bestVote := vote{best: benchRun{Score: ai.NegInf}}
+	for _, move := range keys {
+		v := votes[move]
+		if v.count > bestVote.count || (v.count == bestVote.count && v.best.Score > bestVote.best.Score) {
+			bestVote = v
+		}
+	}
+	avgElapsed := totalElapsed / time.Duration(len(results))
+	nodesPerSecond := int64(0)
+	if totalElapsed > 0 {
+		nodesPerSecond = int64(float64(totalNodes) / totalElapsed.Seconds())
+	}
+	var avgLoss *int
+	if lossCount > 0 {
+		v := totalLoss / lossCount
+		avgLoss = &v
+	}
+	return benchSummary{
+		move:           bestVote.best.Move,
+		score:          bestVote.best.Score,
+		count:          bestVote.count,
+		depth:          bestVote.best.Depth,
+		avgElapsed:     avgElapsed,
+		nodesPerSecond: nodesPerSecond,
+		prunedAB:       totalPrunedAB / uint64(len(results)),
+		prunedTT:       totalPrunedTT / uint64(len(results)),
+		timedOut:       timedOut,
+		avgLoss:        avgLoss,
+	}
+}
+
+func loadBenchPositions(path string) ([]benchPosition, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var positions []benchPosition
+	scanner := bufio.NewScanner(f)
+	lineNo := 0
+	for scanner.Scan() {
+		lineNo++
+		line := strings.TrimSpace(strings.SplitN(scanner.Text(), "#", 2)[0])
+		if line == "" {
+			continue
+		}
+		parts := strings.Split(line, "|")
+		for i := range parts {
+			parts[i] = strings.TrimSpace(parts[i])
+		}
+		pos := benchPosition{FEN: parts[0]}
+		if _, err := ParseFEN(pos.FEN); err != nil {
+			return nil, fmt.Errorf("%s:%d: %w", path, lineNo, err)
+		}
+		if len(parts) > 1 {
+			pos.Tag = parts[1]
+		}
+		if len(parts) > 2 {
+			pos.Expected = splitCSV(parts[2])
+		}
+		if len(parts) > 3 {
+			pos.Bad = splitCSV(parts[3])
+		}
+		if len(parts) > 4 {
+			pos.Notes = parts[4]
+		}
+		positions = append(positions, pos)
+	}
+	return positions, scanner.Err()
+}
+
+func splitCSV(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+func containsString(values []string, needle string) bool {
+	for _, v := range values {
+		if v == needle {
+			return true
+		}
+	}
+	return false
+}
+
+func ParseThreadList(s string) ([]int, error) {
+	if s == "" {
+		return nil, nil
+	}
+	parts := strings.Split(s, ",")
+	threads := make([]int, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		n, err := strconv.Atoi(part)
+		if err != nil || n <= 0 {
+			return nil, fmt.Errorf("invalid thread count %q", part)
+		}
+		threads = append(threads, n)
+	}
+	return threads, nil
+}

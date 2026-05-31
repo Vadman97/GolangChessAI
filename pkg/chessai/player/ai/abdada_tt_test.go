@@ -6,6 +6,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/transposition_table"
 )
 
@@ -213,5 +214,74 @@ func TestABDADAStableDepthMoveAcceptsSmallRegression(t *testing.T) {
 
 	if !got.Move.Equals(&nextMove) {
 		t.Fatalf("expected newer move %s, got %s", nextMove, got.Move)
+	}
+}
+
+func TestABDADASelectRootBestPrefersHighestScoreOverVoteCount(t *testing.T) {
+	popularMove := location.Move{
+		Start: location.NewLocation(1, 4),
+		End:   location.NewLocation(3, 4),
+	}
+	betterMove := location.Move{
+		Start: location.NewLocation(1, 3),
+		End:   location.NewLocation(3, 3),
+	}
+
+	got := selectRootBest([]ScoredMove{
+		{Move: popularMove, Score: 20},
+		{Move: popularMove, Score: 25},
+		{Move: betterMove, Score: 80},
+	})
+
+	if !got.Move.Equals(&betterMove) {
+		t.Fatalf("expected highest-scoring root result %s, got %s", betterMove, got.Move)
+	}
+	if got.Score != 80 {
+		t.Fatalf("expected score 80, got %d", got.Score)
+	}
+}
+
+func TestABDADAOrderMovesPrioritizesPromotion(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		for col := location.CoordinateType(0); col < board.Width; col++ {
+			b.SetPiece(location.NewLocation(row, col), nil)
+		}
+	}
+
+	whiteKingLoc := location.NewLocation(0, 3)
+	blackKingLoc := location.NewLocation(7, 3)
+	whiteKing := board.PieceFromType(piece.KingType)
+	whiteKing.SetColor(color.White)
+	whiteKing.SetPosition(whiteKingLoc)
+	blackKing := board.PieceFromType(piece.KingType)
+	blackKing.SetColor(color.Black)
+	blackKing.SetPosition(blackKingLoc)
+	pawnLoc := location.NewLocation(6, 7)
+	whitePawn := board.PieceFromType(piece.PawnType)
+	whitePawn.SetColor(color.White)
+	whitePawn.SetPosition(pawnLoc)
+	b.SetPiece(whiteKingLoc, whiteKing)
+	b.SetPiece(blackKingLoc, blackKing)
+	b.SetPiece(pawnLoc, whitePawn)
+	b.KingLocations[color.White] = whiteKingLoc
+	b.KingLocations[color.Black] = blackKingLoc
+
+	promotion := location.Move{
+		Start: pawnLoc,
+		End:   location.NewLocation(7, 7).CreatePawnPromotion(piece.QueenType),
+	}
+	quiet := location.Move{
+		Start: whiteKingLoc,
+		End:   location.NewLocation(0, 2),
+	}
+
+	ordered := orderMoves([]location.Move{quiet, promotion}, location.Move{}, [2]location.Move{}, nil, b, nil)
+	if len(ordered) != 2 {
+		t.Fatalf("expected 2 ordered moves, got %d", len(ordered))
+	}
+	if !ordered[0].Equals(&promotion) {
+		t.Fatalf("expected promotion first, got %s before %s", ordered[0], ordered[1])
 	}
 }

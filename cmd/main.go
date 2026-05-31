@@ -1,12 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"github.com/Vadman97/GolangChessAI/pkg/api/api_handlers"
-	"github.com/Vadman97/GolangChessAI/pkg/chessai/analysis"
-	"github.com/Vadman97/GolangChessAI/pkg/chessai/competition"
-	"github.com/Vadman97/GolangChessAI/pkg/chessai/server"
-	"github.com/gorilla/mux"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -14,7 +11,14 @@ import (
 	"path"
 	"runtime/pprof"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/Vadman97/GolangChessAI/pkg/api/api_handlers"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/analysis"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/competition"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/server"
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -110,6 +114,68 @@ func main() {
 				sfPath = os.Args[4]
 			}
 			analysis.RunLogReplay(logPath, sfPath, sfDepth)
+			return
+		} else if os.Args[1] == "san-fens" {
+			fs := flag.NewFlagSet("san-fens", flag.ExitOnError)
+			pliesArg := fs.String("plies", "", "optional comma-separated ply numbers to print")
+			if err := fs.Parse(os.Args[2:]); err != nil {
+				log.Fatal(err)
+			}
+			moveText := strings.Join(fs.Args(), " ")
+			if strings.TrimSpace(moveText) == "" {
+				data, err := io.ReadAll(os.Stdin)
+				if err != nil {
+					log.Fatal(err)
+				}
+				moveText = string(data)
+			}
+			replayed, err := analysis.ReplaySANMoves(moveText)
+			if err != nil {
+				log.Fatal(err)
+			}
+			plies, err := parseOptionalPlySet(*pliesArg)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, r := range replayed {
+				if len(plies) > 0 && !plies[r.Ply] {
+					continue
+				}
+				fmt.Printf("%d | %s | %s | %s\n", r.Ply, r.SAN, r.UCI, r.FENBefore)
+			}
+			return
+		} else if os.Args[1] == "abdada-bench" {
+			fs := flag.NewFlagSet("abdada-bench", flag.ExitOnError)
+			fenPath := fs.String("fens", "testdata/abdada_fens.txt", "path to ABDADA benchmark FEN file")
+			threadList := fs.String("threads", "1,2,4,8", "comma-separated ABDADA thread counts")
+			depth := fs.Int("depth", 0, "fixed search depth; omit when using --think-ms")
+			thinkMS := fs.Int("think-ms", 0, "fixed think time per move in milliseconds")
+			runs := fs.Int("runs", 1, "runs per FEN and thread count")
+			stockfishPath := fs.String("stockfish", "", "optional Stockfish binary path")
+			sfDepth := fs.Int("sf-depth", 0, "Stockfish depth for best-move and loss comparison")
+			showRoot := fs.Int("show-root", 0, "print top N ABDADA root move scores before thread benchmark")
+			if err := fs.Parse(os.Args[2:]); err != nil {
+				log.Fatal(err)
+			}
+			threads, err := analysis.ParseThreadList(*threadList)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if *depth > 0 && *thinkMS > 0 {
+				log.Fatal("use either --depth or --think-ms, not both")
+			}
+			if err := analysis.RunABDADABench(analysis.ABDADABenchConfig{
+				FENPath:        *fenPath,
+				Threads:        threads,
+				Depth:          *depth,
+				ThinkTime:      time.Duration(*thinkMS) * time.Millisecond,
+				Runs:           *runs,
+				StockfishPath:  *stockfishPath,
+				StockfishDepth: *sfDepth,
+				ShowRoot:       *showRoot,
+			}); err != nil {
+				log.Fatal(err)
+			}
 			return
 		} else if os.Args[1] == "competition" {
 			comp := competition.NewCompetition()
@@ -247,4 +313,20 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	p := path.Dir("./web/index.html")
 	w.Header().Set("Content-Type", "text/html")
 	http.ServeFile(w, r, p)
+}
+
+func parseOptionalPlySet(s string) (map[int]bool, error) {
+	out := map[int]bool{}
+	for _, part := range strings.Split(s, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		ply, err := strconv.Atoi(part)
+		if err != nil || ply <= 0 {
+			return nil, fmt.Errorf("invalid ply %q", part)
+		}
+		out[ply] = true
+	}
+	return out, nil
 }

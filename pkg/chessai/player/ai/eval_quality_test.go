@@ -92,3 +92,35 @@ func TestAdvancedKnightNotOutpostWhenKickable(t *testing.T) {
 	assert.Truef(t, isKnightOutpost(b2, 4, 3, color.White),
 		"knight on e5 with no enemy d/f pawns ahead should be a real outpost")
 }
+
+func TestRookBlockadesAdvancedEnemyPasser(t *testing.T) {
+	blockade := &board.Board{}
+	blockade.LoadBoardFromText([]string{
+		"   |   |   |   |W_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |W_R|   |   |   |   |   ", // white rook on f4, directly stopping ...f4
+		"   |   |B_P|   |   |   |   |   ", // black passed pawn on f5
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"B_K|   |   |   |   |   |   |   ",
+	})
+
+	passive := &board.Board{}
+	passive.LoadBoardFromText([]string{
+		"   |   |   |   |W_K|   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |W_R|   |   |   |   |   |   ", // same rook one file aside, not blockading
+		"   |   |B_P|   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |   |   |   |   |   |   ",
+		"B_K|   |   |   |   |   |   |   ",
+	})
+
+	blockadeScore := EvaluateBoardNoCache(blockade, color.White).TotalScore
+	passiveScore := EvaluateBoardNoCache(passive, color.White).TotalScore
+	assert.Truef(t, blockadeScore-passiveScore > 30,
+		"rook directly blockading an advanced passed pawn should be clearly preferred; got diff %d",
+		blockadeScore-passiveScore)
+}

@@ -94,6 +94,26 @@ func (sf *StockfishEngine) Analyze(fen string, depth int) EvalResult {
 	return result
 }
 
+// AnalyzeMove asks Stockfish to evaluate only one candidate move from a FEN.
+// The returned score uses the same side-to-move perspective as Analyze.
+func (sf *StockfishEngine) AnalyzeMove(fen, move string, depth int) EvalResult {
+	sf.send("position fen " + fen)
+	sf.send(fmt.Sprintf("go depth %d searchmoves %s", depth, move))
+
+	result := EvalResult{BestMove: move}
+	for sf.stdout.Scan() {
+		line := sf.stdout.Text()
+		if strings.HasPrefix(line, "bestmove") {
+			break
+		}
+		if strings.HasPrefix(line, "info") && strings.Contains(line, " score ") {
+			result = parseInfoLine(line)
+			result.BestMove = move
+		}
+	}
+	return result
+}
+
 func parseInfoLine(line string) EvalResult {
 	r := EvalResult{}
 	parts := strings.Fields(line)

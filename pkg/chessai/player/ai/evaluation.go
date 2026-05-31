@@ -110,6 +110,10 @@ const (
 	// A rook penetrating to the 7th attacks the enemy pawn chain and restricts the king.
 	// Tapered by endgame phase — most valuable in middlegame with queens still on board.
 	RookOnSeventhBonus = 20
+	// Rooks are the best blockaders of dangerous passers and belong behind passed
+	// pawns in rook endgames. These bonuses are scaled by the pawn's advancement.
+	RookPasserBlockadeBonus = 150
+	RookBehindPasserBonus   = 30
 	// KnightOutpostBonus: knight on ranks 3-5 (from own back rank) that no enemy
 	// pawn can attack. Outpost knights dominate the middlegame.
 	KnightOutpostBonus = 20
@@ -286,6 +290,41 @@ func isPassedPawn(b *board.Board, row, col location.CoordinateType, pawnColor co
 		}
 	}
 	return true
+}
+
+func rookPasserActivityBonus(b *board.Board, rookRow, rookCol location.CoordinateType, rookColor color.Color) int {
+	bonus := 0
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		p := b.GetPiece(location.NewLocation(row, rookCol))
+		if p == nil || p.GetPieceType() != piece.PawnType || !isPassedPawn(b, row, rookCol, p.GetColor()) {
+			continue
+		}
+		pawnColor := p.GetColor()
+		rank := int(row)
+		if pawnColor == color.Black {
+			rank = 7 - int(row)
+		}
+		if rank < 3 {
+			continue
+		}
+
+		if pawnColor == rookColor {
+			if (pawnColor == color.White && rookRow < row) || (pawnColor == color.Black && rookRow > row) {
+				bonus += RookBehindPasserBonus * rank / 6
+			}
+			continue
+		}
+
+		blocksEnemyPasser := (pawnColor == color.White && rookRow > row) || (pawnColor == color.Black && rookRow < row)
+		if blocksEnemyPasser {
+			blockade := RookPasserBlockadeBonus * rank / 6
+			if abs(int(rookRow)-int(row)) == 1 {
+				blockade += RookPasserBlockadeBonus / 4
+			}
+			bonus += blockade
+		}
+	}
+	return bonus
 }
 
 const (
@@ -712,6 +751,7 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 					// Taper: full bonus in middlegame, half in endgame.
 					pstScores[c] += RookOnSeventhBonus * phase / 256
 				}
+				pstScores[c] += rookPasserActivityBonus(b, row, col, c)
 			}
 		}
 
