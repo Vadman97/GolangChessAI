@@ -329,7 +329,7 @@ func thinkTimeForPosition(timeLeft, increment time.Duration, turnCount int, b *b
 	if b == nil || !isCriticalSearchPosition(b, side) || timeLeft <= 20*time.Second {
 		return think
 	}
-	minThink := 2050*time.Millisecond + increment
+	minThink := 2500*time.Millisecond + increment
 	if think < minThink {
 		think = minThink
 	}

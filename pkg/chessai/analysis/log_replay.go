@@ -20,6 +20,7 @@ var (
 	reMoveHeader = regexp.MustCompile(`Move #(\d+) by (White|Black)`)
 	reAIScore    = regexp.MustCompile(`best move leads to score (-?\d+)`)
 	reBoardRow   = regexp.MustCompile(`^(\d) (.+) \d$`)
+	reAIColor    = regexp.MustCompile(`Player AI .* - (White|Black)\) thinking`)
 )
 
 type logEntry struct {
@@ -533,7 +534,9 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 	}
 	replayed, err := replayLogEntries(entries)
 	if err != nil {
-		log.Fatalf("Failed to replay log %s: %v", logPath, err)
+		fmt.Printf("Board-grid replay failed (%v); falling back to Lichess gameState moves.\n\n", err)
+		runLichessMoveTextStockfishReplay(logPath, stockfishPath, sfDepth)
+		return
 	}
 
 	fmt.Printf("Parsed %d moves from %s\n\n", len(entries), logPath)
@@ -626,4 +629,144 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 	fmt.Printf("  Blunders     (>=%d cp): %d\n", BlunderThreshold, totalBlunders)
 	fmt.Printf("  Mistakes     (>=%d cp): %d\n", mistakeThreshold, totalMistakes)
 	fmt.Printf("  Inaccuracies (>=%d cp): %d\n", inaccuracyThreshold, totalInaccuracies)
+}
+
+type uciAnalysisEntry struct {
+	ply         int
+	fullMoveNum int
+	side        color.Color
+	move        location.Move
+	uci         string
+	fenBefore   string
+	fenAfter    string
+}
+
+func runLichessMoveTextStockfishReplay(logPath, stockfishPath string, sfDepth int) {
+	moves, gameID, err := ExtractLichessMovesFromLog(logPath, "")
+	if err != nil {
+		log.Fatalf("Failed to extract gameState moves from %s: %v", logPath, err)
+	}
+	if strings.TrimSpace(moves) == "" {
+		log.Fatalf("No gameState moves found in %s", logPath)
+	}
+	botColor, ok := inferBotColorFromLog(logPath)
+	if !ok {
+		log.Fatalf("Could not infer bot color from %s", logPath)
+	}
+	entries, err := replayUCIAnalysisEntries(moves)
+	if err != nil {
+		log.Fatalf("Failed to replay gameState moves from %s: %v", logPath, err)
+	}
+
+	sf, err := NewStockfishEngine(stockfishPath)
+	if err != nil {
+		log.Fatalf("Cannot start Stockfish: %v", err)
+	}
+	defer sf.Close()
+
+	fmt.Printf("Parsed %d plies from game %s; analyzing %s bot moves from %s\n\n",
+		len(strings.Fields(moves)), gameID, colorName(botColor), logPath)
+
+	totalBotMoves, totalBlunders, totalMistakes, totalInaccuracies := 0, 0, 0, 0
+	for _, entry := range entries {
+		if entry.side != botColor {
+			continue
+		}
+		totalBotMoves++
+		sfBefore := sf.Analyze(entry.fenBefore, sfDepth)
+		sfAfter := sf.Analyze(entry.fenAfter, sfDepth)
+		cpLoss := sfBefore.CentipawnsSTM + sfAfter.CentipawnsSTM
+		if cpLoss < 0 || entry.uci == sfBefore.BestMove {
+			cpLoss = 0
+		}
+		if cpLoss > 2000 {
+			cpLoss = 2000
+		}
+		label := classifyLoss(cpLoss, entry.uci, sfBefore.BestMove)
+		switch label {
+		case "BLUNDER":
+			totalBlunders++
+		case "MISTAKE":
+			totalMistakes++
+		case "INACCURACY":
+			totalInaccuracies++
+		}
+		moveLabel := fmt.Sprintf("%d.", entry.fullMoveNum)
+		if entry.side == color.Black {
+			moveLabel = fmt.Sprintf("%d...", entry.fullMoveNum)
+		}
+		flagStr := ""
+		if label != "" {
+			flagStr = fmt.Sprintf("  [%s]", label)
+		}
+		fmt.Printf("Ply %3d  %s%s  SF: %+d cp  loss: %+d  SF-best: %s%s\n",
+			entry.ply, moveLabel, entry.uci, sfBefore.CentipawnsSTM, cpLoss, sfBefore.BestMove, flagStr)
+		if label == "BLUNDER" || label == "MISTAKE" {
+			fmt.Printf("  AI played %-6s but SF recommends %-6s  (diff: %+d cp)\n", entry.uci, sfBefore.BestMove, cpLoss)
+			fmt.Printf("  FEN: %s\n\n", entry.fenBefore)
+		}
+	}
+	fmt.Printf("\n=== Summary: %d %s bot half-moves ===\n", totalBotMoves, colorName(botColor))
+	fmt.Printf("  Blunders     (>=%d cp): %d\n", BlunderThreshold, totalBlunders)
+	fmt.Printf("  Mistakes     (>=%d cp): %d\n", mistakeThreshold, totalMistakes)
+	fmt.Printf("  Inaccuracies (>=%d cp): %d\n", inaccuracyThreshold, totalInaccuracies)
+}
+
+func replayUCIAnalysisEntries(moveText string) ([]uciAnalysisEntry, error) {
+	tokens := strings.Fields(moveText)
+	b := &board.Board{}
+	b.ResetDefault()
+	side := color.White
+	fullMove := 1
+	var previousMove *board.LastMove
+	entries := make([]uciAnalysisEntry, 0, len(tokens))
+	for i, token := range tokens {
+		m, err := matchUCIMove(b, side, previousMove, token)
+		if err != nil {
+			return nil, fmt.Errorf("ply %d %s: %w", i+1, token, err)
+		}
+		fenBefore := BoardToFEN(b, side, previousMove, fullMove)
+		after := b.Copy()
+		afterMove := board.MakeMove(&m, after)
+		nextSide := side ^ 1
+		nextFullMove := fullMove
+		if side == color.Black {
+			nextFullMove++
+		}
+		entries = append(entries, uciAnalysisEntry{
+			ply:         i + 1,
+			fullMoveNum: fullMove,
+			side:        side,
+			move:        m,
+			uci:         MoveToUCI(m),
+			fenBefore:   fenBefore,
+			fenAfter:    BoardToFEN(after, nextSide, afterMove, nextFullMove),
+		})
+		b = after
+		previousMove = afterMove
+		side = nextSide
+		fullMove = nextFullMove
+	}
+	return entries, nil
+}
+
+func inferBotColorFromLog(logPath string) (color.Color, bool) {
+	f, err := os.Open(logPath)
+	if err != nil {
+		return color.White, false
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+	for scanner.Scan() {
+		m := reAIColor.FindStringSubmatch(scanner.Text())
+		if m == nil {
+			continue
+		}
+		if m[1] == "White" {
+			return color.White, true
+		}
+		return color.Black, true
+	}
+	return color.White, false
 }

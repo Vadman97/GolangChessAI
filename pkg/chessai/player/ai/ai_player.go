@@ -226,6 +226,9 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 		}
 		p.Opening = OpeningNone // book broken/illegal for this position; switch to search
 	}
+	if move := p.earlyOpeningPreference(b, previousMove); move != nil {
+		return move
+	}
 	{
 		thinking := make(chan bool)
 		go p.printThread(thinking)
@@ -236,6 +239,7 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 
 		if p.Algorithm != nil {
 			scoredMove := p.Algorithm.GetBestMove(p, b, previousMove)
+			scoredMove = p.avoidImmediateMateMove(b, previousMove, scoredMove)
 			if p.Debug {
 				p.printMoveDebug(b, scoredMove)
 			}
@@ -253,6 +257,110 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 			panic("invalid ai algorithm")
 		}
 	}
+}
+
+func (p *AIPlayer) earlyOpeningPreference(b *board.Board, previousMove *board.LastMove) *location.Move {
+	if p.TurnCount >= 2 || !looksLikeOpeningPosition(b) {
+		return nil
+	}
+	preferences := openingPreferenceMoves(p.PlayerColor, p.TurnCount)
+	if len(preferences) == 0 {
+		return nil
+	}
+	legalMoves := b.GetAllMoves(p.PlayerColor, previousMove)
+	for _, pref := range preferences {
+		for _, move := range *legalMoves {
+			if move.Start.Equals(pref.Start) && move.End.Equals(pref.End) {
+				m := move
+				p.printer <- fmt.Sprintf("opening preference: %s\n", m)
+				return &m
+			}
+		}
+	}
+	return nil
+}
+
+func looksLikeOpeningPosition(b *board.Board) bool {
+	pieces := 0
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		for col := location.CoordinateType(0); col < board.Width; col++ {
+			if b.GetPiece(location.NewLocation(row, col)) != nil {
+				pieces++
+			}
+		}
+	}
+	return pieces >= 28 && b.MovesSinceNoDraw <= 8
+}
+
+func openingPreferenceMoves(c color.Color, turnCount int) []location.Move {
+	if c == color.White {
+		if turnCount == 0 {
+			return []location.Move{
+				{Start: location.NewLocation(1, 4), End: location.NewLocation(3, 4)}, // d2-d4
+				{Start: location.NewLocation(1, 3), End: location.NewLocation(3, 3)}, // e2-e4
+				{Start: location.NewLocation(0, 1), End: location.NewLocation(2, 2)}, // Ng1-f3
+			}
+		}
+		return []location.Move{
+			{Start: location.NewLocation(0, 1), End: location.NewLocation(2, 2)}, // Ng1-f3
+			{Start: location.NewLocation(0, 5), End: location.NewLocation(3, 2)}, // Bc1-f4
+			{Start: location.NewLocation(1, 3), End: location.NewLocation(2, 3)}, // e2-e3
+		}
+	}
+	if turnCount == 0 {
+		return []location.Move{
+			{Start: location.NewLocation(6, 4), End: location.NewLocation(4, 4)}, // d7-d5
+			{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Ng8-f6
+			{Start: location.NewLocation(6, 3), End: location.NewLocation(4, 3)}, // e7-e5
+		}
+	}
+	return []location.Move{
+		{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Ng8-f6
+		{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}, // e7-e6
+		{Start: location.NewLocation(6, 5), End: location.NewLocation(4, 5)}, // c7-c5
+	}
+}
+
+func (p *AIPlayer) avoidImmediateMateMove(b *board.Board, previousMove *board.LastMove, scoredMove *ScoredMove) *ScoredMove {
+	if scoredMove == nil || scoredMove.Move.Start.Equals(scoredMove.Move.End) {
+		return scoredMove
+	}
+	if !moveAllowsMateInOne(b, previousMove, p.PlayerColor, scoredMove.Move) {
+		return scoredMove
+	}
+	moves := b.GetAllMoves(p.PlayerColor, previousMove)
+	bestSafe := ScoredMove{Score: NegInf}
+	for _, move := range *moves {
+		if moveAllowsMateInOne(b, previousMove, p.PlayerColor, move) {
+			continue
+		}
+		child := b.Copy()
+		board.MakeMove(&move, child)
+		score := p.EvaluateBoard(child, p.PlayerColor).TotalScore
+		if score > bestSafe.Score || bestSafe.Move.Start.Equals(bestSafe.Move.End) {
+			bestSafe = ScoredMove{Move: move, Score: score}
+		}
+	}
+	if bestSafe.Move.Start.Equals(bestSafe.Move.End) {
+		return scoredMove
+	}
+	p.printer <- fmt.Sprintf("mate-in-one safety override: %s -> %s\n", scoredMove.Move, bestSafe.Move)
+	return &bestSafe
+}
+
+func moveAllowsMateInOne(b *board.Board, previousMove *board.LastMove, side color.Color, move location.Move) bool {
+	child := b.Copy()
+	last := board.MakeMove(&move, child)
+	enemy := side ^ 1
+	replies := child.GetAllMoves(enemy, last)
+	for _, reply := range *replies {
+		replyBoard := child.Copy()
+		replyLast := board.MakeMove(&reply, replyBoard)
+		if replyBoard.IsInCheckmate(side, replyLast) {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *AIPlayer) MakeMove(b *board.Board, move *location.Move) *board.LastMove {

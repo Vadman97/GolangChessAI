@@ -80,7 +80,7 @@ func TestThinkTimeForPositionExtendsCriticalQueenPasserEndgame(t *testing.T) {
 	critical := thinkTimeForPosition(50*time.Second, 0, 40, parsed.Board, color.Black)
 
 	assert.True(t, base < 2*time.Second, "test setup expected base think time below critical floor, got %s", base)
-	assert.True(t, critical >= 2050*time.Millisecond, "critical queen/passer endgame should get search floor, got %s", critical)
+	assert.True(t, critical >= 2500*time.Millisecond, "critical queen/passer endgame should get search floor, got %s", critical)
 }
 
 func TestThinkTimeForPositionDoesNotExtendQuietOpening(t *testing.T) {

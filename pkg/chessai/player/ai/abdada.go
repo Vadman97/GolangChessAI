@@ -467,6 +467,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 
 	if ab.NumThreads == 1 {
 		best := ScoredMove{Score: NegInf}
+		second := ScoredMove{Score: NegInf}
 		for _, move := range orderedMoves {
 			if ab.player.isAborted() && !best.Move.Start.Equals(best.Move.End) {
 				break
@@ -478,10 +479,9 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 			if value.Score == OnEvaluation || value.Score == -OnEvaluation {
 				continue
 			}
-			if value.Score > best.Score || best.Move.Start.Equals(best.Move.End) {
-				best = value
-			}
+			best, second = updateRootTopTwo(best, second, value)
 		}
+		best = ab.verifyCloseRootMoves(b, depth, best, second)
 		if !best.Move.Start.Equals(best.Move.End) {
 			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), originalAlpha, originalBeta, &best)
 		}
@@ -489,10 +489,11 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	}
 
 	best := ScoredMove{Score: NegInf}
+	second := ScoredMove{Score: NegInf}
 	firstRootMove := orderedMoves[0]
 	firstValue := ab.searchRootMove(b, firstRootMove, depth, alpha, beta)
 	if firstValue.Score != OnEvaluation && firstValue.Score != -OnEvaluation {
-		best = firstValue
+		best, second = updateRootTopTwo(best, second, firstValue)
 		if best.Score > alpha {
 			alpha = best.Score
 		}
@@ -557,14 +558,54 @@ collectResults:
 		if result.Score == OnEvaluation || result.Score == -OnEvaluation {
 			continue
 		}
-		if result.Score > best.Score || best.Move.Start.Equals(best.Move.End) {
-			best = result
-		}
+		best, second = updateRootTopTwo(best, second, result)
 	}
+	best = ab.verifyCloseRootMoves(b, depth, best, second)
 	if !best.Move.Start.Equals(best.Move.End) {
 		ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), originalAlpha, originalBeta, &best)
 	}
 	return best
+}
+
+func updateRootTopTwo(best, second, candidate ScoredMove) (ScoredMove, ScoredMove) {
+	if candidate.Score == OnEvaluation || candidate.Score == -OnEvaluation || candidate.Move.Start.Equals(candidate.Move.End) {
+		return best, second
+	}
+	if best.Move.Start.Equals(best.Move.End) || candidate.Score > best.Score {
+		if !sameRootMove(candidate, best) {
+			second = best
+		}
+		best = candidate
+		return best, second
+	}
+	if !sameRootMove(candidate, best) && (second.Move.Start.Equals(second.Move.End) || candidate.Score > second.Score) {
+		second = candidate
+	}
+	return best, second
+}
+
+func sameRootMove(a, b ScoredMove) bool {
+	return a.Move.Start.Equals(b.Move.Start) && a.Move.End.Equals(b.Move.End)
+}
+
+func (ab *ABDADA) verifyCloseRootMoves(b *board.Board, depth int, best, second ScoredMove) ScoredMove {
+	const verifyMargin = 150
+	if ab.player.isAborted() ||
+		depth < 4 ||
+		best.Move.Start.Equals(best.Move.End) ||
+		second.Move.Start.Equals(second.Move.End) ||
+		best.Score-second.Score > verifyMargin {
+		return best
+	}
+	verifiedBest := ab.searchRootMove(b, best.Move, depth, NegInf, PosInf)
+	verifiedSecond := ab.searchRootMove(b, second.Move, depth, NegInf, PosInf)
+	if verifiedBest.Score == OnEvaluation || verifiedBest.Score == -OnEvaluation {
+		return best
+	}
+	if verifiedSecond.Score != OnEvaluation && verifiedSecond.Score != -OnEvaluation && verifiedSecond.Score > verifiedBest.Score {
+		return verifiedSecond
+	}
+	return verifiedBest
 }
 
 func (ab *ABDADA) searchRootMove(b *board.Board, move location.Move, depth, alpha, beta int) ScoredMove {
