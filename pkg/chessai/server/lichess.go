@@ -117,6 +117,11 @@ type Lichess struct {
 	// the first gameState event and used by thinkTimeForClock.
 	clockIncrement time.Duration
 
+	// offerDrawNextMove preserves a claimable draw detected before our move.
+	// PlayTurn may move away from the repeated position and set GameStatus back to
+	// Active, but the outbound Lichess move should still carry offeringDraw=true.
+	offerDrawNextMove bool
+
 	// boardStreamCancel cancels the active game board stream so stale goroutines
 	// from previous games don't corrupt the current game's board state.
 	boardStreamCancel context.CancelFunc
@@ -483,6 +488,7 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 			// Claimable draw on our turn after replay — play on and offer the draw
 			// rather than going idle (see handleBoardUpdateLocked for rationale).
 			log.Infof("gameFull: claimable draw (status %d) on our turn — playing on and offering the draw", l.Game.GameStatus)
+			l.offerDrawNextMove = true
 			l.Game.GameStatus = game.Active
 		}
 		if !l.ourTurnLocally() {
@@ -587,6 +593,7 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 			// and we keep repeating, Lichess auto-draws at fivefold — either way we
 			// never sit idle and lose on time.
 			log.Infof("claimable draw (status %d) after opponent's move — playing on and offering the draw", l.Game.GameStatus)
+			l.offerDrawNextMove = true
 			l.Game.GameStatus = game.Active
 		}
 		playerTimeMS := event.WhiteTimeMS
@@ -777,9 +784,10 @@ func (l *Lichess) MakeMove(gameID string, move *board.LastMove) error {
 		moveStr += strings.ToLower(string((*move.PromotionPiece).GetChar()))
 	}
 	oferringDraw := "false"
-	if game.IsClaimableDraw(l.Game.GameStatus) {
+	if l.offerDrawNextMove || game.IsClaimableDraw(l.Game.GameStatus) {
 		oferringDraw = "true"
 	}
+	l.offerDrawNextMove = false
 	u := fmt.Sprintf("/api/bot/game/%s/move/%s?offeringDraw=%s", gameID, moveStr, oferringDraw)
 	r, err := l.Client.newRequest("POST", u, nil)
 	if err != nil {

@@ -107,7 +107,7 @@ func (g *Game) PlayTurn() bool {
 		} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
 			// 50 Move Rule (50 moves per color)
 			g.GameStatus = FiftyMoveDraw
-		} else if g.CurrentBoard.PreviousPositionsSeen >= 3 {
+		} else if g.CurrentBoard.CurrentPositionRepeats >= 2 {
 			// 3-position repetition
 			g.GameStatus = RepeatedActionThreeTimeDraw
 		} else if g.CurrentBoard.IsInsufficientMaterial() {
@@ -174,7 +174,7 @@ func (g *Game) PlayTurnMove(move *location.Move) {
 		g.GameStatus = Stalemate
 	} else if g.CurrentBoard.MovesSinceNoDraw >= 100 {
 		g.GameStatus = FiftyMoveDraw
-	} else if g.CurrentBoard.PreviousPositionsSeen >= 3 {
+	} else if g.CurrentBoard.CurrentPositionRepeats >= 2 {
 		g.GameStatus = RepeatedActionThreeTimeDraw
 	} else if g.CurrentBoard.IsInsufficientMaterial() {
 		g.GameStatus = InsufficientMaterialDraw

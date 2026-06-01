@@ -2,9 +2,11 @@ package game
 
 import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
 	"github.com/stretchr/testify/assert"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -54,4 +56,36 @@ func TestGameStopTerminatesBackgroundGoroutines(t *testing.T) {
 	}
 	assert.True(t, runtime.NumGoroutine() <= baseline+2,
 		"background goroutines leaked after Stop() — Game would never be GC'd")
+}
+
+func TestGameDoesNotDrawOnCumulativeDifferentRepetitions(t *testing.T) {
+	g := NewGame(
+		ai.NewAIPlayer(color.White, &ai.Random{}),
+		ai.NewAIPlayer(color.Black, &ai.Random{}),
+	)
+	defer g.Stop()
+
+	// After these six plies, three different positions have each repeated once:
+	// after White's knight move, after Black's knight move, and after both return.
+	// That is not a legal threefold claim; the current position has occurred only
+	// once before. The old cumulative PreviousPositionsSeen >= 3 check falsely
+	// ended games here, matching the 6kouplD3 false draw claim pattern.
+	for _, move := range strings.Split("g1f3 g8f6 f3g1 f6g8 g1f3 g8f6", " ") {
+		g.PlayTurnMove(parseTestUCIMove(move))
+	}
+
+	assert.Equal(t, Active, g.GameStatus)
+	assert.Equal(t, 3, g.CurrentBoard.PreviousPositionsSeen)
+	assert.Equal(t, 1, g.CurrentBoard.CurrentPositionRepeats)
+}
+
+func parseTestUCIMove(uci string) *location.Move {
+	sCol := 7 - (uci[0] - 'a')
+	sRow := uci[1] - '0' - 1
+	fCol := 7 - (uci[2] - 'a')
+	fRow := uci[3] - '0' - 1
+	return &location.Move{
+		Start: location.NewLocation(sRow, sCol),
+		End:   location.NewLocation(fRow, fCol),
+	}
 }

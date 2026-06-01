@@ -471,12 +471,33 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 		return best
 	}
 
-	workerCount := ab.NumThreads
-	if workerCount > len(orderedMoves) {
-		workerCount = len(orderedMoves)
+	best := ScoredMove{Score: NegInf}
+	firstRootMove := orderedMoves[0]
+	firstValue := ab.searchRootMove(b, firstRootMove, depth, alpha, beta)
+	if firstValue.Score != OnEvaluation && firstValue.Score != -OnEvaluation {
+		best = firstValue
+		if best.Score > alpha {
+			alpha = best.Score
+		}
+		if alpha >= beta {
+			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), NegInf, PosInf, &best)
+			return best
+		}
 	}
-	jobs := make(chan location.Move, len(orderedMoves))
-	results := make(chan ScoredMove, len(orderedMoves))
+	remainingMoves := orderedMoves[1:]
+	if len(remainingMoves) == 0 {
+		if !best.Move.Start.Equals(best.Move.End) {
+			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), NegInf, PosInf, &best)
+		}
+		return best
+	}
+
+	workerCount := ab.NumThreads
+	if workerCount > len(remainingMoves) {
+		workerCount = len(remainingMoves)
+	}
+	jobs := make(chan location.Move, len(remainingMoves))
+	results := make(chan ScoredMove, len(remainingMoves))
 	rootAlpha := int64(alpha)
 	for i := 0; i < workerCount; i++ {
 		go func() {
@@ -497,16 +518,15 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 			}
 		}()
 	}
-	for _, move := range orderedMoves {
+	for _, move := range remainingMoves {
 		jobs <- move
 	}
 	close(jobs)
 
-	best := ScoredMove{Score: NegInf}
 	ticker := time.NewTicker(time.Millisecond)
 	defer ticker.Stop()
 collectResults:
-	for completed := 0; completed < len(orderedMoves); completed++ {
+	for completed := 0; completed < len(remainingMoves); completed++ {
 		var result ScoredMove
 		select {
 		case result = <-results:

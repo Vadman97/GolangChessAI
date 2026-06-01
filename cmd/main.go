@@ -155,6 +155,7 @@ func main() {
 			stockfishPath := fs.String("stockfish", "", "optional Stockfish binary path")
 			sfDepth := fs.Int("sf-depth", 0, "Stockfish depth for best-move and loss comparison")
 			showRoot := fs.Int("show-root", 0, "print top N ABDADA root move scores before thread benchmark")
+			jsonPath := fs.String("json", "", "optional path to write a JSON benchmark report")
 			if err := fs.Parse(os.Args[2:]); err != nil {
 				log.Fatal(err)
 			}
@@ -174,6 +175,7 @@ func main() {
 				StockfishPath:  *stockfishPath,
 				StockfishDepth: *sfDepth,
 				ShowRoot:       *showRoot,
+				JSONPath:       *jsonPath,
 			}); err != nil {
 				log.Fatal(err)
 			}

@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -21,6 +22,7 @@ type ABDADABenchConfig struct {
 	StockfishPath  string
 	StockfishDepth int
 	ShowRoot       int
+	JSONPath       string
 }
 
 type benchPosition struct {
@@ -64,6 +66,85 @@ type threadTotals struct {
 	totalElapsed   time.Duration
 }
 
+type benchReport struct {
+	FENPath         string                `json:"fenPath"`
+	Depth           int                   `json:"depth,omitempty"`
+	ThinkTimeMS     int64                 `json:"thinkTimeMs,omitempty"`
+	Runs            int                   `json:"runs"`
+	StockfishPath   string                `json:"stockfishPath,omitempty"`
+	StockfishDepth  int                   `json:"stockfishDepth,omitempty"`
+	Positions       []benchReportPosition `json:"positions"`
+	Summary         benchReportSummary    `json:"summary"`
+	ThreadSummaries []benchThreadSummary  `json:"threadSummaries"`
+}
+
+type benchReportPosition struct {
+	FEN       string                `json:"fen"`
+	Tag       string                `json:"tag,omitempty"`
+	Expected  []string              `json:"expected,omitempty"`
+	Bad       []string              `json:"bad,omitempty"`
+	Notes     string                `json:"notes,omitempty"`
+	Stockfish *benchStockfishReport `json:"stockfish,omitempty"`
+	Threads   []benchThreadReport   `json:"threads"`
+}
+
+type benchStockfishReport struct {
+	Depth int    `json:"depth"`
+	Best  string `json:"best"`
+	Score int    `json:"score"`
+}
+
+type benchThreadReport struct {
+	Threads int              `json:"threads"`
+	Summary benchRunSummary  `json:"summary"`
+	Runs    []benchRunReport `json:"runs"`
+	Flags   []string         `json:"flags,omitempty"`
+}
+
+type benchRunReport struct {
+	Move          string `json:"move"`
+	Score         int    `json:"score"`
+	Depth         int    `json:"depth"`
+	ElapsedMS     int64  `json:"elapsedMs"`
+	Considered    uint64 `json:"considered"`
+	PrunedAB      uint64 `json:"prunedAb"`
+	PrunedTT      uint64 `json:"prunedTt"`
+	TTImproved    uint64 `json:"ttImproved"`
+	TimedOut      bool   `json:"timedOut"`
+	StockfishLoss *int   `json:"stockfishLoss,omitempty"`
+}
+
+type benchRunSummary struct {
+	Move           string `json:"move"`
+	Score          int    `json:"score"`
+	Count          int    `json:"count"`
+	Depth          int    `json:"depth"`
+	AvgElapsedMS   int64  `json:"avgElapsedMs"`
+	NodesPerSecond int64  `json:"nodesPerSecond"`
+	PrunedAB       uint64 `json:"prunedAb"`
+	PrunedTT       uint64 `json:"prunedTt"`
+	TimedOut       bool   `json:"timedOut"`
+	AvgLoss        *int   `json:"avgLoss,omitempty"`
+}
+
+type benchReportSummary struct {
+	Positions           int  `json:"positions"`
+	Runs                int  `json:"runs"`
+	MissedExpected      int  `json:"missedExpected"`
+	KnownBad            int  `json:"knownBad"`
+	ParallelRegressions int  `json:"parallelRegressions"`
+	AvgLoss             *int `json:"avgLoss,omitempty"`
+}
+
+type benchThreadSummary struct {
+	Threads        int   `json:"threads"`
+	Positions      int   `json:"positions"`
+	MissedExpected int   `json:"missedExpected"`
+	KnownBad       int   `json:"knownBad"`
+	AvgElapsedMS   int64 `json:"avgElapsedMs"`
+	AvgLoss        *int  `json:"avgLoss,omitempty"`
+}
+
 // RunABDADABench executes the repeatable ABDADA optimization benchmark described
 // in docs/abdada-optimization-plan.md.
 func RunABDADABench(cfg ABDADABenchConfig) error {
@@ -98,8 +179,23 @@ func RunABDADABench(cfg ABDADABenchConfig) error {
 	}
 
 	totals := benchTotals{byThread: map[int]*threadTotals{}}
+	report := benchReport{
+		FENPath:        cfg.FENPath,
+		Depth:          cfg.Depth,
+		ThinkTimeMS:    cfg.ThinkTime.Milliseconds(),
+		Runs:           cfg.Runs,
+		StockfishPath:  cfg.StockfishPath,
+		StockfishDepth: cfg.StockfishDepth,
+	}
 	for posIdx, pos := range positions {
 		totals.positions++
+		positionReport := benchReportPosition{
+			FEN:      pos.FEN,
+			Tag:      pos.Tag,
+			Expected: pos.Expected,
+			Bad:      pos.Bad,
+			Notes:    pos.Notes,
+		}
 		fmt.Printf("FEN %d/%d: %s\n", posIdx+1, len(positions), pos.FEN)
 		if pos.Tag != "" {
 			fmt.Printf("Tag: %s\n", pos.Tag)
@@ -111,6 +207,11 @@ func RunABDADABench(cfg ABDADABenchConfig) error {
 		if sf != nil {
 			sfBest = sf.Analyze(pos.FEN, cfg.StockfishDepth)
 			fmt.Printf("Stockfish depth=%d best=%s score=%+d\n", cfg.StockfishDepth, sfBest.BestMove, sfBest.CentipawnsSTM)
+			positionReport.Stockfish = &benchStockfishReport{
+				Depth: cfg.StockfishDepth,
+				Best:  sfBest.BestMove,
+				Score: sfBest.CentipawnsSTM,
+			}
 		}
 		if cfg.ShowRoot > 0 {
 			if err := printRootMoveScores(pos.FEN, cfg.Depth, cfg.ShowRoot, sf, cfg.StockfishDepth, sfBest); err != nil {
@@ -150,25 +251,25 @@ func RunABDADABench(cfg ABDADABenchConfig) error {
 				singleThreadMove = summary.move
 				singleThreadLoss = summary.avgLoss
 			}
-			flag := ""
+			flags := []string{}
 			if threads > 1 {
 				if singleThreadLoss != nil && summary.avgLoss != nil {
 					if *summary.avgLoss > *singleThreadLoss+50 {
-						flag = " Flag: parallel regression"
+						flags = append(flags, "parallel regression")
 						totals.parallelRegressions++
 					}
 				} else if singleThreadMove != "" && summary.move != singleThreadMove {
-					flag = " Flag: parallel regression"
+					flags = append(flags, "parallel regression")
 					totals.parallelRegressions++
 				}
 			}
 			if len(pos.Expected) > 0 && !containsString(pos.Expected, summary.move) {
-				flag += " Flag: missed expected"
+				flags = append(flags, "missed expected")
 				totals.missedExpected++
 				threadTotal.missedExpected++
 			}
 			if len(pos.Bad) > 0 && containsString(pos.Bad, summary.move) {
-				flag += " Flag: known bad move"
+				flags = append(flags, "known bad move")
 				totals.knownBad++
 				threadTotal.knownBad++
 			}
@@ -192,12 +293,119 @@ func RunABDADABench(cfg ABDADABenchConfig) error {
 				threadTotal.totalLoss += *summary.avgLoss
 				threadTotal.lossCount++
 			}
-			fmt.Printf("%s\n", flag)
+			fmt.Printf("%s\n", formatBenchFlags(flags))
+			positionReport.Threads = append(positionReport.Threads, benchThreadReport{
+				Threads: threads,
+				Summary: makeBenchRunSummary(summary),
+				Runs:    makeBenchRunReports(results),
+				Flags:   flags,
+			})
 		}
 		fmt.Println()
+		report.Positions = append(report.Positions, positionReport)
 	}
 	printBenchTotals(totals, cfg.Threads)
+	report.Summary = makeBenchReportSummary(totals)
+	report.ThreadSummaries = makeBenchThreadSummaries(totals, cfg.Threads)
+	if cfg.JSONPath != "" {
+		if err := writeBenchJSON(cfg.JSONPath, report); err != nil {
+			return err
+		}
+		fmt.Printf("Wrote JSON benchmark report to %s\n", cfg.JSONPath)
+	}
 	return nil
+}
+
+func formatBenchFlags(flags []string) string {
+	var b strings.Builder
+	for _, flag := range flags {
+		b.WriteString(" Flag: ")
+		b.WriteString(flag)
+	}
+	return b.String()
+}
+
+func makeBenchRunSummary(summary benchSummary) benchRunSummary {
+	return benchRunSummary{
+		Move:           summary.move,
+		Score:          summary.score,
+		Count:          summary.count,
+		Depth:          summary.depth,
+		AvgElapsedMS:   summary.avgElapsed.Milliseconds(),
+		NodesPerSecond: summary.nodesPerSecond,
+		PrunedAB:       summary.prunedAB,
+		PrunedTT:       summary.prunedTT,
+		TimedOut:       summary.timedOut,
+		AvgLoss:        summary.avgLoss,
+	}
+}
+
+func makeBenchRunReports(results []benchRun) []benchRunReport {
+	reports := make([]benchRunReport, 0, len(results))
+	for _, result := range results {
+		reports = append(reports, benchRunReport{
+			Move:          result.Move,
+			Score:         result.Score,
+			Depth:         result.Depth,
+			ElapsedMS:     result.Elapsed.Milliseconds(),
+			Considered:    result.Considered,
+			PrunedAB:      result.PrunedAB,
+			PrunedTT:      result.PrunedTT,
+			TTImproved:    result.TTImproved,
+			TimedOut:      result.TimedOut,
+			StockfishLoss: result.StockfishLoss,
+		})
+	}
+	return reports
+}
+
+func makeBenchReportSummary(totals benchTotals) benchReportSummary {
+	return benchReportSummary{
+		Positions:           totals.positions,
+		Runs:                totals.runs,
+		MissedExpected:      totals.missedExpected,
+		KnownBad:            totals.knownBad,
+		ParallelRegressions: totals.parallelRegressions,
+		AvgLoss:             averagePtr(totals.totalLoss, totals.lossCount),
+	}
+}
+
+func makeBenchThreadSummaries(totals benchTotals, threads []int) []benchThreadSummary {
+	summaries := make([]benchThreadSummary, 0, len(threads))
+	for _, threadCount := range threads {
+		t := totals.byThread[threadCount]
+		if t == nil || t.positions == 0 {
+			continue
+		}
+		summaries = append(summaries, benchThreadSummary{
+			Threads:        threadCount,
+			Positions:      t.positions,
+			MissedExpected: t.missedExpected,
+			KnownBad:       t.knownBad,
+			AvgElapsedMS:   (t.totalElapsed / time.Duration(t.positions)).Milliseconds(),
+			AvgLoss:        averagePtr(t.totalLoss, t.lossCount),
+		})
+	}
+	return summaries
+}
+
+func averagePtr(total, count int) *int {
+	if count == 0 {
+		return nil
+	}
+	avg := total / count
+	return &avg
+}
+
+func writeBenchJSON(path string, report benchReport) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	return enc.Encode(report)
 }
 
 func printBenchTotals(totals benchTotals, threads []int) {
