@@ -459,7 +459,7 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 	l.Player.IncrementTTGeneration()
 	for l.movesApplied < len(moves) {
 		m := parseUCIMove(moves[l.movesApplied])
-		l.Game.PlayTurnMove(m)
+		l.applyOpponentMove(m)
 		l.movesApplied++
 	}
 	// After replay, check whose turn it is.
@@ -485,6 +485,9 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 			log.Infof("gameFull: claimable draw (status %d) on our turn — playing on and offering the draw", l.Game.GameStatus)
 			l.Game.GameStatus = game.Active
 		}
+		if !l.ourTurnLocally() {
+			return nil
+		}
 		l.Game.PlayTurn()
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
 			l.handleRejectedMove(err)
@@ -494,6 +497,36 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 	}
 	l.startPonder()
 	return nil
+}
+
+// applyOpponentMove applies an opponent move from a Lichess event to the local
+// board. Lichess does NOT end a game on a claimable draw (threefold / fifty-move):
+// it plays on until a fivefold / seventy-five-move auto-draw or an explicit claim.
+// So once the opponent moves again, a claimable-draw status left on our local board
+// by our own previous move is stale. We must reactivate before applying, because
+// Game.PlayTurnMove silently no-ops while GameStatus != Active — leaving the move
+// dropped, the board desynced, and (since the opponent's slot is a HumanPlayer) the
+// next PlayTurn blocked forever in WaitForMove while our clock runs out. This is the
+// idle-on-the-clock loss seen in game DpqEDBdP.
+func (l *Lichess) applyOpponentMove(m *location.Move) {
+	if game.IsClaimableDraw(l.Game.GameStatus) {
+		l.Game.GameStatus = game.Active
+	}
+	l.Game.PlayTurnMove(m)
+}
+
+// ourTurnLocally reports whether the local board agrees it is our turn before we
+// call PlayTurn. If it does not, the board has desynced from Lichess: PlayTurn would
+// block forever in the opponent HumanPlayer's WaitForMove and flag us on the clock,
+// so the caller abandons the game instead of idling. With applyOpponentMove keeping
+// opponent moves in sync this should never be false; it is a safety net.
+func (l *Lichess) ourTurnLocally() bool {
+	if l.Game.CurrentTurnColor != l.Player.PlayerColor {
+		log.Errorf("board desync: local turn is %d but Lichess says it is our (%d) turn — abandoning game to avoid idling on the clock", l.Game.CurrentTurnColor, l.Player.PlayerColor)
+		l.resetGame()
+		return false
+	}
+	return true
 }
 
 func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
@@ -525,7 +558,7 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		}
 		// Catch up on any missed intermediate moves (e.g. after a brief stream gap).
 		for l.movesApplied < len(moves)-1 {
-			l.Game.PlayTurnMove(parseUCIMove(moves[l.movesApplied]))
+			l.applyOpponentMove(parseUCIMove(moves[l.movesApplied]))
 			l.movesApplied++
 		}
 		m := parseUCIMove(moves[len(moves)-1])
@@ -535,7 +568,7 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		// Invalidate ponder TT entries: opponent deviated from our predicted move,
 		// so entries written during the ponder are from the wrong subtree.
 		l.Player.IncrementTTGeneration()
-		l.Game.PlayTurnMove(m)
+		l.applyOpponentMove(m)
 		l.movesApplied = len(moves)
 		// If the local board is already over after the opponent's move, decide
 		// whether we still owe a move.
@@ -566,6 +599,9 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
 		l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft, l.clockIncrement, l.Player.TurnCount)
 		log.Infof("player thinking... have time %s, inc %s, set max to %s", playerTimeLeft, l.clockIncrement, l.Player.MaxThinkTime)
+		if !l.ourTurnLocally() {
+			return nil
+		}
 		l.Game.PlayTurn()
 		if err := l.MakeMove(l.GameID, l.Game.PreviousMove); err != nil {
 			l.handleRejectedMove(err)

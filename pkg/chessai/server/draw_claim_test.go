@@ -11,6 +11,7 @@ import (
 
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
 	"github.com/stretchr/testify/assert"
 )
@@ -78,6 +79,72 @@ func TestClaimsDrawOnOpponentRepetition(t *testing.T) {
 	}
 	assert.NotEmpty(t, moveURL, "bot went idle on a claimable draw instead of playing on (would flag on time)")
 	assert.Contains(t, moveURL, "offeringDraw=true", "bot moved but failed to claim/offer the draw")
+}
+
+// TestPlaysOnAfterOwnMoveLeftClaimableDraw reproduces the DpqEDBdP loss: our own
+// move completes a threefold, leaving the local game in a claimable-draw status, and
+// then the opponent moves AGAIN (Lichess plays on through a claimable draw). The
+// opponent's slot is a HumanPlayer — exactly as in production — so if the opponent's
+// move is dropped (PlayTurnMove no-ops on a non-Active status) the board desyncs,
+// it stays the opponent's turn locally, and PlayTurn blocks forever in WaitForMove
+// while our clock runs out. The bot must instead apply the move and respond.
+func TestPlaysOnAfterOwnMoveLeftClaimableDraw(t *testing.T) {
+	rec := &recordingClient{}
+	base, _ := url.Parse("http://test.local")
+	l := &Lichess{
+		Client: &Client{BaseURL: base, APIKey: "x", HttpClient: rec},
+		GameID: "TESTID",
+		Player: randomAI(color.White),
+		// Opponent is a HumanPlayer, like production — a desync makes PlayTurn block
+		// in WaitForMove (an AIPlayer opponent would just search and hide the bug).
+		Game: game.NewGame(randomAI(color.White), player.NewHumanPlayer(color.Black)),
+	}
+	defer l.Game.Stop()
+
+	// Drive a knight shuffle until our (White) move completes a threefold, leaving
+	// Black (the opponent) to move. Force the status Active before each ply to mimic
+	// reaching this state through PlayTurn, which reactivates a claimable draw before
+	// playing on (PlayTurnMove alone would start dropping moves at the threefold).
+	setup := strings.Split("g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1", " ")
+	for _, m := range setup {
+		l.Game.GameStatus = game.Active
+		l.Game.PlayTurnMove(parseUCIMove(m))
+	}
+	l.movesApplied = len(setup)
+	assert.Equal(t, game.RepeatedActionThreeTimeDraw, l.Game.GameStatus,
+		"setup: our move should have left the local game in a claimable draw")
+	assert.Equal(t, color.Black, l.Game.CurrentTurnColor,
+		"setup: it should be the opponent's turn after our move")
+
+	// Opponent plays on through the claimable draw (knight back home). Lichess keeps
+	// the game going and now it is our turn again.
+	event := &GameEvent{
+		Type:        StateTypeGame,
+		Moves:       "g1f3 g8f6 f3g1 f6g8 g1f3 g8f6 f3g1 f6g8",
+		Status:      "started",
+		WhiteTimeMS: 30000,
+		BlackTimeMS: 30000,
+	}
+	done := make(chan error, 1)
+	go func() {
+		l.Mutex.Lock()
+		defer l.Mutex.Unlock()
+		done <- l.handleBoardUpdateLocked(event)
+	}()
+	select {
+	case err := <-done:
+		assert.NoError(t, err)
+	case <-time.After(10 * time.Second):
+		t.Fatal("bot hung after opponent played on through a claimable draw (blocked in WaitForMove, would lose on time)")
+	}
+
+	var moveURL string
+	for _, u := range rec.urls {
+		if strings.Contains(u, "/move/") {
+			moveURL = u
+		}
+	}
+	assert.NotEmpty(t, moveURL, "bot went idle instead of replying to the opponent's move")
 }
 
 // TestMakeMoveOffersDrawForClaimableStatuses locks in that MakeMove offers a draw for
