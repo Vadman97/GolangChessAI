@@ -180,6 +180,57 @@ func main() {
 				log.Fatal(err)
 			}
 			return
+		} else if os.Args[1] == "abdada-bench-diff" {
+			fs := flag.NewFlagSet("abdada-bench-diff", flag.ExitOnError)
+			if err := fs.Parse(os.Args[2:]); err != nil {
+				log.Fatal(err)
+			}
+			if fs.NArg() != 2 {
+				log.Fatal("usage: abdada-bench-diff before.json after.json")
+			}
+			if err := analysis.RunABDADABenchDiff(fs.Arg(0), fs.Arg(1)); err != nil {
+				log.Fatal(err)
+			}
+			return
+		} else if os.Args[1] == "uci-replay" {
+			fs := flag.NewFlagSet("uci-replay", flag.ExitOnError)
+			verbose := fs.Bool("verbose", false, "print FEN after every ply")
+			jsonOut := fs.Bool("json", false, "print JSON states instead of text")
+			if err := fs.Parse(os.Args[2:]); err != nil {
+				log.Fatal(err)
+			}
+			moveText := strings.Join(fs.Args(), " ")
+			if strings.TrimSpace(moveText) == "" {
+				data, err := io.ReadAll(os.Stdin)
+				if err != nil {
+					log.Fatal(err)
+				}
+				moveText = string(data)
+			}
+			if *jsonOut {
+				states, err := analysis.ReplayUCIMoves(moveText)
+				if err != nil {
+					log.Fatal(err)
+				}
+				if err := analysis.PrintUCIReplayJSON(states); err != nil {
+					log.Fatal(err)
+				}
+			} else if err := analysis.RunUCIReplay(moveText, *verbose); err != nil {
+				log.Fatal(err)
+			}
+			return
+		} else if os.Args[1] == "lichess-state-replay" {
+			fs := flag.NewFlagSet("lichess-state-replay", flag.ExitOnError)
+			logPath := fs.String("log", "/tmp/chess.lichess.log", "path to Lichess bot log")
+			gameID := fs.String("game", "", "optional Lichess game ID; default uses latest game in log")
+			verbose := fs.Bool("verbose", false, "print FEN after every ply")
+			if err := fs.Parse(os.Args[2:]); err != nil {
+				log.Fatal(err)
+			}
+			if err := analysis.RunLichessStateReplay(*logPath, *gameID, *verbose); err != nil {
+				log.Fatal(err)
+			}
+			return
 		} else if os.Args[1] == "competition" {
 			comp := competition.NewCompetition()
 			comp.RunAICompetition()
