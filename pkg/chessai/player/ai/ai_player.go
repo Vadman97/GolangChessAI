@@ -196,24 +196,35 @@ func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove
 func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *location.Move {
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		bookMove := OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
-		// Only play the book move if:
-		// 1. Our piece is still on the expected starting square.
-		// 2. The destination square is empty (not blocked by a friendly piece).
-		// 3. The destination square is not immediately attacked by an opponent piece.
-		//    (Prevents playing into immediate captures like Bc4 when d5 can take.)
-		bookOK := b.GetPiece(bookMove.Start) != nil && b.IsEmpty(bookMove.End)
+		// The book is a fixed move list indexed by turn count — it does NOT react to
+		// the opponent's actual move. So before playing a booked move we must confirm
+		// it is genuinely legal in THIS position. The old start-square/empty-destination
+		// sanity checks missed the cases that matter: when the opponent deviates with a
+		// check (e.g. Bxc6+) or a pin, the booked move (e.g. ...g6) is illegal, Lichess
+		// rejects it, and the board desyncs and the game is abandoned (game WOK8C5yA).
+		// Membership in the legal move list (which is king-safety filtered) covers being
+		// in check and pinned pieces correctly.
+		bookOK := false
+		for _, m := range *b.GetAllMoves(p.PlayerColor, previousMove) {
+			if m.Start.Equals(bookMove.Start) && m.End.Equals(bookMove.End) {
+				bookOK = true
+				break
+			}
+		}
 		if bookOK {
-			// Check if the destination square is safe (not under enemy attack).
+			// Quality gate: skip the book move if its destination is immediately
+			// attacked by the opponent (avoid walking into a capture like Bc4 when
+			// ...d5 hits it). This is about move quality, not legality.
 			enemy := p.PlayerColor ^ 1
 			enemyAttacks := b.GetAllAttackableMoves(enemy)
 			if enemyAttacks.IsLocationSet(bookMove.End) {
-				bookOK = false // destination is attacked; skip this book move
+				bookOK = false
 			}
 		}
 		if bookOK {
 			return bookMove
 		}
-		p.Opening = OpeningNone // book broken for this position; switch to search
+		p.Opening = OpeningNone // book broken/illegal for this position; switch to search
 	}
 	{
 		thinking := make(chan bool)
