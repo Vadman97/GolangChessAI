@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/analysis"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
@@ -68,6 +70,27 @@ func TestThinkTimeForClockSpendsSurplusDeepEndgameClock(t *testing.T) {
 	think := thinkTimeForClock(60*time.Second, 0, 40)
 	assert.True(t, think >= 2*time.Second, "deep endgame with 60s left should spend enough to search, got %s", think)
 	assert.True(t, think <= 3*time.Second, "deep endgame think time should still honor cap, got %s", think)
+}
+
+func TestThinkTimeForPositionExtendsCriticalQueenPasserEndgame(t *testing.T) {
+	parsed, err := analysis.ParseFEN("8/5k2/2Q4P/1P6/8/3KPP2/6q1/8 b - - 2 61")
+	assert.NoError(t, err)
+
+	base := thinkTimeForClock(50*time.Second, 0, 40)
+	critical := thinkTimeForPosition(50*time.Second, 0, 40, parsed.Board, color.Black)
+
+	assert.True(t, base < 2*time.Second, "test setup expected base think time below critical floor, got %s", base)
+	assert.True(t, critical >= 2050*time.Millisecond, "critical queen/passer endgame should get search floor, got %s", critical)
+}
+
+func TestThinkTimeForPositionDoesNotExtendQuietOpening(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+
+	assert.Equal(t,
+		thinkTimeForClock(50*time.Second, 0, 6),
+		thinkTimeForPosition(50*time.Second, 0, 6, b, color.White),
+	)
 }
 
 // TestClaimsDrawOnOpponentRepetition reproduces the NskVQaIw failure: the opponent's

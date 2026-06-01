@@ -324,6 +324,97 @@ func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Du
 	return think
 }
 
+func thinkTimeForPosition(timeLeft, increment time.Duration, turnCount int, b *board.Board, side color.Color) time.Duration {
+	think := thinkTimeForClock(timeLeft, increment, turnCount)
+	if b == nil || !isCriticalSearchPosition(b, side) || timeLeft <= 20*time.Second {
+		return think
+	}
+	minThink := 2050*time.Millisecond + increment
+	if think < minThink {
+		think = minThink
+	}
+	maxThink := 8 * time.Second
+	if game_config.Get().AIMaxThinkTimeMs > 0 {
+		maxThink = game_config.Get().AIMaxThinkTimeMs * time.Millisecond
+	}
+	if think > maxThink {
+		think = maxThink
+	}
+	return think
+}
+
+func isCriticalSearchPosition(b *board.Board, side color.Color) bool {
+	if b.IsKingInCheck(side) {
+		return true
+	}
+	hasQueen := false
+	var passedRanks [color.NumColors][board.Width]int
+	for c := byte(0); c < color.NumColors; c++ {
+		for col := 0; col < board.Width; col++ {
+			passedRanks[c][col] = -1
+		}
+	}
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		for col := location.CoordinateType(0); col < board.Width; col++ {
+			p := b.GetPiece(location.NewLocation(row, col))
+			if p == nil {
+				continue
+			}
+			if p.GetPieceType() == piece.QueenType {
+				hasQueen = true
+			}
+			if p.GetPieceType() != piece.PawnType || !isPassedPawnForSearch(b, row, col, p.GetColor()) {
+				continue
+			}
+			rank := int(row)
+			if p.GetColor() == color.Black {
+				rank = 7 - int(row)
+			}
+			if rank > passedRanks[p.GetColor()][col] {
+				passedRanks[p.GetColor()][col] = rank
+			}
+		}
+	}
+	if !hasQueen {
+		return false
+	}
+	for c := byte(0); c < color.NumColors; c++ {
+		for col := 0; col < board.Width; col++ {
+			rank := passedRanks[c][col]
+			if rank >= 5 {
+				return true
+			}
+			if col > 0 && rank >= 3 && passedRanks[c][col-1] >= 3 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isPassedPawnForSearch(b *board.Board, row, col location.CoordinateType, pawnColor color.Color) bool {
+	enemy := pawnColor ^ 1
+	step := 1
+	end := board.Height
+	if pawnColor == color.Black {
+		step = -1
+		end = -1
+	}
+	for r := int(row) + step; r != end; r += step {
+		for dc := -1; dc <= 1; dc++ {
+			c := int(col) + dc
+			if c < 0 || c >= board.Width {
+				continue
+			}
+			p := b.GetPiece(location.NewLocation(location.CoordinateType(r), location.CoordinateType(c)))
+			if p != nil && p.GetColor() == enemy && p.GetPieceType() == piece.PawnType {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (l *Lichess) handleEvent(event *Event) error {
 	l.Mutex.Lock()
 	defer l.Mutex.Unlock()
@@ -520,7 +611,7 @@ func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 	}
 	l.clockIncrement = time.Duration(playerIncMS) * time.Millisecond
 	playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
-	l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft, l.clockIncrement, l.Player.TurnCount)
+	l.Player.MaxThinkTime = thinkTimeForPosition(playerTimeLeft, l.clockIncrement, l.Player.TurnCount, l.Game.CurrentBoard, l.Player.PlayerColor)
 	if len(moves)%2 == int(l.Player.PlayerColor) {
 		// It's our turn.
 		log.Infof("gameFull: our turn after replay, thinking... have time %s, inc %s, set max to %s", playerTimeLeft, l.clockIncrement, l.Player.MaxThinkTime)
@@ -648,7 +739,7 @@ func (l *Lichess) handleBoardUpdateLocked(event *GameEvent) error {
 		}
 		l.clockIncrement = time.Duration(playerIncMS) * time.Millisecond
 		playerTimeLeft := time.Duration(playerTimeMS) * time.Millisecond
-		l.Player.MaxThinkTime = thinkTimeForClock(playerTimeLeft, l.clockIncrement, l.Player.TurnCount)
+		l.Player.MaxThinkTime = thinkTimeForPosition(playerTimeLeft, l.clockIncrement, l.Player.TurnCount, l.Game.CurrentBoard, l.Player.PlayerColor)
 		log.Infof("player thinking... have time %s, inc %s, set max to %s", playerTimeLeft, l.clockIncrement, l.Player.MaxThinkTime)
 		if !l.ourTurnLocally() {
 			return nil
