@@ -1,5 +1,5 @@
 {
-  "UseOpenings": true,
+  "UseOpenings": false,
   "RandomMoveOrder": false,
   "MemoryLimit": 50000,
   "CacheGetAllMoves": true,
