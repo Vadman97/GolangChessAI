@@ -216,8 +216,15 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	var best ScoredMove
 	best.Score = NegInf
 
+	searchAlpha, searchBeta := alpha, beta
 	ttAnswer := ab.ttRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
 	movesArr := root.GetAllMoves(currentPlayer, previousMove)
+	if !ttAnswer.bestMove.Start.Equals(ttAnswer.bestMove.End) && !isMoveInList(ttAnswer.bestMove, movesArr) {
+		ttAnswer.bestMove = location.Move{}
+		ttAnswer.score = NegInf
+		ttAnswer.alpha = searchAlpha
+		ttAnswer.beta = searchBeta
+	}
 	alpha, beta = ttAnswer.alpha, ttAnswer.beta
 	originalAlpha := alpha
 	best.Score, best.Move = ttAnswer.score, ttAnswer.bestMove

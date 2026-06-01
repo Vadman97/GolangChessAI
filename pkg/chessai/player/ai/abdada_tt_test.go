@@ -151,6 +151,35 @@ func TestABDADATTWriteSkippedForOnEvaluationSentinel(t *testing.T) {
 	}
 }
 
+func TestABDADAIgnoresIllegalTTBestMoveCutoff(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+
+	p := NewAIPlayer(color.White, &ABDADA{NumThreads: 1})
+	p.TranspositionTableEnabled = true
+	p.PrintInfo = false
+	p.Debug = false
+	ab := &ABDADA{player: p}
+
+	illegalMove := location.Move{
+		Start: location.NewLocation(4, 4),
+		End:   location.NewLocation(4, 5),
+	}
+	h := b.Hash()
+	p.transpositionTable.Store(&h, color.White, &transposition_table.TranspositionTableEntryABDADA{
+		Score:     999,
+		BestMove:  illegalMove,
+		EntryType: transposition_table.TrueScore,
+		Depth:     3,
+	})
+
+	got := ab.ABDADA(b, 1, -100, 100, false, color.White, nil, true, 0, maxExtensions)
+
+	if got.Move.Equals(&illegalMove) {
+		t.Fatalf("expected ABDADA to ignore illegal TT best move cutoff, got %s", got.Move)
+	}
+}
+
 func TestABDADAResetRootSearchHeuristics(t *testing.T) {
 	ab := &ABDADA{}
 	move := location.Move{

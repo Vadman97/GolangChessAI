@@ -44,6 +44,26 @@ type benchRun struct {
 	StockfishLoss *int
 }
 
+type benchTotals struct {
+	positions           int
+	runs                int
+	missedExpected      int
+	knownBad            int
+	parallelRegressions int
+	totalLoss           int
+	lossCount           int
+	byThread            map[int]*threadTotals
+}
+
+type threadTotals struct {
+	positions      int
+	missedExpected int
+	knownBad       int
+	totalLoss      int
+	lossCount      int
+	totalElapsed   time.Duration
+}
+
 // RunABDADABench executes the repeatable ABDADA optimization benchmark described
 // in docs/abdada-optimization-plan.md.
 func RunABDADABench(cfg ABDADABenchConfig) error {
@@ -77,7 +97,9 @@ func RunABDADABench(cfg ABDADABenchConfig) error {
 		defer sf.Close()
 	}
 
+	totals := benchTotals{byThread: map[int]*threadTotals{}}
 	for posIdx, pos := range positions {
+		totals.positions++
 		fmt.Printf("FEN %d/%d: %s\n", posIdx+1, len(positions), pos.FEN)
 		if pos.Tag != "" {
 			fmt.Printf("Tag: %s\n", pos.Tag)
@@ -116,6 +138,14 @@ func RunABDADABench(cfg ABDADABenchConfig) error {
 				results = append(results, result)
 			}
 			summary := summarizeBenchRuns(results)
+			totals.runs += len(results)
+			threadTotal := totals.byThread[threads]
+			if threadTotal == nil {
+				threadTotal = &threadTotals{}
+				totals.byThread[threads] = threadTotal
+			}
+			threadTotal.positions++
+			threadTotal.totalElapsed += summary.avgElapsed
 			if threads == 1 {
 				singleThreadMove = summary.move
 				singleThreadLoss = summary.avgLoss
@@ -125,16 +155,22 @@ func RunABDADABench(cfg ABDADABenchConfig) error {
 				if singleThreadLoss != nil && summary.avgLoss != nil {
 					if *summary.avgLoss > *singleThreadLoss+50 {
 						flag = " Flag: parallel regression"
+						totals.parallelRegressions++
 					}
 				} else if singleThreadMove != "" && summary.move != singleThreadMove {
 					flag = " Flag: parallel regression"
+					totals.parallelRegressions++
 				}
 			}
 			if len(pos.Expected) > 0 && !containsString(pos.Expected, summary.move) {
 				flag += " Flag: missed expected"
+				totals.missedExpected++
+				threadTotal.missedExpected++
 			}
 			if len(pos.Bad) > 0 && containsString(pos.Bad, summary.move) {
 				flag += " Flag: known bad move"
+				totals.knownBad++
+				threadTotal.knownBad++
 			}
 			fmt.Printf("ABDADA threads=%d: best=%s score=%+d stable=%d/%d avg=%s depth=%d nodes/s=%d pruned=%d tt-pruned=%d timeout=%t",
 				threads,
@@ -151,12 +187,49 @@ func RunABDADABench(cfg ABDADABenchConfig) error {
 			)
 			if summary.avgLoss != nil {
 				fmt.Printf(" loss=%dcp", *summary.avgLoss)
+				totals.totalLoss += *summary.avgLoss
+				totals.lossCount++
+				threadTotal.totalLoss += *summary.avgLoss
+				threadTotal.lossCount++
 			}
 			fmt.Printf("%s\n", flag)
 		}
 		fmt.Println()
 	}
+	printBenchTotals(totals, cfg.Threads)
 	return nil
+}
+
+func printBenchTotals(totals benchTotals, threads []int) {
+	fmt.Println("Summary:")
+	fmt.Printf("  positions=%d runs=%d missed-expected=%d known-bad=%d parallel-regressions=%d",
+		totals.positions,
+		totals.runs,
+		totals.missedExpected,
+		totals.knownBad,
+		totals.parallelRegressions,
+	)
+	if totals.lossCount > 0 {
+		fmt.Printf(" avg-loss=%dcp", totals.totalLoss/totals.lossCount)
+	}
+	fmt.Println()
+	for _, threadCount := range threads {
+		t := totals.byThread[threadCount]
+		if t == nil || t.positions == 0 {
+			continue
+		}
+		fmt.Printf("  threads=%d positions=%d missed-expected=%d known-bad=%d avg=%s",
+			threadCount,
+			t.positions,
+			t.missedExpected,
+			t.knownBad,
+			(t.totalElapsed / time.Duration(t.positions)).Round(time.Millisecond),
+		)
+		if t.lossCount > 0 {
+			fmt.Printf(" avg-loss=%dcp", t.totalLoss/t.lossCount)
+		}
+		fmt.Println()
+	}
 }
 
 func printRootMoveScores(fen string, depth, limit int, sf *StockfishEngine, sfDepth int, sfBest EvalResult) error {
