@@ -245,10 +245,12 @@ func (l *Lichess) resetGame() {
 // thinkTimeForClock allocates think time from the remaining clock.
 // Uses the standard time-management formula: think = usableTime/movesLeft + increment.
 // A 3s reserve is kept to avoid flagging in long endgames.
+// The first few moves are capped to 500ms so opening play stays responsive.
 // Capped by game_conf.json AIMaxThinkTimeMs (or 8s if unset) so we never burn
 // the clock on a single move.
 func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Duration {
 	const reserve = 3 * time.Second
+	const openingCap = 500 * time.Millisecond
 
 	// Estimated moves remaining for THIS side. Conservative early to preserve
 	// clock for endgames, which can run much longer than expected.
@@ -269,6 +271,9 @@ func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Du
 	think := usable/movesLeft + increment
 	if think < 50*time.Millisecond {
 		think = 50 * time.Millisecond
+	}
+	if turnCount < 4 && think > openingCap {
+		think = openingCap
 	}
 	maxThink := 8 * time.Second
 	if game_config.Get().AIMaxThinkTimeMs > 0 {

@@ -36,6 +36,12 @@ func TestThinkTimeForClockHonorsConfiguredCap(t *testing.T) {
 	assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, 15))
 }
 
+func TestThinkTimeForClockCapsOpeningMoves(t *testing.T) {
+	assert.Equal(t, 500*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 0))
+	assert.Equal(t, 500*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 3))
+	assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, 4))
+}
+
 // TestClaimsDrawOnOpponentRepetition reproduces the NskVQaIw failure: the opponent's
 // move completes a threefold repetition, so the local engine flips to a draw status
 // while it is our turn. The bot must NOT go idle (which flagged it on time in the real
