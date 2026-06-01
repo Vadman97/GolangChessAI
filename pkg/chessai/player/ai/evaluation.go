@@ -340,6 +340,14 @@ const (
 	// passed pawns against a defending king. Scaled by (256-phase)/256 so it
 	// fades out completely in the middlegame.
 	KingPassedPawnSupportWeight = 4
+	// KingPassedPawnDefenseWeight: in low-material endgames, the defending king
+	// must approach dangerous enemy passers. This discourages passive rook checks
+	// and corner shuffling when king activity is the only way to hold the draw.
+	KingPassedPawnDefenseWeight = 36
+	// KingPasserBlockadeBonus rewards occupying or directly controlling the square
+	// in front of an enemy passed pawn. Such blockades are often worth more than a
+	// distant rook check in rook/minor endings.
+	KingPasserBlockadeBonus = 35
 )
 
 // pstScale converts raw PST centipawn values to the internal score scale.
@@ -949,10 +957,12 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 
 		// King-to-passed-pawn support: in endgames, the winning king needs to escort
 		// its own passed pawns. Reward proximity (max Manhattan distance 14 → 0 bonus,
-		// distance 0 → +14 bonus). Scaled by endgame factor so it's irrelevant with
-		// major pieces on the board.
-		if phase < 128 {
-			endgameFactor := (128 - phase) // 0 at mid-game, 128 at full endgame
+		// distance 0 → +14 bonus). Also reward the defending king for approaching
+		// and blockading enemy passers; otherwise rook endings drift into passive
+		// checks while the enemy king/pawn net advances.
+		const kingPasserPhaseLimit = 192
+		if phase < kingPasserPhaseLimit {
+			endgameFactor := kingPasserPhaseLimit - phase // 0 near middlegame, max at full endgame
 			for row := location.CoordinateType(0); row < board.Height; row++ {
 				for col := location.CoordinateType(0); col < board.Width; col++ {
 					p := b.GetPiece(location.NewLocation(row, col))
@@ -965,11 +975,36 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 					}
 					kingLoc := b.KingLocations[c]
 					dist := abs(int(kingLoc.GetRow())-int(row)) + abs(int(kingLoc.GetCol())-int(col))
-					bonus := KingPassedPawnSupportWeight * (14 - dist) * endgameFactor / 128
+					bonus := KingPassedPawnSupportWeight * (14 - dist) * endgameFactor / kingPasserPhaseLimit
 					if c == whoMoves {
 						eval.TotalScore += bonus
 					} else {
 						eval.TotalScore -= bonus
+					}
+
+					enemy := c ^ 1
+					enemyKing := b.KingLocations[enemy]
+					defenderDist := abs(int(enemyKing.GetRow())-int(row)) + abs(int(enemyKing.GetCol())-int(col))
+					rank := int(row)
+					if c == color.Black {
+						rank = 7 - int(row)
+					}
+					defense := KingPassedPawnDefenseWeight * (14 - defenderDist) * rank * endgameFactor / (6 * kingPasserPhaseLimit)
+					forward := 1
+					if c == color.Black {
+						forward = -1
+					}
+					blockRow := int(row) + forward
+					if blockRow >= 0 && blockRow < board.Height {
+						blockDist := abs(int(enemyKing.GetRow())-blockRow) + abs(int(enemyKing.GetCol())-int(col))
+						if blockDist <= 1 {
+							defense += KingPasserBlockadeBonus * rank * endgameFactor / (6 * kingPasserPhaseLimit)
+						}
+					}
+					if enemy == whoMoves {
+						eval.TotalScore += defense
+					} else {
+						eval.TotalScore -= defense
 					}
 				}
 			}

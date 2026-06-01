@@ -348,6 +348,8 @@ func isCriticalSearchPosition(b *board.Board, side color.Color) bool {
 		return true
 	}
 	hasQueen := false
+	hasRookOrMinor := false
+	pieceCount := 0
 	var passedRanks [color.NumColors][board.Width]int
 	for c := byte(0); c < color.NumColors; c++ {
 		for col := 0; col < board.Width; col++ {
@@ -360,8 +362,12 @@ func isCriticalSearchPosition(b *board.Board, side color.Color) bool {
 			if p == nil {
 				continue
 			}
-			if p.GetPieceType() == piece.QueenType {
+			pieceCount++
+			switch p.GetPieceType() {
+			case piece.QueenType:
 				hasQueen = true
+			case piece.RookType, piece.BishopType, piece.KnightType:
+				hasRookOrMinor = true
 			}
 			if p.GetPieceType() != piece.PawnType || !isPassedPawnForSearch(b, row, col, p.GetColor()) {
 				continue
@@ -375,19 +381,26 @@ func isCriticalSearchPosition(b *board.Board, side color.Color) bool {
 			}
 		}
 	}
-	if !hasQueen {
-		return false
-	}
+	dangerousPassedPawn := false
 	for c := byte(0); c < color.NumColors; c++ {
 		for col := 0; col < board.Width; col++ {
 			rank := passedRanks[c][col]
 			if rank >= 5 {
-				return true
+				dangerousPassedPawn = true
 			}
 			if col > 0 && rank >= 3 && passedRanks[c][col-1] >= 3 {
-				return true
+				dangerousPassedPawn = true
 			}
 		}
+	}
+	if hasQueen && dangerousPassedPawn {
+		return true
+	}
+	// Low-material rook/minor endings are tactical enough that 100ms searches
+	// routinely miss king opposition, rook activity, and mate nets. Spend the
+	// critical-position floor when there is still enough clock to do so.
+	if pieceCount <= 10 && (hasRookOrMinor || dangerousPassedPawn) {
+		return true
 	}
 	return false
 }

@@ -266,7 +266,7 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 }
 
 func (p *AIPlayer) earlyOpeningPreference(b *board.Board, previousMove *board.LastMove) *location.Move {
-	if p.TurnCount >= 2 || !looksLikeOpeningPosition(b) {
+	if p.TurnCount >= 6 || !looksLikeOpeningPosition(b) {
 		return nil
 	}
 	preferences := openingPreferenceMoves(p.PlayerColor, p.TurnCount)
@@ -320,7 +320,29 @@ func openingPreferenceMoves(c color.Color, turnCount int) []location.Move {
 			{Start: location.NewLocation(6, 3), End: location.NewLocation(4, 3)}, // e7-e5
 		}
 	}
+	if turnCount == 1 {
+		return []location.Move{
+			{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Ng8-f6
+			{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}, // e7-e6
+			{Start: location.NewLocation(6, 5), End: location.NewLocation(4, 5)}, // c7-c5
+		}
+	}
+	if turnCount == 2 {
+		return []location.Move{
+			{Start: location.NewLocation(4, 4), End: location.NewLocation(3, 5)}, // d5xc4
+			{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}, // e7-e6
+			{Start: location.NewLocation(6, 5), End: location.NewLocation(4, 5)}, // c7-c5
+		}
+	}
+	if turnCount == 3 {
+		return []location.Move{
+			{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}, // e7-e6
+			{Start: location.NewLocation(6, 7), End: location.NewLocation(5, 7)}, // a7-a6
+			{Start: location.NewLocation(7, 6), End: location.NewLocation(5, 5)}, // Nb8-c6
+		}
+	}
 	return []location.Move{
+		{Start: location.NewLocation(6, 7), End: location.NewLocation(5, 7)}, // a7-a6
 		{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Ng8-f6
 		{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}, // e7-e6
 		{Start: location.NewLocation(6, 5), End: location.NewLocation(4, 5)}, // c7-c5

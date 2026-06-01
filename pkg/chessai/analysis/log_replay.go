@@ -21,6 +21,7 @@ var (
 	reAIScore    = regexp.MustCompile(`best move leads to score (-?\d+)`)
 	reBoardRow   = regexp.MustCompile(`^(\d) (.+) \d$`)
 	reAIColor    = regexp.MustCompile(`Player AI .* - (White|Black)\) thinking`)
+	reGameFullID = regexp.MustCompile(`\\"id\\":\\"([^"]+)\\"|\"id\":\"([^"]+)\"`)
 )
 
 type logEntry struct {
@@ -717,7 +718,7 @@ func runLichessMoveTextStockfishReplay(cfg LogReplayConfig) {
 	if strings.TrimSpace(moves) == "" {
 		log.Fatalf("No gameState moves found in %s", logPath)
 	}
-	botColor, ok := inferBotColorFromLog(logPath)
+	botColor, ok := inferBotColorFromLog(logPath, gameID)
 	if !ok {
 		log.Fatalf("Could not infer bot color from %s", logPath)
 	}
@@ -904,7 +905,7 @@ func replayUCIAnalysisEntries(moveText string) ([]uciAnalysisEntry, error) {
 	return entries, nil
 }
 
-func inferBotColorFromLog(logPath string) (color.Color, bool) {
+func inferBotColorFromLog(logPath, gameID string) (color.Color, bool) {
 	f, err := os.Open(logPath)
 	if err != nil {
 		return color.White, false
@@ -912,15 +913,35 @@ func inferBotColorFromLog(logPath string) (color.Color, bool) {
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+	active := gameID == ""
+	sawGameFull := false
+	var lastColor color.Color
+	found := false
 	for scanner.Scan() {
-		m := reAIColor.FindStringSubmatch(scanner.Text())
+		line := scanner.Text()
+		if strings.Contains(line, `\"type\":\"gameFull\"`) || strings.Contains(line, `"type":"gameFull"`) {
+			sawGameFull = true
+			if m := reGameFullID.FindStringSubmatch(line); m != nil {
+				id := firstNonEmpty(m[1], m[2])
+				active = gameID == "" || id == gameID
+			} else {
+				active = gameID == ""
+			}
+			continue
+		}
+		if sawGameFull && !active {
+			continue
+		}
+		m := reAIColor.FindStringSubmatch(line)
 		if m == nil {
 			continue
 		}
 		if m[1] == "White" {
-			return color.White, true
+			lastColor = color.White
+		} else {
+			lastColor = color.Black
 		}
-		return color.Black, true
+		found = true
 	}
-	return color.White, false
+	return lastColor, found
 }

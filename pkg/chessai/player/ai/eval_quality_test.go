@@ -124,3 +124,35 @@ func TestRookBlockadesAdvancedEnemyPasser(t *testing.T) {
 		"rook directly blockading an advanced passed pawn should be clearly preferred; got diff %d",
 		blockadeScore-passiveScore)
 }
+
+func TestDefendingKingApproachesAdvancedPasser(t *testing.T) {
+	passive := &board.Board{}
+	passive.LoadBoardFromText([]string{
+		"W_R|   |   |   |   |   |   |   ",
+		"   |   |   |   |   |W_P|W_P|W_P",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |W_N|   |B_R|   |   |   ",
+		"   |B_P|   |   |B_P|   |B_P|W_R",
+		"   |   |B_P|   |   |W_P|   |   ",
+		"B_P|   |   |   |   |   |B_P|   ",
+		"   |B_K|   |   |   |   |B_R|   ",
+	})
+
+	active := &board.Board{}
+	active.LoadBoardFromText([]string{
+		"W_R|   |   |   |   |   |   |   ",
+		"   |   |   |   |   |W_P|W_P|W_P",
+		"   |   |   |   |   |   |   |   ",
+		"   |   |W_N|   |B_R|   |   |   ",
+		"   |B_P|   |   |B_P|   |B_P|W_R",
+		"   |   |B_P|   |   |W_P|   |   ",
+		"B_P|   |B_K|   |   |   |B_P|   ",
+		"   |   |   |   |   |   |B_R|   ",
+	})
+
+	passiveScore := EvaluateBoardNoCache(passive, color.Black).TotalScore
+	activeScore := EvaluateBoardNoCache(active, color.Black).TotalScore
+	assert.Truef(t, activeScore > passiveScore,
+		"defending king should be rewarded for approaching an advanced passed pawn; passive=%d active=%d",
+		passiveScore, activeScore)
+}

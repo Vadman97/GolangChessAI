@@ -40,3 +40,17 @@ r1b2rk1/1pp1qppp/2n1pn2/3p2N1/p2P3P/P2QB1P1/1PP1PP2/2KR1B1R w - - 2 14 | lichess
 8/2p2p2/4p3/1pPbP3/pP1Pk3/P3B3/1K4p1/6Rr w - - 8 61 | lichess-IN3a4FSp-ply121 | g1g2 | e3f2 | blunder loss=116cp sf-depth=10
 8/5p2/2p1pB2/1pPbP3/pP1k4/Pr6/1K6/8 w - - 2 69 | lichess-IN3a4FSp-ply137 | b2a2 | b2c2 | mistake loss=63cp sf-depth=10
 8/5p2/2p1pB2/1pPbP3/pP6/Pr2k3/2K5/8 w - - 4 70 | lichess-IN3a4FSp-ply139 | c2d1 | f6g5 | blunder loss=223cp sf-depth=10
+rnbqkb1r/ppp1pppp/5n2/8/2pP4/2N2N2/PP2PPPP/R1BQKB1R b KQkq - 1 4 | lichess-gAacjwE9-ply8 | a7a6 | b8c6 | blunder loss=101cp sf-depth=10
+r1bqkb1r/ppp1pppp/2n2n2/8/2pPP3/2N2N2/PP3PPP/R1BQKB1R b KQkq e3 0 5 | lichess-gAacjwE9-ply10 | e7e6 | e7e5 | mistake loss=80cp sf-depth=10
+r1bqkb1r/ppp2ppp/2n2n2/3Pp3/2p1P3/2N2N2/PP3PPP/R1BQKB1R b KQkq - 0 6 | lichess-gAacjwE9-ply12 | c6a5 | f8b4 | blunder loss=134cp sf-depth=10
+r1b1k2r/p1p2ppp/2P5/1p2p3/P1p5/2n1BN2/5PPP/R1K2B1R b kq - 1 12 | lichess-gAacjwE9-ply24 | c3a4 | f7f6 | mistake loss=76cp sf-depth=10
+r3k2r/p1p3pp/2P1bp2/RP2p3/2p5/2n1BN2/5PPP/2K2B1R b kq - 2 14 | lichess-gAacjwE9-ply28 | e8f7 | e8g8 | mistake loss=78cp sf-depth=10
+r4rk1/p1p3pp/2P1bp2/RP2p3/2p5/2n1B3/3N1PPP/2K2B1R b - - 4 15 | lichess-gAacjwE9-ply30 | f8b8 | f8d8 | mistake loss=57cp sf-depth=10
+1r4k1/2p4p/2P2p2/R3p1p1/2Nr4/2K5/5PPP/R7 b - - 1 22 | lichess-gAacjwE9-ply44 | g8f7 | g8f8 | blunder loss=116cp sf-depth=10
+2r5/R1p5/2Pk3p/4p1p1/4N3/2K5/5PPP/8 b - - 1 29 | lichess-gAacjwE9-ply58 | d6e6 | d6c6 | mistake loss=83cp sf-depth=10
+2r5/2pN4/R6p/2k1p1p1/8/2K5/5PPP/8 b - - 5 32 | lichess-gAacjwE9-ply64 | c5b5 | c5d5 | mistake loss=84cp sf-depth=10
+3r4/2p5/5N1R/3kp1p1/8/2K5/5PPP/8 b - - 2 34 | lichess-gAacjwE9-ply68 | d5c5 | d5e6 | mistake loss=92cp sf-depth=10
+r7/2p5/4N2R/3kp3/8/2K5/5PPP/8 b - - 2 37 | lichess-gAacjwE9-ply74 | a8a7 | a8a3 | mistake loss=50cp sf-depth=10
+8/4r2k/8/4N1R1/1K6/5P2/6PP/8 b - - 6 58 | lichess-gAacjwE9-ply116 | h7h6 | e7c7 | mistake loss=62cp sf-depth=10
+8/7k/4r3/1K4RP/4N1P1/5P2/8/8 b - g3 0 65 | lichess-gAacjwE9-ply130 | h7h8 | e6h6 | mistake loss=87cp sf-depth=10
+7r/6k1/2R5/2K4P/4N1P1/5P2/8/8 b - - 10 70 | lichess-gAacjwE9-ply140 | h8f8 | g7f7 | mistake loss=83cp sf-depth=10
