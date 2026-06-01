@@ -181,6 +181,21 @@ func stableDepthMove(previous, current ScoredMove) ScoredMove {
 	return current
 }
 
+// searchUnstable reports whether the root search looks unstable between two
+// consecutive completed iterative-deepening depths: either the best move
+// changed, or its score dropped meaningfully (a fail-low / worsening). Unstable
+// positions are worth extra time — see the soft-bound logic in iterativeABDADA.
+func searchUnstable(previous, current ScoredMove) bool {
+	if previous.Score == NegInf || previous.Move.Start.Equals(previous.Move.End) {
+		return false // no prior completed depth to compare against
+	}
+	if !previous.Move.Start.Equals(current.Move.Start) || !previous.Move.End.Equals(current.Move.End) {
+		return true // best move changed between depths
+	}
+	const dropThreshold = 50 // centipawns
+	return current.Score < previous.Score-dropThreshold
+}
+
 // ABDADA is the core parallel alpha-beta search function.
 // nullMoveOk: false immediately after a null move (prevents consecutive null moves).
 // ply: distance from the root (0 at root), used for killer indexing.
@@ -633,7 +648,47 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 	best := ScoredMove{Score: NegInf}
 	iterativeIncrement := config.Get().IterativeIncrement
 
+	// Easy move: with a single legal move there is nothing to search — play it
+	// immediately and bank the clock for positions that actually need thought.
+	rootMoves := b.GetAllMoves(ab.player.PlayerColor, previousMove)
+	if len(*rootMoves) == 1 {
+		m := (*rootMoves)[0]
+		score := ab.player.EvaluateBoard(b, ab.player.PlayerColor).TotalScore
+		ab.player.LastSearchDepth = 0
+		ab.player.printer <- fmt.Sprintf("%s easy move (only legal move): %s\n", ab.GetName(), m)
+		return ScoredMove{Move: m, Score: score}
+	}
+
+	// Soft/hard time bounds. MaxThinkTime is the HARD ceiling enforced mid-search
+	// by trackThinkTime. The SOFT target decides whether to START a new
+	// iterative-deepening iteration: each iteration roughly doubles search time,
+	// so once we've spent ~half the budget the next iteration almost certainly
+	// won't finish before the hard abort and we'd just throw away the partial.
+	// We only push past the soft target — up to the hard ceiling — when the
+	// position is unstable (best move changing or score dropping), where the
+	// extra depth is most likely to change the move we play.
+	hardLimit := ab.player.MaxThinkTime
+	var softStable, softUnstable time.Duration
+	if hardLimit > 0 {
+		softStable = hardLimit / 2        // 50% rule: quiet, settled positions
+		softUnstable = hardLimit * 9 / 10 // extend toward the hard ceiling when unstable
+	}
+	unstable := false
+
 	for ab.currentSearchDepth = iterativeIncrement; ab.currentSearchDepth <= ab.player.MaxSearchDepth; ab.currentSearchDepth += iterativeIncrement {
+		// Soft-bound check: decide whether to begin THIS iteration. Always run at
+		// least the first iteration so we never return a zero-move.
+		if hardLimit > 0 && ab.currentSearchDepth > iterativeIncrement {
+			limit := softStable
+			if unstable {
+				limit = softUnstable
+			}
+			if elapsed := time.Since(start); elapsed >= limit {
+				ab.player.printer <- fmt.Sprintf("%s soft stop after depth %d (elapsed %s >= %s, unstable=%v)\n",
+					ab.GetName(), ab.player.LastSearchDepth, elapsed, limit, unstable)
+				break
+			}
+		}
 		// Aspiration windows: start with a narrow window around the previous score.
 		// On failure, widen exponentially until the full window is used.
 		alpha, beta := NegInf, PosInf
@@ -679,8 +734,11 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 		}
 
 		if !ab.player.isAborted() {
+			prevForStability := best
 			best = stableDepthMove(best, newGuess)
 			ab.player.LastSearchDepth = ab.currentSearchDepth
+			// Feed the next iteration's soft-bound decision: was this depth stable?
+			unstable = searchUnstable(prevForStability, best)
 			ab.player.printer <- fmt.Sprintf("Best D:%d M:%s score:%d\n", ab.player.LastSearchDepth, best.Move, best.Score)
 		} else {
 			// Use the partial result if we haven't found any valid move yet.

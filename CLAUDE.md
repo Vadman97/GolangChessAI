@@ -167,6 +167,12 @@ grep -i "resign\|no best move" moveDebug.log
 - Evaluation still undervalues some tactical liabilities: loose pieces, trapped rooks/bishops, king safety in simplified positions, passed-pawn races, and quiet mate nets.
 - Time management in 3+0 reaches short per-move budgets late. Search correctness under abort is more important than deeper-but-contaminated searches.
 
+### Time management (3+0)
+
+- `thinkTimeForClock` (`pkg/chessai/server/lichess.go`) allocates the per-move budget: `usable/movesLeft + increment`, capped by `game_conf.json` `AIMaxThinkTimeMs` (currently 3s, the binding cap through opening/midgame). The endgame begins at our ~17th move (≈35 ply): from there `movesLeft` ramps up (22→28→34→40) and the safety `reserve` grows from 3s to 18s, so per-move time shrinks and we keep ~15s more buffer than the old flat 3s reserve.
+- The search budget is a soft/hard split, not a single cap. `MaxThinkTime` is the HARD ceiling enforced mid-iteration by `trackThinkTime`. `iterativeABDADA` adds a SOFT target deciding whether to START a new ID iteration: stop at 50% of the budget in stable positions, extend to 90% when unstable. Instability = best move changed or score dropped >50cp between completed depths (`searchUnstable`).
+- Easy move: `iterativeABDADA` returns immediately at depth 0 when there is exactly one legal root move (forced recapture/check evasion), banking the clock.
+
 ### Regression testing habits
 
 - Add focused tests for every TT/search invariant fixed. Existing examples live in `pkg/chessai/player/ai/abdada_tt_test.go`.
