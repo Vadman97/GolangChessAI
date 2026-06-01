@@ -69,6 +69,10 @@ type ABDADA struct {
 	kill               uint32
 	currentSearchDepth int
 	NumThreads         int
+	DisableNullMove    bool
+	DisableLMR         bool
+	DisableFutility    bool
+	DisableRazoring    bool
 	heuristicMu        sync.RWMutex
 	// killers[depth%maxKillerDepth][0..1]: last two quiet moves causing beta cutoffs at this depth.
 	killers [maxKillerDepth][2]location.Move
@@ -272,7 +276,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	// Skip at ply=0 (root): pruning here returns ScoredMove{Score:beta, Move:zero}
 	// with no valid move, which propagates up and triggers a random-move fallback.
 	// Skip when in check, in zugzwang-prone endgames, or after a prior null move.
-	if nullMoveOk && !inCheck && depth >= nullMoveMinDepth && !onlyKingAndPawns(root, currentPlayer) && ply > 0 {
+	if !ab.DisableNullMove && nullMoveOk && !inCheck && depth >= nullMoveMinDepth && !onlyKingAndPawns(root, currentPlayer) && ply > 0 {
 		R := nullMoveR
 		if depth >= 7 {
 			R = 3
@@ -291,14 +295,14 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	// Neither applies when in check (must search all evasions).
 	var standPat int
 	var canFutilityPrune bool
-	if !inCheck && depth <= futilityMaxDepth && alpha < WinScore && beta > LossScore {
+	if !inCheck && depth <= futilityMaxDepth && alpha < WinScore && beta > LossScore && (!ab.DisableFutility || !ab.DisableRazoring) {
 		standPat = ab.player.EvaluateBoard(root, currentPlayer).TotalScore
-		canFutilityPrune = true
+		canFutilityPrune = !ab.DisableFutility
 
 		// Razoring at depth 1: if the static eval is far below alpha, drop to qsearch.
 		// If qsearch also fails low, prune this whole branch.
 		// Skip at ply=0 (root): returning a null move here is never safe.
-		if depth == razorDepth && standPat+razorMargin < alpha && ply > 0 {
+		if !ab.DisableRazoring && depth == razorDepth && standPat+razorMargin < alpha && ply > 0 {
 			qScore := ab.player.Quiesce(root, alpha-1, alpha, currentPlayer, previousMove)
 			if qScore < alpha {
 				atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, uint64(len(*movesArr)))
@@ -379,6 +383,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 				// return OnEvaluation for the first N moves, best.Score stays NegInf and
 				// -(NegInf+1) = PosInf-1 overflows the LMR window into garbage territory.
 				doLMR := iteration == 1 &&
+					!ab.DisableLMR &&
 					depth >= lmrMinDepth &&
 					moveIdx > lmrMinMoveIdx &&
 					!isCapture && !isPromo && !isKiller && !isTTMove && !inCheck && !isNearPromo &&

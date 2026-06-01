@@ -141,7 +141,13 @@ func NewAIPlayer(c color.Color, algorithm Algorithm) *AIPlayer {
 func newAlgorithmLike(algorithm Algorithm) Algorithm {
 	switch a := algorithm.(type) {
 	case *ABDADA:
-		return &ABDADA{NumThreads: a.NumThreads}
+		return &ABDADA{
+			NumThreads:      a.NumThreads,
+			DisableNullMove: a.DisableNullMove,
+			DisableLMR:      a.DisableLMR,
+			DisableFutility: a.DisableFutility,
+			DisableRazoring: a.DisableRazoring,
+		}
 	case *LazySMP:
 		return &LazySMP{}
 	case *MiniMax:

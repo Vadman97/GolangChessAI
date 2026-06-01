@@ -99,22 +99,35 @@ func main() {
 			analysis.RunSelfPlayAnalysis(sfPath, numGames, time.Duration(thinkMs)*time.Millisecond, sfDepth)
 			return
 		} else if os.Args[1] == "log-replay" {
-			// Usage: ./main log-replay [logPath] [sfDepth] [stockfishPath]
+			// Usage: ./main log-replay [flags] [logPath] [sfDepth] [stockfishPath]
+			fs := flag.NewFlagSet("log-replay", flag.ExitOnError)
+			appendFENs := fs.String("append-fens", "", "optional ABDADA benchmark FEN file to append mistakes/blunders to")
+			appendMinLoss := fs.Int("append-min-loss", 50, "minimum centipawn loss to append with --append-fens")
+			if err := fs.Parse(os.Args[2:]); err != nil {
+				log.Fatal(err)
+			}
 			logPath := "/tmp/chess.lichess.log"
 			sfDepth := 15
 			sfPath := "./stockfish"
-			if len(os.Args) > 2 {
-				logPath = os.Args[2]
+			args := fs.Args()
+			if len(args) > 0 {
+				logPath = args[0]
 			}
-			if len(os.Args) > 3 {
-				if d, err := strconv.Atoi(os.Args[3]); err == nil && d > 0 {
+			if len(args) > 1 {
+				if d, err := strconv.Atoi(args[1]); err == nil && d > 0 {
 					sfDepth = d
 				}
 			}
-			if len(os.Args) > 4 {
-				sfPath = os.Args[4]
+			if len(args) > 2 {
+				sfPath = args[2]
 			}
-			analysis.RunLogReplay(logPath, sfPath, sfDepth)
+			analysis.RunLogReplayWithConfig(analysis.LogReplayConfig{
+				LogPath:        logPath,
+				StockfishPath:  sfPath,
+				StockfishDepth: sfDepth,
+				AppendFENsPath: *appendFENs,
+				AppendMinLoss:  *appendMinLoss,
+			})
 			return
 		} else if os.Args[1] == "san-fens" {
 			fs := flag.NewFlagSet("san-fens", flag.ExitOnError)
@@ -176,6 +189,35 @@ func main() {
 				StockfishDepth: *sfDepth,
 				ShowRoot:       *showRoot,
 				JSONPath:       *jsonPath,
+			}); err != nil {
+				log.Fatal(err)
+			}
+			return
+		} else if os.Args[1] == "abdada-matrix" {
+			fs := flag.NewFlagSet("abdada-matrix", flag.ExitOnError)
+			fenPath := fs.String("fens", "testdata/abdada_fens.txt", "path to ABDADA benchmark FEN file")
+			fen := fs.String("fen", "", "single FEN to diagnose instead of --fens")
+			depth := fs.Int("depth", 0, "fixed search depth; omit when using --think-ms")
+			thinkMS := fs.Int("think-ms", 0, "fixed think time per move in milliseconds")
+			runs := fs.Int("runs", 1, "runs per FEN and mode")
+			stockfishPath := fs.String("stockfish", "", "optional Stockfish binary path")
+			sfDepth := fs.Int("sf-depth", 0, "Stockfish depth for best-move and loss comparison")
+			modes := fs.String("modes", "abdada1tt,abdada8tt,abdada1nott,abdada8nott,abdada1safe,abdada8safe,negascouttt", "comma-separated modes; includes abdada1tt/8tt, abdada1nott/8nott, abdada1safe/8safe, abdada1nolmr/nonull/nofutility/norazor, negascouttt/nott")
+			if err := fs.Parse(os.Args[2:]); err != nil {
+				log.Fatal(err)
+			}
+			if *depth > 0 && *thinkMS > 0 {
+				log.Fatal("use either --depth or --think-ms, not both")
+			}
+			if err := analysis.RunABDADAMatrix(analysis.ABDADAMatrixConfig{
+				FENPath:        *fenPath,
+				FEN:            *fen,
+				Depth:          *depth,
+				ThinkTime:      time.Duration(*thinkMS) * time.Millisecond,
+				Runs:           *runs,
+				StockfishPath:  *stockfishPath,
+				StockfishDepth: *sfDepth,
+				Modes:          *modes,
 			}); err != nil {
 				log.Fatal(err)
 			}

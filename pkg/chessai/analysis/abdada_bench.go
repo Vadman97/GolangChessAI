@@ -25,6 +25,28 @@ type ABDADABenchConfig struct {
 	JSONPath       string
 }
 
+type ABDADAMatrixConfig struct {
+	FENPath        string
+	FEN            string
+	Depth          int
+	ThinkTime      time.Duration
+	Runs           int
+	StockfishPath  string
+	StockfishDepth int
+	Modes          string
+}
+
+type matrixMode struct {
+	Name            string
+	Algorithm       string
+	Threads         int
+	TT              bool
+	DisableNullMove bool
+	DisableLMR      bool
+	DisableFutility bool
+	DisableRazoring bool
+}
+
 type benchPosition struct {
 	FEN      string
 	Tag      string
@@ -230,10 +252,7 @@ func RunABDADABench(cfg ABDADABenchConfig) error {
 				}
 				if sf != nil && result.Move != "" {
 					candidate := sf.AnalyzeMove(pos.FEN, result.Move, cfg.StockfishDepth)
-					loss := sfBest.CentipawnsSTM - candidate.CentipawnsSTM
-					if loss < 0 {
-						loss = 0
-					}
+					loss := stockfishLoss(sfBest, candidate)
 					result.StockfishLoss = &loss
 				}
 				results = append(results, result)
@@ -408,6 +427,289 @@ func writeBenchJSON(path string, report benchReport) error {
 	return enc.Encode(report)
 }
 
+func stockfishLoss(best, candidate EvalResult) int {
+	loss := best.CentipawnsSTM - candidate.CentipawnsSTM
+	if loss < 0 {
+		return 0
+	}
+	if loss > 2000 {
+		return 2000
+	}
+	return loss
+}
+
+// RunABDADAMatrix diagnoses a FEN set across search modes so quality failures
+// can be attributed to parallelism, TT use, time aborts, or algorithm choice.
+func RunABDADAMatrix(cfg ABDADAMatrixConfig) error {
+	if cfg.FENPath == "" {
+		cfg.FENPath = "testdata/abdada_fens.txt"
+	}
+	if cfg.Runs <= 0 {
+		cfg.Runs = 1
+	}
+	if cfg.Depth <= 0 && cfg.ThinkTime <= 0 {
+		cfg.Depth = 5
+	}
+	modes, err := parseMatrixModes(cfg.Modes)
+	if err != nil {
+		return err
+	}
+	var positions []benchPosition
+	if strings.TrimSpace(cfg.FEN) != "" {
+		if _, err := ParseFEN(cfg.FEN); err != nil {
+			return err
+		}
+		positions = []benchPosition{{FEN: cfg.FEN, Tag: "single-fen"}}
+	} else {
+		positions, err = loadBenchPositions(cfg.FENPath)
+		if err != nil {
+			return err
+		}
+	}
+	if len(positions) == 0 {
+		return fmt.Errorf("no FENs to diagnose")
+	}
+
+	var sf *StockfishEngine
+	if cfg.StockfishPath != "" && cfg.StockfishDepth > 0 {
+		sf, err = NewStockfishEngine(cfg.StockfishPath)
+		if err != nil {
+			return err
+		}
+		defer sf.Close()
+	}
+
+	totalFlags := 0
+	for posIdx, pos := range positions {
+		fmt.Printf("FEN %d/%d: %s\n", posIdx+1, len(positions), pos.FEN)
+		if pos.Tag != "" {
+			fmt.Printf("Tag: %s\n", pos.Tag)
+		}
+		var sfBest EvalResult
+		if sf != nil {
+			sfBest = sf.Analyze(pos.FEN, cfg.StockfishDepth)
+			fmt.Printf("Stockfish depth=%d best=%s score=%+d\n", cfg.StockfishDepth, sfBest.BestMove, sfBest.CentipawnsSTM)
+		}
+
+		baselineMove := ""
+		var baselineLoss *int
+		modeSummaries := map[string]benchSummary{}
+		for _, mode := range modes {
+			results := make([]benchRun, 0, cfg.Runs)
+			for run := 0; run < cfg.Runs; run++ {
+				result, err := runMatrixSearch(pos.FEN, mode, cfg.Depth, cfg.ThinkTime)
+				if err != nil {
+					return fmt.Errorf("%s mode=%s run=%d: %w", pos.Tag, mode.Name, run+1, err)
+				}
+				if sf != nil && result.Move != "" {
+					candidate := sf.AnalyzeMove(pos.FEN, result.Move, cfg.StockfishDepth)
+					loss := stockfishLoss(sfBest, candidate)
+					result.StockfishLoss = &loss
+				}
+				results = append(results, result)
+			}
+			summary := summarizeBenchRuns(results)
+			modeSummaries[mode.Name] = summary
+			if baselineMove == "" {
+				baselineMove = summary.move
+				baselineLoss = summary.avgLoss
+			}
+			flags := []string{}
+			if baselineLoss != nil && summary.avgLoss != nil && *summary.avgLoss > *baselineLoss+50 {
+				flags = append(flags, "worse than baseline")
+			} else if baselineLoss == nil && summary.avgLoss == nil && baselineMove != "" && summary.move != baselineMove {
+				flags = append(flags, "disagrees with baseline")
+			}
+			if len(pos.Expected) > 0 && !containsString(pos.Expected, summary.move) {
+				flags = append(flags, "missed expected")
+			}
+			if len(pos.Bad) > 0 && containsString(pos.Bad, summary.move) {
+				flags = append(flags, "known bad move")
+			}
+			totalFlags += len(flags)
+			fmt.Printf("%-16s move=%s score=%+d stable=%d/%d avg=%s depth=%d nodes/s=%d tt-pruned=%d timeout=%t",
+				mode.Name,
+				summary.move,
+				summary.score,
+				summary.count,
+				cfg.Runs,
+				summary.avgElapsed.Round(time.Millisecond),
+				summary.depth,
+				summary.nodesPerSecond,
+				summary.prunedTT,
+				summary.timedOut,
+			)
+			if summary.avgLoss != nil {
+				fmt.Printf(" loss=%dcp", *summary.avgLoss)
+			}
+			fmt.Printf("%s\n", formatBenchFlags(flags))
+		}
+		printMatrixDiagnosis(modeSummaries)
+		fmt.Println()
+	}
+	fmt.Printf("Matrix summary: positions=%d modes=%d runs-per-mode=%d flags=%d\n", len(positions), len(modes), cfg.Runs, totalFlags)
+	return nil
+}
+
+func parseMatrixModes(s string) ([]matrixMode, error) {
+	if strings.TrimSpace(s) == "" {
+		s = "abdada1tt,abdada8tt,abdada1nott,abdada8nott,abdada1safe,abdada8safe,negascouttt"
+	}
+	parts := strings.Split(s, ",")
+	modes := make([]matrixMode, 0, len(parts))
+	for _, part := range parts {
+		key := strings.ToLower(strings.TrimSpace(part))
+		switch key {
+		case "abdada1tt":
+			modes = append(modes, matrixMode{Name: "abdada-1-tt", Algorithm: ai.AlgorithmABDADA, Threads: 1, TT: true})
+		case "abdada2tt":
+			modes = append(modes, matrixMode{Name: "abdada-2-tt", Algorithm: ai.AlgorithmABDADA, Threads: 2, TT: true})
+		case "abdada4tt":
+			modes = append(modes, matrixMode{Name: "abdada-4-tt", Algorithm: ai.AlgorithmABDADA, Threads: 4, TT: true})
+		case "abdada8tt":
+			modes = append(modes, matrixMode{Name: "abdada-8-tt", Algorithm: ai.AlgorithmABDADA, Threads: 8, TT: true})
+		case "abdada1nott":
+			modes = append(modes, matrixMode{Name: "abdada-1-no-tt", Algorithm: ai.AlgorithmABDADA, Threads: 1, TT: false})
+		case "abdada2nott":
+			modes = append(modes, matrixMode{Name: "abdada-2-no-tt", Algorithm: ai.AlgorithmABDADA, Threads: 2, TT: false})
+		case "abdada4nott":
+			modes = append(modes, matrixMode{Name: "abdada-4-no-tt", Algorithm: ai.AlgorithmABDADA, Threads: 4, TT: false})
+		case "abdada8nott":
+			modes = append(modes, matrixMode{Name: "abdada-8-no-tt", Algorithm: ai.AlgorithmABDADA, Threads: 8, TT: false})
+		case "abdada1safe":
+			modes = append(modes, safeABDADAMode("abdada-1-safe", 1, true))
+		case "abdada8safe":
+			modes = append(modes, safeABDADAMode("abdada-8-safe", 8, true))
+		case "abdada1safenott":
+			modes = append(modes, safeABDADAMode("abdada-1-safe-no-tt", 1, false))
+		case "abdada8safenott":
+			modes = append(modes, safeABDADAMode("abdada-8-safe-no-tt", 8, false))
+		case "abdada1nonull":
+			modes = append(modes, matrixMode{Name: "abdada-1-no-null", Algorithm: ai.AlgorithmABDADA, Threads: 1, TT: true, DisableNullMove: true})
+		case "abdada1nolmr":
+			modes = append(modes, matrixMode{Name: "abdada-1-no-lmr", Algorithm: ai.AlgorithmABDADA, Threads: 1, TT: true, DisableLMR: true})
+		case "abdada1nofutility":
+			modes = append(modes, matrixMode{Name: "abdada-1-no-futility", Algorithm: ai.AlgorithmABDADA, Threads: 1, TT: true, DisableFutility: true})
+		case "abdada1norazor":
+			modes = append(modes, matrixMode{Name: "abdada-1-no-razor", Algorithm: ai.AlgorithmABDADA, Threads: 1, TT: true, DisableRazoring: true})
+		case "abdada8nonull":
+			modes = append(modes, matrixMode{Name: "abdada-8-no-null", Algorithm: ai.AlgorithmABDADA, Threads: 8, TT: true, DisableNullMove: true})
+		case "abdada8nolmr":
+			modes = append(modes, matrixMode{Name: "abdada-8-no-lmr", Algorithm: ai.AlgorithmABDADA, Threads: 8, TT: true, DisableLMR: true})
+		case "abdada8nofutility":
+			modes = append(modes, matrixMode{Name: "abdada-8-no-futility", Algorithm: ai.AlgorithmABDADA, Threads: 8, TT: true, DisableFutility: true})
+		case "abdada8norazor":
+			modes = append(modes, matrixMode{Name: "abdada-8-no-razor", Algorithm: ai.AlgorithmABDADA, Threads: 8, TT: true, DisableRazoring: true})
+		case "negascouttt":
+			modes = append(modes, matrixMode{Name: "negascout-tt", Algorithm: ai.AlgorithmNegaScout, Threads: 1, TT: true})
+		case "negascoutnott":
+			modes = append(modes, matrixMode{Name: "negascout-no-tt", Algorithm: ai.AlgorithmNegaScout, Threads: 1, TT: false})
+		default:
+			return nil, fmt.Errorf("unknown matrix mode %q", part)
+		}
+	}
+	return modes, nil
+}
+
+func safeABDADAMode(name string, threads int, tt bool) matrixMode {
+	return matrixMode{
+		Name:            name,
+		Algorithm:       ai.AlgorithmABDADA,
+		Threads:         threads,
+		TT:              tt,
+		DisableNullMove: true,
+		DisableLMR:      true,
+		DisableFutility: true,
+		DisableRazoring: true,
+	}
+}
+
+func runMatrixSearch(fen string, mode matrixMode, depth int, thinkTime time.Duration) (benchRun, error) {
+	parsed, err := ParseFEN(fen)
+	if err != nil {
+		return benchRun{}, err
+	}
+	parsed.Board.CacheGetAllMoves = false
+	parsed.Board.CacheGetAllAttackableMoves = false
+	maxDepth := depth
+	if maxDepth <= 0 {
+		maxDepth = 64
+	}
+	var algorithm ai.Algorithm
+	switch mode.Algorithm {
+	case ai.AlgorithmABDADA:
+		algorithm = &ai.ABDADA{
+			NumThreads:      mode.Threads,
+			DisableNullMove: mode.DisableNullMove,
+			DisableLMR:      mode.DisableLMR,
+			DisableFutility: mode.DisableFutility,
+			DisableRazoring: mode.DisableRazoring,
+		}
+	case ai.AlgorithmNegaScout:
+		algorithm = &ai.NegaScout{}
+	default:
+		return benchRun{}, fmt.Errorf("unsupported matrix algorithm %s", mode.Algorithm)
+	}
+	player := ai.NewAIPlayer(parsed.Active, algorithm)
+	player.TranspositionTableEnabled = mode.TT
+	player.MaxSearchDepth = maxDepth
+	player.MaxThinkTime = thinkTime
+	player.PrintInfo = false
+	player.Debug = false
+
+	start := time.Now()
+	best := algorithm.GetBestMove(player, parsed.Board, parsed.Previous)
+	elapsed := time.Since(start)
+
+	return benchRun{
+		Move:       MoveToUCI(best.Move),
+		Score:      best.Score,
+		Depth:      player.LastSearchDepth,
+		Elapsed:    elapsed,
+		Considered: player.Metrics.MovesConsidered,
+		PrunedAB:   player.Metrics.MovesPrunedAB,
+		PrunedTT:   player.Metrics.MovesPrunedTransposition,
+		TTImproved: player.Metrics.MovesABImprovedTransposition,
+		TimedOut:   thinkTime > 0 && elapsed >= thinkTime,
+	}, nil
+}
+
+func printMatrixDiagnosis(summaries map[string]benchSummary) {
+	base, ok := summaries["abdada-1-tt"]
+	if !ok {
+		return
+	}
+	check := func(name, label string) {
+		s, ok := summaries[name]
+		if !ok {
+			return
+		}
+		if s.move != base.move {
+			fmt.Printf("  Diagnosis: %s differs from abdada-1-tt (%s vs %s)\n", label, s.move, base.move)
+		}
+		if base.avgLoss != nil && s.avgLoss != nil && *s.avgLoss > *base.avgLoss+50 {
+			fmt.Printf("  Diagnosis: %s loses %dcp more than abdada-1-tt\n", label, *s.avgLoss-*base.avgLoss)
+		}
+	}
+	check("abdada-8-tt", "parallel TT")
+	check("abdada-1-no-tt", "single-thread no-TT")
+	check("abdada-8-no-tt", "parallel no-TT")
+	check("abdada-1-no-null", "single-thread no-null")
+	check("abdada-1-no-lmr", "single-thread no-LMR")
+	check("abdada-1-no-futility", "single-thread no-futility")
+	check("abdada-1-no-razor", "single-thread no-razor")
+	check("abdada-8-no-null", "parallel no-null")
+	check("abdada-8-no-lmr", "parallel no-LMR")
+	check("abdada-8-no-futility", "parallel no-futility")
+	check("abdada-8-no-razor", "parallel no-razor")
+	check("abdada-1-safe", "single-thread no-pruning")
+	check("abdada-8-safe", "parallel no-pruning")
+	check("abdada-1-safe-no-tt", "single-thread no-pruning no-TT")
+	check("abdada-8-safe-no-tt", "parallel no-pruning no-TT")
+	check("negascout-tt", "NegaScout TT")
+	check("negascout-no-tt", "NegaScout no-TT")
+}
+
 func printBenchTotals(totals benchTotals, threads []int) {
 	fmt.Println("Summary:")
 	fmt.Printf("  positions=%d runs=%d missed-expected=%d known-bad=%d parallel-regressions=%d",
@@ -469,10 +771,7 @@ func printRootMoveScores(fen string, depth, limit int, sf *StockfishEngine, sfDe
 		fmt.Printf("  %2d. %s score=%+d", i+1, uci, scores[i].Score)
 		if sf != nil && sfDepth > 0 {
 			candidate := sf.AnalyzeMove(fen, uci, sfDepth)
-			loss := sfBest.CentipawnsSTM - candidate.CentipawnsSTM
-			if loss < 0 {
-				loss = 0
-			}
+			loss := stockfishLoss(sfBest, candidate)
 			fmt.Printf(" sf=%+d loss=%dcp", candidate.CentipawnsSTM, loss)
 		}
 		fmt.Println()

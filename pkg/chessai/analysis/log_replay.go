@@ -517,6 +517,22 @@ func replayLogEntries(entries []logEntry) ([]replayEntry, error) {
 	return replayed, nil
 }
 
+type LogReplayConfig struct {
+	LogPath        string
+	StockfishPath  string
+	StockfishDepth int
+	AppendFENsPath string
+	AppendMinLoss  int
+}
+
+type replayFinding struct {
+	FEN      string
+	Tag      string
+	Expected string
+	Bad      string
+	Notes    string
+}
+
 // RunLogReplay parses the internal lichess game log, replays each AI move through
 // local Stockfish, and prints a blunder report. The log typically contains only
 // one side's moves (the side the AI is playing); White moves from the opponent
@@ -524,6 +540,30 @@ func replayLogEntries(entries []logEntry) ([]replayEntry, error) {
 //
 // Usage: ./main log-replay [logPath] [sfDepth] [stockfishPath]
 func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
+	RunLogReplayWithConfig(LogReplayConfig{
+		LogPath:        logPath,
+		StockfishPath:  stockfishPath,
+		StockfishDepth: sfDepth,
+	})
+}
+
+func RunLogReplayWithConfig(cfg LogReplayConfig) {
+	logPath := cfg.LogPath
+	stockfishPath := cfg.StockfishPath
+	sfDepth := cfg.StockfishDepth
+	if logPath == "" {
+		logPath = "/tmp/chess.lichess.log"
+	}
+	if stockfishPath == "" {
+		stockfishPath = "./stockfish"
+	}
+	if sfDepth <= 0 {
+		sfDepth = 15
+	}
+	appendMinLoss := cfg.AppendMinLoss
+	if appendMinLoss <= 0 {
+		appendMinLoss = mistakeThreshold
+	}
 	entries, err := parseLichessLog(logPath)
 	if err != nil {
 		log.Fatalf("Failed to parse log %s: %v", logPath, err)
@@ -535,7 +575,13 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 	replayed, err := replayLogEntries(entries)
 	if err != nil {
 		fmt.Printf("Board-grid replay failed (%v); falling back to Lichess gameState moves.\n\n", err)
-		runLichessMoveTextStockfishReplay(logPath, stockfishPath, sfDepth)
+		runLichessMoveTextStockfishReplay(LogReplayConfig{
+			LogPath:        logPath,
+			StockfishPath:  stockfishPath,
+			StockfishDepth: sfDepth,
+			AppendFENsPath: cfg.AppendFENsPath,
+			AppendMinLoss:  appendMinLoss,
+		})
 		return
 	}
 
@@ -548,6 +594,7 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 	defer sf.Close()
 
 	totalBlunders, totalMistakes, totalInaccuracies := 0, 0, 0
+	findings := []replayFinding{}
 
 	for _, replay := range replayed {
 		entry := replay.logEntry
@@ -621,6 +668,15 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 		if label == "BLUNDER" || label == "MISTAKE" {
 			fmt.Printf("  AI played %-6s but SF recommends %-6s  (diff: %+d cp)\n", replay.engineUCI, sfBefore.BestMove, cpLoss)
 			fmt.Printf("  FEN: %s\n\n", fenBefore)
+			if cpLoss >= appendMinLoss {
+				findings = append(findings, replayFinding{
+					FEN:      fenBefore,
+					Tag:      fmt.Sprintf("lichess-log-g%d-ply%d", entry.gameIndex+1, entry.plyNum),
+					Expected: sfBefore.BestMove,
+					Bad:      replay.engineUCI,
+					Notes:    fmt.Sprintf("%s loss=%dcp sf-depth=%d", strings.ToLower(label), cpLoss, sfDepth),
+				})
+			}
 		}
 	}
 
@@ -629,6 +685,11 @@ func RunLogReplay(logPath, stockfishPath string, sfDepth int) {
 	fmt.Printf("  Blunders     (>=%d cp): %d\n", BlunderThreshold, totalBlunders)
 	fmt.Printf("  Mistakes     (>=%d cp): %d\n", mistakeThreshold, totalMistakes)
 	fmt.Printf("  Inaccuracies (>=%d cp): %d\n", inaccuracyThreshold, totalInaccuracies)
+	if cfg.AppendFENsPath != "" {
+		if err := appendReplayFindings(cfg.AppendFENsPath, findings); err != nil {
+			log.Fatalf("Failed to append FENs to %s: %v", cfg.AppendFENsPath, err)
+		}
+	}
 }
 
 type uciAnalysisEntry struct {
@@ -641,7 +702,14 @@ type uciAnalysisEntry struct {
 	fenAfter    string
 }
 
-func runLichessMoveTextStockfishReplay(logPath, stockfishPath string, sfDepth int) {
+func runLichessMoveTextStockfishReplay(cfg LogReplayConfig) {
+	logPath := cfg.LogPath
+	stockfishPath := cfg.StockfishPath
+	sfDepth := cfg.StockfishDepth
+	appendMinLoss := cfg.AppendMinLoss
+	if appendMinLoss <= 0 {
+		appendMinLoss = mistakeThreshold
+	}
 	moves, gameID, err := ExtractLichessMovesFromLog(logPath, "")
 	if err != nil {
 		log.Fatalf("Failed to extract gameState moves from %s: %v", logPath, err)
@@ -668,6 +736,7 @@ func runLichessMoveTextStockfishReplay(logPath, stockfishPath string, sfDepth in
 		len(strings.Fields(moves)), gameID, colorName(botColor), logPath)
 
 	totalBotMoves, totalBlunders, totalMistakes, totalInaccuracies := 0, 0, 0, 0
+	findings := []replayFinding{}
 	for _, entry := range entries {
 		if entry.side != botColor {
 			continue
@@ -704,12 +773,97 @@ func runLichessMoveTextStockfishReplay(logPath, stockfishPath string, sfDepth in
 		if label == "BLUNDER" || label == "MISTAKE" {
 			fmt.Printf("  AI played %-6s but SF recommends %-6s  (diff: %+d cp)\n", entry.uci, sfBefore.BestMove, cpLoss)
 			fmt.Printf("  FEN: %s\n\n", entry.fenBefore)
+			if cpLoss >= appendMinLoss {
+				findings = append(findings, replayFinding{
+					FEN:      entry.fenBefore,
+					Tag:      fmt.Sprintf("lichess-%s-ply%d", gameID, entry.ply),
+					Expected: sfBefore.BestMove,
+					Bad:      entry.uci,
+					Notes:    fmt.Sprintf("%s loss=%dcp sf-depth=%d", strings.ToLower(label), cpLoss, sfDepth),
+				})
+			}
 		}
 	}
 	fmt.Printf("\n=== Summary: %d %s bot half-moves ===\n", totalBotMoves, colorName(botColor))
 	fmt.Printf("  Blunders     (>=%d cp): %d\n", BlunderThreshold, totalBlunders)
 	fmt.Printf("  Mistakes     (>=%d cp): %d\n", mistakeThreshold, totalMistakes)
 	fmt.Printf("  Inaccuracies (>=%d cp): %d\n", inaccuracyThreshold, totalInaccuracies)
+	if cfg.AppendFENsPath != "" {
+		if err := appendReplayFindings(cfg.AppendFENsPath, findings); err != nil {
+			log.Fatalf("Failed to append FENs to %s: %v", cfg.AppendFENsPath, err)
+		}
+	}
+}
+
+func appendReplayFindings(path string, findings []replayFinding) error {
+	if len(findings) == 0 {
+		fmt.Printf("No replay FENs met append threshold for %s\n", path)
+		return nil
+	}
+	existing, err := existingBenchFENs(path)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	w := bufio.NewWriter(f)
+	appended := 0
+	for _, finding := range findings {
+		if existing[finding.FEN] {
+			continue
+		}
+		line := fmt.Sprintf("%s | %s | %s | %s | %s\n",
+			finding.FEN,
+			sanitizeBenchField(finding.Tag),
+			sanitizeBenchField(finding.Expected),
+			sanitizeBenchField(finding.Bad),
+			sanitizeBenchField(finding.Notes),
+		)
+		if _, err := w.WriteString(line); err != nil {
+			return err
+		}
+		existing[finding.FEN] = true
+		appended++
+	}
+	if err := w.Flush(); err != nil {
+		return err
+	}
+	fmt.Printf("Appended %d replay FENs to %s (%d duplicates skipped)\n", appended, path, len(findings)-appended)
+	return nil
+}
+
+func existingBenchFENs(path string) (map[string]bool, error) {
+	existing := map[string]bool{}
+	f, err := os.Open(path)
+	if os.IsNotExist(err) {
+		return existing, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(strings.SplitN(scanner.Text(), "#", 2)[0])
+		if line == "" {
+			continue
+		}
+		fen := strings.TrimSpace(strings.SplitN(line, "|", 2)[0])
+		if fen != "" {
+			existing[fen] = true
+		}
+	}
+	return existing, scanner.Err()
+}
+
+func sanitizeBenchField(s string) string {
+	s = strings.ReplaceAll(s, "|", "/")
+	s = strings.ReplaceAll(s, "\n", " ")
+	return strings.TrimSpace(s)
 }
 
 func replayUCIAnalysisEntries(moveText string) ([]uciAnalysisEntry, error) {
