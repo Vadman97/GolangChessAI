@@ -266,15 +266,25 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 }
 
 func (p *AIPlayer) earlyOpeningPreference(b *board.Board, previousMove *board.LastMove) *location.Move {
-	if p.TurnCount >= 6 || !looksLikeOpeningPosition(b) {
+	if p.TurnCount >= 2 || !looksLikeOpeningPosition(b) {
 		return nil
 	}
 	preferences := openingPreferenceMoves(p.PlayerColor, p.TurnCount)
 	if len(preferences) == 0 {
 		return nil
 	}
+	// The preference list is a fixed, position-blind list indexed by turn count. It
+	// must never override the search with a move that simply hangs a piece. Like the
+	// main opening book above, skip any preferred move whose destination is attacked
+	// by the opponent (e.g. blocking a check with Nb8-c6 when a pawn on d5 just takes
+	// it — game KRDDYqY7). If no preferred move is safe, fall through to search.
+	enemy := p.PlayerColor ^ 1
+	enemyAttacks := b.GetAllAttackableMoves(enemy)
 	legalMoves := b.GetAllMoves(p.PlayerColor, previousMove)
 	for _, pref := range preferences {
+		if enemyAttacks.IsLocationSet(pref.End) {
+			continue
+		}
 		for _, move := range *legalMoves {
 			if move.Start.Equals(pref.Start) && move.End.Equals(pref.End) {
 				m := move
@@ -320,29 +330,7 @@ func openingPreferenceMoves(c color.Color, turnCount int) []location.Move {
 			{Start: location.NewLocation(6, 3), End: location.NewLocation(4, 3)}, // e7-e5
 		}
 	}
-	if turnCount == 1 {
-		return []location.Move{
-			{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Ng8-f6
-			{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}, // e7-e6
-			{Start: location.NewLocation(6, 5), End: location.NewLocation(4, 5)}, // c7-c5
-		}
-	}
-	if turnCount == 2 {
-		return []location.Move{
-			{Start: location.NewLocation(4, 4), End: location.NewLocation(3, 5)}, // d5xc4
-			{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}, // e7-e6
-			{Start: location.NewLocation(6, 5), End: location.NewLocation(4, 5)}, // c7-c5
-		}
-	}
-	if turnCount == 3 {
-		return []location.Move{
-			{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}, // e7-e6
-			{Start: location.NewLocation(6, 7), End: location.NewLocation(5, 7)}, // a7-a6
-			{Start: location.NewLocation(7, 6), End: location.NewLocation(5, 5)}, // Nb8-c6
-		}
-	}
 	return []location.Move{
-		{Start: location.NewLocation(6, 7), End: location.NewLocation(5, 7)}, // a7-a6
 		{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Ng8-f6
 		{Start: location.NewLocation(6, 3), End: location.NewLocation(5, 3)}, // e7-e6
 		{Start: location.NewLocation(6, 5), End: location.NewLocation(4, 5)}, // c7-c5
