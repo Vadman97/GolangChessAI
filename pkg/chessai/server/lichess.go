@@ -244,24 +244,56 @@ func (l *Lichess) resetGame() {
 
 // thinkTimeForClock allocates think time from the remaining clock.
 // Uses the standard time-management formula: think = usableTime/movesLeft + increment.
-// A 3s reserve is kept to avoid flagging in long endgames.
-// The first few moves are capped to 500ms so opening play stays responsive.
-// Capped by game_conf.json AIMaxThinkTimeMs (or 8s if unset) so we never burn
-// the clock on a single move.
+//
+// Tuned for 3+0: spend the clock in the opening/midgame (where the position is
+// rich and the per-move cap binds anyway) and shrink aggressively in the
+// endgame, holding back a growing safety buffer so we don't flag in long
+// K+P / R endgames.
+//
+//   - endgameStart (turnCount 17 ≈ ply 35): both the per-move divisor and the
+//     reserve begin to ramp up, so each endgame move costs less and we keep more
+//     time in the bank.
+//   - The reserve grows from 3s up to 18s (i.e. ~15s more buffer than before)
+//     as the endgame deepens.
+//   - The first few moves are capped to 500ms so opening play stays responsive.
+//   - Capped by game_conf.json AIMaxThinkTimeMs (or 8s if unset) so we never
+//     burn the clock on a single move.
 func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Duration {
-	const reserve = 3 * time.Second
+	const baseReserve = 3 * time.Second
+	const maxExtraReserve = 15 * time.Second // larger buffer once we reach the endgame
 	const openingCap = 500 * time.Millisecond
 
-	// Estimated moves remaining for THIS side. Conservative early to preserve
-	// clock for endgames, which can run much longer than expected.
+	// Endgame begins ~35 ply, i.e. this side's ~17th move (TurnCount counts our
+	// own moves). reserveRamp is the number of our moves over which the reserve
+	// climbs from baseReserve to baseReserve+maxExtraReserve.
+	const endgameStart = 17
+	const reserveRamp = 13
+
+	// Reserve ramps up through the endgame so we always keep a healthy buffer.
+	reserve := baseReserve
+	if turnCount > endgameStart {
+		grown := time.Duration(turnCount-endgameStart) * (maxExtraReserve / reserveRamp)
+		if grown > maxExtraReserve {
+			grown = maxExtraReserve
+		}
+		reserve += grown
+	}
+
+	// Estimated moves remaining for THIS side. Low in the midgame (spend more of
+	// the clock where it matters), then rising through the endgame so per-move
+	// time shrinks aggressively and the growing reserve survives.
 	var movesLeft time.Duration
 	switch {
 	case turnCount < 10:
 		movesLeft = 45
-	case turnCount < 30:
-		movesLeft = 25
+	case turnCount < endgameStart:
+		movesLeft = 22
+	case turnCount < 25:
+		movesLeft = 28
+	case turnCount < 35:
+		movesLeft = 34
 	default:
-		movesLeft = 20
+		movesLeft = 40
 	}
 
 	usable := timeLeft - reserve

@@ -42,6 +42,28 @@ func TestThinkTimeForClockCapsOpeningMoves(t *testing.T) {
 	assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, 4))
 }
 
+// TestThinkTimeForClockShrinksAndBuffersEndgame checks the 3+0 tuning: from the
+// same low clock, an endgame move (turnCount well past 35 ply) must think for
+// noticeably less time AND leave a much larger buffer than a midgame move.
+func TestThinkTimeForClockShrinksAndBuffersEndgame(t *testing.T) {
+	const clock = 45 * time.Second
+
+	midgame := thinkTimeForClock(clock, 0, 14) // ~ply 28
+	endgame := thinkTimeForClock(clock, 0, 40) // deep endgame, reserve fully ramped
+
+	// Endgame moves cost less than midgame moves at the same clock.
+	assert.True(t, endgame < midgame, "endgame (%s) should think less than midgame (%s) at equal clock", endgame, midgame)
+
+	// Reserve is fully ramped to 18s in the deep endgame: usable = 45-18 = 27s
+	// over 40 moves => well under a second, vs the midgame's 3s cap.
+	assert.True(t, endgame <= 700*time.Millisecond, "endgame think %s should be <= 700ms", endgame)
+
+	// The buffer left on the clock after an endgame move is ~15s larger than the
+	// old flat 3s reserve would have left.
+	leftover := clock - endgame
+	assert.True(t, leftover >= 44*time.Second, "endgame leftover %s should be >= 44s", leftover)
+}
+
 // TestClaimsDrawOnOpponentRepetition reproduces the NskVQaIw failure: the opponent's
 // move completes a threefold repetition, so the local engine flips to a draw status
 // while it is our turn. The bot must NOT go idle (which flagged it on time in the real
