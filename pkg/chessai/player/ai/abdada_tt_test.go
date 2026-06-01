@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"sync/atomic"
 	"testing"
 
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
@@ -238,6 +239,20 @@ func TestABDADASelectRootBestPrefersHighestScoreOverVoteCount(t *testing.T) {
 	}
 	if got.Score != 80 {
 		t.Fatalf("expected score 80, got %d", got.Score)
+	}
+}
+
+func TestABDADARaiseRootAlphaOnlyIncreases(t *testing.T) {
+	var alpha int64 = -50
+
+	raiseRootAlpha(&alpha, -100)
+	if got := atomic.LoadInt64(&alpha); got != -50 {
+		t.Fatalf("expected lower score to leave alpha at -50, got %d", got)
+	}
+
+	raiseRootAlpha(&alpha, 25)
+	if got := atomic.LoadInt64(&alpha); got != 25 {
+		t.Fatalf("expected higher score to raise alpha to 25, got %d", got)
 	}
 }
 

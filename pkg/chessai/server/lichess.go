@@ -75,14 +75,14 @@ type Event struct {
 	ChallengeDirection string     `json:"direction"`
 }
 type GameEvent struct {
-	Type         StateType  `json:"type"`
-	Moves        string     `json:"moves"`
-	WhiteTimeMS  int        `json:"wtime"`
-	BlackTimeMS  int        `json:"btime"`
-	WhiteIncMS   int        `json:"winc"`
-	BlackIncMS   int        `json:"binc"`
-	Status       string     `json:"status"`
-	State        *GameEvent `json:"state"`
+	Type        StateType  `json:"type"`
+	Moves       string     `json:"moves"`
+	WhiteTimeMS int        `json:"wtime"`
+	BlackTimeMS int        `json:"btime"`
+	WhiteIncMS  int        `json:"winc"`
+	BlackIncMS  int        `json:"binc"`
+	Status      string     `json:"status"`
+	State       *GameEvent `json:"state"`
 	// GameID is set locally (not from JSON) so the handler can discard stale
 	// events from a previous game's stream that are still in the channel.
 	GameID string `json:"-"`
@@ -240,7 +240,8 @@ func (l *Lichess) resetGame() {
 // thinkTimeForClock allocates think time from the remaining clock.
 // Uses the standard time-management formula: think = usableTime/movesLeft + increment.
 // A 3s reserve is kept to avoid flagging in long endgames.
-// Capped at 8s so we never burn the clock on a single move.
+// Capped by game_conf.json AIMaxThinkTimeMs (or 8s if unset) so we never burn
+// the clock on a single move.
 func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Duration {
 	const reserve = 3 * time.Second
 
@@ -264,8 +265,12 @@ func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Du
 	if think < 50*time.Millisecond {
 		think = 50 * time.Millisecond
 	}
-	if think > 8*time.Second {
-		think = 8 * time.Second
+	maxThink := 8 * time.Second
+	if game_config.Get().AIMaxThinkTimeMs > 0 {
+		maxThink = game_config.Get().AIMaxThinkTimeMs * time.Millisecond
+	}
+	if think > maxThink {
+		think = maxThink
 	}
 	return think
 }
@@ -292,7 +297,7 @@ func (l *Lichess) handleEvent(event *Event) error {
 		// transposition table and evaluation cache, and NewAlgorithm gives an
 		// unshared search instance, so no state (caches or search heuristics)
 		// leaks from the previous game.
-		l.Player = ai.NewAIPlayer(playerColor, ai.NewAlgorithm(ai.AlgorithmABDADA))
+		l.Player = ai.NewAIPlayer(playerColor, ai.NewAlgorithm(game_config.Get().Algorithm))
 		l.Player.MaxSearchDepth = game_config.Get().AIMaxSearchDepth
 		l.Player.MaxThinkTime = thinkTimeForClock(time.Duration(event.Game.SecondsLeft*float64(time.Second)), l.clockIncrement, l.Player.TurnCount)
 

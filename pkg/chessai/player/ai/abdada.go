@@ -441,22 +441,51 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	ttAnswer := ab.ttRead(b, ab.player.PlayerColor, uint16(depth), alpha, beta, false)
 	orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, [2]location.Move{}, ab, b, previousMove)
 
+	if ab.NumThreads == 1 {
+		best := ScoredMove{Score: NegInf}
+		for _, move := range orderedMoves {
+			if ab.player.isAborted() && !best.Move.Start.Equals(best.Move.End) {
+				break
+			}
+			child, pm := ab.player.applyMove(b, &move)
+			value := ab.ABDADA(child, depth-1, NegInf, PosInf, false, ab.player.PlayerColor^1, pm, true, 1, maxExtensions)
+			value.Score = -value.Score
+			value.Move = move
+			if value.Score == OnEvaluation || value.Score == -OnEvaluation {
+				continue
+			}
+			if value.Score > best.Score || best.Move.Start.Equals(best.Move.End) {
+				best = value
+			}
+		}
+		if !best.Move.Start.Equals(best.Move.End) {
+			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), NegInf, PosInf, &best)
+		}
+		return best
+	}
+
 	workerCount := ab.NumThreads
 	if workerCount > len(orderedMoves) {
 		workerCount = len(orderedMoves)
 	}
 	jobs := make(chan location.Move, len(orderedMoves))
 	results := make(chan ScoredMove, len(orderedMoves))
+	rootAlpha := int64(alpha)
 	for i := 0; i < workerCount; i++ {
 		go func() {
 			for move := range jobs {
 				if ab.player.isAborted() {
 					continue
 				}
-				child, pm := ab.player.applyMove(b, &move)
-				value := ab.ABDADA(child, depth-1, NegInf, PosInf, false, ab.player.PlayerColor^1, pm, true, 1, maxExtensions)
-				value.Score = -value.Score
-				value.Move = move
+				currentAlpha := int(atomic.LoadInt64(&rootAlpha))
+				if currentAlpha >= beta {
+					results <- ScoredMove{Move: move, Score: OnEvaluation}
+					continue
+				}
+				value := ab.searchRootMove(b, move, depth, currentAlpha, beta)
+				if value.Score != OnEvaluation && value.Score != -OnEvaluation {
+					raiseRootAlpha(&rootAlpha, value.Score)
+				}
 				results <- value
 			}
 		}()
@@ -492,6 +521,26 @@ collectResults:
 		ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), NegInf, PosInf, &best)
 	}
 	return best
+}
+
+func (ab *ABDADA) searchRootMove(b *board.Board, move location.Move, depth, alpha, beta int) ScoredMove {
+	child, pm := ab.player.applyMove(b, &move)
+	value := ab.ABDADA(child, depth-1, -beta, -alpha, false, ab.player.PlayerColor^1, pm, true, 1, maxExtensions)
+	value.Score = -value.Score
+	value.Move = move
+	return value
+}
+
+func raiseRootAlpha(rootAlpha *int64, score int) {
+	for {
+		current := atomic.LoadInt64(rootAlpha)
+		if int64(score) <= current {
+			return
+		}
+		if atomic.CompareAndSwapInt64(rootAlpha, current, int64(score)) {
+			return
+		}
+	}
 }
 
 func (ab *ABDADA) ScoreRootMoves(p *AIPlayer, b *board.Board, previousMove *board.LastMove, depth int) []RootMoveScore {

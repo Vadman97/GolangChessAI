@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
@@ -28,6 +29,10 @@ func (c *recordingClient) Do(req *http.Request) (*http.Response, error) {
 
 func randomAI(c color.Color) *ai.AIPlayer {
 	return ai.NewAIPlayer(c, &ai.Random{Rand: rand.New(rand.NewSource(1))})
+}
+
+func TestThinkTimeForClockHonorsConfiguredCap(t *testing.T) {
+	assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, 15))
 }
 
 // TestClaimsDrawOnOpponentRepetition reproduces the NskVQaIw failure: the opponent's
