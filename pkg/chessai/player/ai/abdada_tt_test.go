@@ -247,6 +247,92 @@ func TestABDADAStableDepthMoveAcceptsSmallRegression(t *testing.T) {
 	}
 }
 
+func TestABDADARootAspirationFailLowStoresUpperBound(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+
+	p := NewAIPlayer(color.White, &ABDADA{})
+	p.TranspositionTableEnabled = true
+	p.PrintInfo = false
+	p.Debug = false
+	ab := &ABDADA{player: p, NumThreads: 1}
+
+	alpha, beta := 50000, 50100
+	got := ab.getBestMove(b, 1, alpha, beta, nil)
+	if got.Score > alpha {
+		t.Fatalf("test setup expected fail-low score <= alpha %d, got %d", alpha, got.Score)
+	}
+
+	h := b.Hash()
+	raw, ok := p.transpositionTable.Read(&h, color.White)
+	if !ok {
+		t.Fatal("expected root TT entry")
+	}
+	entry := raw.(*transposition_table.TranspositionTableEntryABDADA)
+	if entry.EntryType != transposition_table.UpperBound {
+		t.Fatalf("expected root fail-low to store upper bound, got entry type %d", entry.EntryType)
+	}
+}
+
+func TestABDADARootAspirationFailHighStoresLowerBound(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+
+	p := NewAIPlayer(color.White, &ABDADA{})
+	p.TranspositionTableEnabled = true
+	p.PrintInfo = false
+	p.Debug = false
+	ab := &ABDADA{player: p, NumThreads: 1}
+
+	alpha, beta := -50100, -50000
+	got := ab.getBestMove(b, 1, alpha, beta, nil)
+	if got.Score < beta {
+		t.Fatalf("test setup expected fail-high score >= beta %d, got %d", beta, got.Score)
+	}
+
+	h := b.Hash()
+	raw, ok := p.transpositionTable.Read(&h, color.White)
+	if !ok {
+		t.Fatal("expected root TT entry")
+	}
+	entry := raw.(*transposition_table.TranspositionTableEntryABDADA)
+	if entry.EntryType != transposition_table.LowerBound {
+		t.Fatalf("expected root fail-high to store lower bound, got entry type %d", entry.EntryType)
+	}
+}
+
+func TestABDADATTUpperBoundCutoffReturnsBoundScore(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+
+	p := NewAIPlayer(color.White, &ABDADA{})
+	p.TranspositionTableEnabled = true
+	p.PrintInfo = false
+	p.Debug = false
+	ab := &ABDADA{player: p}
+
+	bestMove := location.Move{
+		Start: location.NewLocation(1, 4),
+		End:   location.NewLocation(3, 4),
+	}
+	h := b.Hash()
+	p.transpositionTable.Store(&h, color.White, &transposition_table.TranspositionTableEntryABDADA{
+		Score:     NormalizeMateScore(25, 3),
+		BestMove:  bestMove,
+		EntryType: transposition_table.UpperBound,
+		Depth:     3,
+	})
+
+	got := ab.ABDADA(b, 3, 50, 100, false, color.White, nil, true, 0, maxExtensions)
+
+	if got.Score == NegInf || got.Score == PosInf {
+		t.Fatalf("expected upper-bound cutoff to return a finite bound score, got %d", got.Score)
+	}
+	if got.Score != 25 {
+		t.Fatalf("expected upper-bound cutoff score 25, got %d", got.Score)
+	}
+}
+
 func TestABDADASelectRootBestPrefersHighestScoreOverVoteCount(t *testing.T) {
 	popularMove := location.Move{
 		Start: location.NewLocation(1, 4),

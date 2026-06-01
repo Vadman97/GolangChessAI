@@ -448,6 +448,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 
 func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMove *board.LastMove) ScoredMove {
 	ab.player.setAbort(false)
+	originalAlpha := alpha
+	originalBeta := beta
 	if ab.NumThreads == 0 {
 		ab.NumThreads = runtime.NumCPU()
 		log.Printf("ABDADA runs in parallel, defaulting to #%d threads (# cpu cores)\n", ab.NumThreads)
@@ -481,7 +483,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 			}
 		}
 		if !best.Move.Start.Equals(best.Move.End) {
-			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), NegInf, PosInf, &best)
+			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), originalAlpha, originalBeta, &best)
 		}
 		return best
 	}
@@ -495,14 +497,14 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 			alpha = best.Score
 		}
 		if alpha >= beta {
-			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), NegInf, PosInf, &best)
+			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), originalAlpha, originalBeta, &best)
 			return best
 		}
 	}
 	remainingMoves := orderedMoves[1:]
 	if len(remainingMoves) == 0 {
 		if !best.Move.Start.Equals(best.Move.End) {
-			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), NegInf, PosInf, &best)
+			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), originalAlpha, originalBeta, &best)
 		}
 		return best
 	}
@@ -560,7 +562,7 @@ collectResults:
 		}
 	}
 	if !best.Move.Start.Equals(best.Move.End) {
-		ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), NegInf, PosInf, &best)
+		ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), originalAlpha, originalBeta, &best)
 	}
 	return best
 }
@@ -1050,6 +1052,9 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 						if entry.EntryType == transposition_table.UpperBound {
 							s := DenormalizeMateScore(entry.Score, int(depth))
 							if s < beta {
+								if s <= alpha {
+									answer.score = s
+								}
 								answer.beta = s
 								atomic.AddUint64(&ab.player.Metrics.MovesABImprovedTransposition, 1)
 							}

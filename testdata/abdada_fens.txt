@@ -1,5 +1,7 @@
 # fen | tag | expected-best-move-list | known-bad-move-list | notes
 7k/P7/8/8/8/8/8/4K3 w - - 0 1 | promotion-ordering | a7a8q |  | immediate queen promotion should be searched before ordinary king moves
+8/5k2/2Q4P/1P6/8/3KPP2/6q1/8 b - - 2 61 | zJwDU0vk-before-61Qb2 | g2h1,g2f1 | g2b2 | from https://lichess.org/zJwDU0vk black move 61; live/search-time ABDADA can overrate Qb2 in queen vs passers endgame
+8/5k2/2Q4P/1P6/4K3/4PP2/1q6/8 b - - 4 62 | zJwDU0vk-before-62Kg8 | b2b1,b2b4,f7e7 | f7g8 | from https://lichess.org/zJwDU0vk black move 62; shallow ABDADA can allow the mate net with Kg8
 r1bq1rk1/pp1n2bp/2p1pp1p/3pP3/3P4/2N1QN2/PPP2PPP/2KR1B1R w - - 0 10 | lichess-cdTsyKE6-ply19 | e5f6 | f1d3 | 10.Bd3 blunder; active capture exf6 was needed
 r1bq1rk1/1p1n2bp/p3p2p/2ppP3/8/2NBQN2/PPP2PPP/2KR2R1 w - - 0 13 | lichess-cdTsyKE6-ply25 | g2g4 | b2b3 | 13.b3 blunder; kingside counterplay with g4 was needed
 2b2rk1/rpqn2bp/p3p2p/2ppP3/8/1PNBQN2/P1P2PPP/2K1R1R1 w - - 3 15 | lichess-cdTsyKE6-ply29 | c3d1 | e3e2 | 15.Qe2 blunder; reposition knight/defend instead

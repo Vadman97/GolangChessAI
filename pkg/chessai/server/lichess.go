@@ -301,6 +301,13 @@ func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Du
 		usable = 0
 	}
 	think := usable/movesLeft + increment
+	// In long endgames we still want the larger reserve, but not at the cost of
+	// blitzing critical queen/pawn positions while a minute remains. Spend a
+	// controlled slice of clock above 45s; below that, keep the conservative
+	// scramble behavior covered by TestThinkTimeForClockShrinksAndBuffersEndgame.
+	if turnCount >= 35 && timeLeft > 45*time.Second {
+		think += (timeLeft - 45*time.Second) / 15
+	}
 	if think < 50*time.Millisecond {
 		think = 50 * time.Millisecond
 	}

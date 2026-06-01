@@ -64,6 +64,12 @@ func TestThinkTimeForClockShrinksAndBuffersEndgame(t *testing.T) {
 	assert.True(t, leftover >= 44*time.Second, "endgame leftover %s should be >= 44s", leftover)
 }
 
+func TestThinkTimeForClockSpendsSurplusDeepEndgameClock(t *testing.T) {
+	think := thinkTimeForClock(60*time.Second, 0, 40)
+	assert.True(t, think >= 2*time.Second, "deep endgame with 60s left should spend enough to search, got %s", think)
+	assert.True(t, think <= 3*time.Second, "deep endgame think time should still honor cap, got %s", think)
+}
+
 // TestClaimsDrawOnOpponentRepetition reproduces the NskVQaIw failure: the opponent's
 // move completes a threefold repetition, so the local engine flips to a draw status
 // while it is our turn. The bot must NOT go idle (which flagged it on time in the real
