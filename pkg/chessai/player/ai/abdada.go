@@ -496,7 +496,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	best := ScoredMove{Score: NegInf}
 	second := ScoredMove{Score: NegInf}
 	firstRootMove := orderedMoves[0]
-	firstValue := ab.searchRootMove(b, firstRootMove, depth, alpha, beta)
+	firstValue := ab.searchRootMove(b, firstRootMove, depth, NegInf, PosInf)
 	if firstValue.Score != OnEvaluation && firstValue.Score != -OnEvaluation {
 		best, second = updateRootTopTwo(best, second, firstValue)
 		if best.Score > alpha {
@@ -521,22 +521,19 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	}
 	jobs := make(chan location.Move, len(remainingMoves))
 	results := make(chan ScoredMove, len(remainingMoves))
-	rootAlpha := int64(alpha)
 	for i := 0; i < workerCount; i++ {
 		go func() {
 			for move := range jobs {
 				if ab.player.isAborted() {
 					continue
 				}
-				currentAlpha := int(atomic.LoadInt64(&rootAlpha))
-				if currentAlpha >= beta {
-					results <- ScoredMove{Move: move, Score: OnEvaluation}
-					continue
-				}
-				value := ab.searchRootMove(b, move, depth, currentAlpha, beta)
-				if value.Score != OnEvaluation && value.Score != -OnEvaluation {
-					raiseRootAlpha(&rootAlpha, value.Score)
-				}
+				// Root move scores are used for final move selection, so they must
+				// be exact. Searching root siblings with a moving alpha window can
+				// return fail-low/fail-high bounds that look comparable but are not;
+				// in forcing promotion/mate lines that let TT-bound scores outrank
+				// the only non-mating defense. Keep alpha/beta pruning inside the
+				// child tree, but score each root move with a full window.
+				value := ab.searchRootMove(b, move, depth, NegInf, PosInf)
 				results <- value
 			}
 		}()
