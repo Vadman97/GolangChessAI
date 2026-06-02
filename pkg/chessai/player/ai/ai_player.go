@@ -534,5 +534,5 @@ func (p *AIPlayer) IncrementTTGeneration() {
 }
 
 func (p *AIPlayer) terminalNode(b *board.Board, moves *[]location.Move) bool {
-	return len(*moves) == 0 || b.PreviousPositionsSeen >= 3 || b.MovesSinceNoDraw >= 100 || b.IsInsufficientMaterial()
+	return len(*moves) == 0 || b.CurrentPositionRepeats >= 2 || b.MovesSinceNoDraw >= 100 || b.IsInsufficientMaterial()
 }

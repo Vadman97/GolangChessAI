@@ -26,6 +26,16 @@ type Configuration struct {
 	StartingElo                int
 	RandomMoveOrder            bool
 	IterativeIncrement         int
+	// MaterialOnlyEval, when true, replaces the full positional evaluation with a
+	// pure piece-material score (sum of PieceValue per side). Terminal detection
+	// (checkmate/stalemate/draw) is still applied so the search can find mates and
+	// avoid draws. Useful as a baseline/ablation eval.
+	MaterialOnlyEval bool
+	// StockfishClassicEval, when true, uses a Stockfish-classical-style hand-crafted
+	// evaluation (tapered PSQT + mobility + pawn structure + king safety + threats +
+	// passed pawns + space + initiative) instead of the engine's native eval. If both
+	// MaterialOnlyEval and this are set, MaterialOnlyEval takes precedence.
+	StockfishClassicEval bool
 }
 
 const FilePath = "conf.json"

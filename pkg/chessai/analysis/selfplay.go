@@ -17,15 +17,15 @@ const BlunderThreshold = 100
 
 // MoveRecord stores a single half-move from a self-play game along with Stockfish analysis.
 type MoveRecord struct {
-	MoveNum        int
-	Color          color.Color
-	FENBefore      string
-	EngineMove     string // UCI notation
-	StockfishBest  string // UCI notation
-	CPBefore       int    // Stockfish eval before move (from White's perspective)
-	CPAfter        int    // Stockfish eval after move (from White's perspective)
-	CPLoss         int    // centipawn loss for the side to move (positive = worse)
-	IsBlunder      bool
+	MoveNum       int
+	Color         color.Color
+	FENBefore     string
+	EngineMove    string // UCI notation
+	StockfishBest string // UCI notation
+	CPBefore      int    // Stockfish eval before move (from White's perspective)
+	CPAfter       int    // Stockfish eval after move (from White's perspective)
+	CPLoss        int    // centipawn loss for the side to move (positive = worse)
+	IsBlunder     bool
 }
 
 // GameReport holds all move records for one self-play game.
@@ -107,7 +107,7 @@ func playAndAnalyze(gameNum int, sf *StockfishEngine, thinkTime time.Duration, s
 		if len(*moves) == 0 {
 			break
 		}
-		if b.MovesSinceNoDraw >= 100 || b.PreviousPositionsSeen >= 3 || b.IsInsufficientMaterial() {
+		if b.MovesSinceNoDraw >= 100 || b.CurrentPositionRepeats >= 2 || b.IsInsufficientMaterial() {
 			break
 		}
 

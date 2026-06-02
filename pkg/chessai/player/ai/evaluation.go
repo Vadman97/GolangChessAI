@@ -3,6 +3,7 @@ package ai
 import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/steakknife/hamming"
@@ -541,12 +542,19 @@ type evaluationPair struct {
 // TODO(Vadim) make this a static function so evaluation cache is global
 func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
-	// first see if we have calculations we cannot cache
-	if b.MovesSinceNoDraw >= 100 {
+	// Check terminal wins/losses before draw counters. A game can have prior
+	// repetition history without the current position being a threefold draw.
+	if b.IsInCheckmate(whoMoves^1, nil) {
+		eval.TotalScore = WinScore
+	} else if b.IsInCheckmate(whoMoves, nil) {
+		eval.TotalScore = LossScore
+	} else if b.IsStalemate(whoMoves, nil) || b.IsInsufficientMaterial() {
+		eval.TotalScore = StalemateScore
+	} else if b.MovesSinceNoDraw >= 100 {
 		// Vadim: >= instead of == because AI simulation will go beyond 100, it will know no win is possible
 		// Alex: This value may change, but AI right now prevents draws
 		eval.TotalScore = StalemateScore
-	} else if b.PreviousPositionsSeen >= 3 {
+	} else if b.CurrentPositionRepeats >= 2 {
 		eval.TotalScore = StalemateScore
 	} else {
 		eval = p.evaluateBoardCached(b, whoMoves)
@@ -663,6 +671,30 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		// would misidentify positions where the opponent is boxed in (but can still
 		// be checkmated on the next move) as draws instead of wins.
 		eval.TotalScore = StalemateScore
+	} else if config.Get().MaterialOnlyEval {
+		// Material-only ablation eval: score is purely the sum of piece values,
+		// side-to-move relative. No PST, mobility, pawn structure, king safety, etc.
+		for row := location.CoordinateType(0); row < board.Height; row++ {
+			for col := location.CoordinateType(0); col < board.Width; col++ {
+				if gamePiece := b.GetPiece(location.NewLocation(row, col)); gamePiece != nil {
+					eval.PieceCounts[gamePiece.GetColor()][gamePiece.GetPieceType()]++
+				}
+			}
+		}
+		for pColor := byte(0); pColor < color.NumColors; pColor++ {
+			score := 0
+			for pieceType, value := range PieceValue {
+				score += PawnValueWeight * value * int(eval.PieceCounts[pColor][pieceType])
+			}
+			if pColor == whoMoves {
+				eval.TotalScore += score
+			} else {
+				eval.TotalScore -= score
+			}
+		}
+	} else if config.Get().StockfishClassicEval {
+		// Stockfish-classical-style hand-crafted evaluation (see evaluation_sf.go).
+		eval.TotalScore = evaluateStockfishClassicScore(b, whoMoves)
 	} else {
 		// First pass: count pieces so endgamePhase can be computed before PST scoring.
 		for row := location.CoordinateType(0); row < board.Height; row++ {
