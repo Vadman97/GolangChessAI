@@ -273,27 +273,48 @@ func (p *AIPlayer) earlyOpeningPreference(b *board.Board, previousMove *board.La
 	if len(preferences) == 0 {
 		return nil
 	}
-	// The preference list is a fixed, position-blind list indexed by turn count. It
-	// must never override the search with a move that simply hangs a piece. Like the
-	// main opening book above, skip any preferred move whose destination is attacked
-	// by the opponent (e.g. blocking a check with Nb8-c6 when a pawn on d5 just takes
-	// it — game KRDDYqY7). If no preferred move is safe, fall through to search.
-	enemy := p.PlayerColor ^ 1
-	enemyAttacks := b.GetAllAttackableMoves(enemy)
+	// The preference list is a fixed, position-blind list indexed by turn count, and it
+	// short-circuits the search. It must never play a move that drops material. Checking
+	// only the moved piece's destination is not enough: a quiet developing move can leave
+	// a DIFFERENT piece hanging (e.g. ...e6 while a knight is attacked on f6 — game
+	// 2ZNkMEJB; or blocking a check with Nb8-c6 that a pawn on d5 just takes — game
+	// KRDDYqY7). So for each candidate we make the move and reject it if the opponent has
+	// any reply that wins material by SEE. If nothing is safe, fall through to search.
 	legalMoves := b.GetAllMoves(p.PlayerColor, previousMove)
 	for _, pref := range preferences {
-		if enemyAttacks.IsLocationSet(pref.End) {
-			continue
-		}
 		for _, move := range *legalMoves {
-			if move.Start.Equals(pref.Start) && move.End.Equals(pref.End) {
-				m := move
-				p.printer <- fmt.Sprintf("opening preference: %s\n", m)
-				return &m
+			if !move.Start.Equals(pref.Start) || !move.End.Equals(pref.End) {
+				continue
 			}
+			if p.preferenceMoveHangsMaterial(b, move) {
+				break // this preference is unsafe; try the next preference
+			}
+			m := move
+			p.printer <- fmt.Sprintf("opening preference: %s\n", m)
+			return &m
 		}
 	}
 	return nil
+}
+
+// openingPreferenceHangThreshold is the SEE gain (centipawns) at which a position-blind
+// opening-preference move is rejected. 100 = the opponent can win a clean pawn or more on
+// the reply; even exchanges (SEE 0, e.g. 1.e4 d5 2.exd5 Qxd5) still pass.
+const openingPreferenceHangThreshold = 100
+
+// preferenceMoveHangsMaterial reports whether playing move lets the opponent win material
+// on the immediate reply, per static exchange evaluation. Used only to gate the opening
+// preference list (first couple of plies), so the extra move generation is negligible.
+func (p *AIPlayer) preferenceMoveHangsMaterial(b *board.Board, move location.Move) bool {
+	enemy := p.PlayerColor ^ 1
+	child := b.Copy()
+	childPrev := board.MakeMove(&move, child)
+	for _, reply := range *child.GetAllMoves(enemy, childPrev) {
+		if child.SEE(reply, enemy) >= openingPreferenceHangThreshold {
+			return true
+		}
+	}
+	return false
 }
 
 func looksLikeOpeningPosition(b *board.Board) bool {
