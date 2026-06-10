@@ -54,3 +54,10 @@ r7/2p5/4N2R/3kp3/8/2K5/5PPP/8 b - - 2 37 | lichess-gAacjwE9-ply74 | a8a7 | a8a3 
 8/4r2k/8/4N1R1/1K6/5P2/6PP/8 b - - 6 58 | lichess-gAacjwE9-ply116 | h7h6 | e7c7 | mistake loss=62cp sf-depth=10
 8/7k/4r3/1K4RP/4N1P1/5P2/8/8 b - g3 0 65 | lichess-gAacjwE9-ply130 | h7h8 | e6h6 | mistake loss=87cp sf-depth=10
 7r/6k1/2R5/2K4P/4N1P1/5P2/8/8 b - - 10 70 | lichess-gAacjwE9-ply140 | h8f8 | g7f7 | mistake loss=83cp sf-depth=10
+1r2r1k1/pb1n1p2/2pp2p1/3pp3/N2P3Q/qP1BP3/P1P3PP/R4RK1 w - - 0 23 | lichess-4HkIRFy9-ply45 | f1f7 | h4h6 | 23.Qh6; Stockfish preferred Rxf7, live attack handling drifted into passive queen shuffling
+1r4k1/pb1nrp2/2pp2pQ/3pp3/N2P4/qP1BP3/P1P3PP/R4RK1 w - - 2 24 | lichess-4HkIRFy9-ply47 | f1f3 | c2c4 | 24.c4; moderate TT-specific miss in matrix, but no-TT had a similar loss with c3
+4r1k1/p2nrp2/b1pp2p1/3pp1Q1/N1PP4/qP1BP3/P5PP/R4RK1 w - - 3 26 | lichess-4HkIRFy9-ply51 | d3g6 | d3c2 | 26.Bc2; shared ABDADA horizon miss, Bxg6 attack was needed
+4r1k1/p2nrp2/b1pp2p1/3p2Q1/N1Pp4/qP2P3/P1B3PP/R4RK1 w - - 0 27 | lichess-4HkIRFy9-ply53 | c2g6 | e3d4 | 27.exd4; shared ABDADA horizon miss, Bg6 attack was needed
+4r1k1/p2nrp2/b1pp2p1/6Q1/N1pP4/qP6/P1B3PP/R4RK1 w - - 0 28 | lichess-4HkIRFy9-ply55 | c2g6 | f1f3 | 28.Rf3; shared ABDADA horizon miss, Bg6 attack was needed
+6k1/p4p2/Q1ppn3/8/N5pP/5qP1/6K1/8 w - - 2 48 | lichess-4HkIRFy9-ply95 | g2h2 | g2g1 | 48.Kh2; late endgame check sequence, TT move was only a small Stockfish loss
+6k1/p4p2/Q1ppn3/8/N5pP/6q1/8/7K w - - 0 50 | lichess-4HkIRFy9-ply99 | a6e2 | a6c6 | 50.Qxc6; late endgame check sequence, TT/no-TT both chose the logged move at shallow search

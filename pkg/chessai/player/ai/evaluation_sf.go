@@ -704,7 +704,24 @@ func (e *sfEval) kingDanger(us color.Color) sfScore {
 		}
 	}
 
+	shelterPawns := 0
+	for _, p := range e.pieces {
+		if p.c == us && p.pt == piece.PawnType {
+			sq := board.BitBoard(1) << uint(board.Width*p.row+p.col)
+			if kingRing&sq != 0 {
+				shelterPawns++
+			}
+		}
+	}
+
 	attackersCount, attackersWeight, attacksOnRing := 0, 0, 0
+	// Approximate Stockfish's safe-check/king-attack terms that this port does
+	// not enumerate explicitly. This is deliberately gated on an exposed king:
+	// queen contact is dangerous when the pawn shelter is gone, but overvalued
+	// when f/g/h shelter pawns still blunt the attack.
+	closeQueenPressure := 0
+	closeQueenMinorPressure := 0
+	attackerHasQueen := e.pieceCount[them][piece.QueenType] > 0
 	for _, p := range e.pieces {
 		if p.c != them {
 			continue
@@ -717,7 +734,18 @@ func (e *sfEval) kingDanger(us color.Color) sfScore {
 		if hit != 0 {
 			attackersCount++
 			attackersWeight += w
-			attacksOnRing += sfPopcnt(hit)
+			ringHits := sfPopcnt(hit)
+			attacksOnRing += ringHits
+			if shelterPawns <= 1 &&
+				p.pt == piece.QueenType &&
+				sfChebyshev(p.row, p.col, kr, kc) <= 2 {
+				closeQueenPressure += 700 + 80*ringHits
+			}
+			if attackerHasQueen &&
+				(p.pt == piece.KnightType || p.pt == piece.BishopType) &&
+				sfChebyshev(p.row, p.col, kr, kc) <= 2 {
+				closeQueenMinorPressure += 1000 + 180*ringHits
+			}
 		}
 	}
 	if attackersCount == 0 {
@@ -729,7 +757,9 @@ func (e *sfEval) kingDanger(us color.Color) sfScore {
 	kingDanger := attackersCount*attackersWeight +
 		69*attacksOnRing +
 		60*sfPopcnt(undefended) +
-		30*attackersCount
+		30*attackersCount +
+		closeQueenPressure +
+		closeQueenMinorPressure
 	if e.pieceCount[them][piece.QueenType] == 0 {
 		kingDanger -= 400 // attacks are far less dangerous without the enemy queen
 	}

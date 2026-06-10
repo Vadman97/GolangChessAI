@@ -43,19 +43,27 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 	if inCheck {
 		ordered = *moves
 	} else {
-		// Collect captures and promotions; sort captures by MVV-LVA so the best trades
-		// are tried first — this improves alpha-beta pruning in quiescence significantly.
-		var captures, promos []location.Move
+		// Collect captures and promotions; major-piece checking captures are searched
+		// before ordinary captures and are not SEE-pruned below. This keeps forcing
+		// queen/rook recaptures like Qxg6+ visible at the qsearch boundary without
+		// opening qsearch to every quiet check.
+		var checkingCaptures, captures, promos []location.Move
 		for _, m := range *moves {
 			isPromotion, _ := m.End.GetPawnPromotion()
 			if isPromotion {
 				promos = append(promos, m)
 			} else if !root.IsEmpty(m.End) || isEnPassantMove(root, m) {
-				captures = append(captures, m)
+				if isMajorCheckingCapture(root, m, currentPlayer) {
+					checkingCaptures = append(checkingCaptures, m)
+				} else {
+					captures = append(captures, m)
+				}
 			}
 		}
+		sortCapturesMVVLVA(checkingCaptures, root)
 		sortCapturesMVVLVA(captures, root)
-		ordered = append(captures, promos...)
+		ordered = append(checkingCaptures, captures...)
+		ordered = append(ordered, promos...)
 	}
 
 	// Examine captures (MVV-LVA sorted) then promotions.
@@ -70,7 +78,11 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 		// This is more accurate than delta pruning: SEE accounts for the full exchange
 		// sequence rather than just the immediate captured piece value.
 		// Promotions are always searched regardless of SEE (they can't be meaningfully rated).
+		givesCheck := false
 		if !inCheck && !isPromotion && root.GetPiece(m.End) != nil {
+			givesCheck = isMajorCheckingCapture(root, m, currentPlayer)
+		}
+		if !inCheck && !isPromotion && !givesCheck && root.GetPiece(m.End) != nil {
 			capturer := root.GetPiece(m.Start)
 			var stm byte
 			if capturer != nil {
@@ -94,4 +106,19 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
 		}
 	}
 	return alpha
+}
+
+func moveGivesCheck(root *board.Board, m location.Move, currentPlayer byte) bool {
+	child := root.Copy()
+	board.MakeMove(&m, child)
+	return child.IsKingInCheck(currentPlayer ^ 1)
+}
+
+func isMajorCheckingCapture(root *board.Board, m location.Move, currentPlayer byte) bool {
+	p := root.GetPiece(m.Start)
+	if p == nil {
+		return false
+	}
+	pt := p.GetPieceType()
+	return (pt == piece.QueenType || pt == piece.RookType) && moveGivesCheck(root, m, currentPlayer)
 }

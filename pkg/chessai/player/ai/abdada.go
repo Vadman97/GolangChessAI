@@ -651,6 +651,12 @@ func (ab *ABDADA) ScoreRootMoves(p *AIPlayer, b *board.Board, previousMove *boar
 	return scores
 }
 
+func (ab *ABDADA) ScoreRootMove(p *AIPlayer, b *board.Board, move location.Move, depth int) ScoredMove {
+	ab.player = p
+	ab.resetRootSearchHeuristics()
+	return ab.searchRootMove(b, move, depth, NegInf, PosInf)
+}
+
 type rootVote struct {
 	move  ScoredMove
 	count int

@@ -154,7 +154,7 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-func matchUCIMove(b *board.Board, side color.Color, previousMove *board.LastMove, uci string) (location.Move, error) {
+func MatchUCIMove(b *board.Board, side color.Color, previousMove *board.LastMove, uci string) (location.Move, error) {
 	target, promoType, err := parseUCIMoveText(uci)
 	if err != nil {
 		return location.Move{}, err
@@ -178,6 +178,10 @@ func matchUCIMove(b *board.Board, side color.Color, previousMove *board.LastMove
 		return m, nil
 	}
 	return location.Move{}, fmt.Errorf("move is not legal")
+}
+
+func matchUCIMove(b *board.Board, side color.Color, previousMove *board.LastMove, uci string) (location.Move, error) {
+	return MatchUCIMove(b, side, previousMove, uci)
 }
 
 func parseUCIMoveText(uci string) (location.Move, byte, error) {

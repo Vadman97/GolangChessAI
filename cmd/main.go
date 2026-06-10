@@ -16,6 +16,8 @@ import (
 
 	"github.com/Vadman97/GolangChessAI/pkg/api/api_handlers"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/analysis"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/competition"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/server"
@@ -158,6 +160,30 @@ func main() {
 				fmt.Printf("%d | %s | %s | %s\n", r.Ply, r.SAN, r.UCI, r.FENBefore)
 			}
 			return
+		} else if os.Args[1] == "fen-apply" {
+			fs := flag.NewFlagSet("fen-apply", flag.ExitOnError)
+			if err := fs.Parse(os.Args[2:]); err != nil {
+				log.Fatal(err)
+			}
+			if fs.NArg() != 2 {
+				log.Fatal("usage: fen-apply '<fen>' <uci-move>")
+			}
+			parsed, err := analysis.ParseFEN(fs.Arg(0))
+			if err != nil {
+				log.Fatal(err)
+			}
+			move, err := analysis.MatchUCIMove(parsed.Board, parsed.Active, parsed.Previous, fs.Arg(1))
+			if err != nil {
+				log.Fatal(err)
+			}
+			last := board.MakeMove(&move, parsed.Board)
+			next := parsed.Active ^ 1
+			fullMove := parsed.FullMove
+			if parsed.Active == color.Black {
+				fullMove++
+			}
+			fmt.Println(analysis.BoardToFEN(parsed.Board, next, last, fullMove))
+			return
 		} else if os.Args[1] == "abdada-bench" {
 			fs := flag.NewFlagSet("abdada-bench", flag.ExitOnError)
 			fenPath := fs.String("fens", "testdata/abdada_fens.txt", "path to ABDADA benchmark FEN file")
@@ -203,6 +229,7 @@ func main() {
 			stockfishPath := fs.String("stockfish", "", "optional Stockfish binary path")
 			sfDepth := fs.Int("sf-depth", 0, "Stockfish depth for best-move and loss comparison")
 			modes := fs.String("modes", "abdada1tt,abdada8tt,abdada1nott,abdada8nott,abdada1safe,abdada8safe,negascouttt", "comma-separated modes; includes abdada1tt/8tt, abdada1nott/8nott, abdada1safe/8safe, abdada1nolmr/nonull/nofutility/norazor, negascouttt/nott")
+			forceMove := fs.String("force-move", "", "optional legal UCI root move to score instead of selecting the best move; requires --depth")
 			if err := fs.Parse(os.Args[2:]); err != nil {
 				log.Fatal(err)
 			}
@@ -212,6 +239,7 @@ func main() {
 			if err := analysis.RunABDADAMatrix(analysis.ABDADAMatrixConfig{
 				FENPath:        *fenPath,
 				FEN:            *fen,
+				ForceMove:      *forceMove,
 				Depth:          *depth,
 				ThinkTime:      time.Duration(*thinkMS) * time.Millisecond,
 				Runs:           *runs,

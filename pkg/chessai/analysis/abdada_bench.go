@@ -28,6 +28,7 @@ type ABDADABenchConfig struct {
 type ABDADAMatrixConfig struct {
 	FENPath        string
 	FEN            string
+	ForceMove      string
 	Depth          int
 	ThinkTime      time.Duration
 	Runs           int
@@ -450,6 +451,9 @@ func RunABDADAMatrix(cfg ABDADAMatrixConfig) error {
 	if cfg.Depth <= 0 && cfg.ThinkTime <= 0 {
 		cfg.Depth = 5
 	}
+	if cfg.ForceMove != "" && cfg.ThinkTime > 0 {
+		return fmt.Errorf("--force-move requires fixed --depth, not --think-ms")
+	}
 	modes, err := parseMatrixModes(cfg.Modes)
 	if err != nil {
 		return err
@@ -497,7 +501,7 @@ func RunABDADAMatrix(cfg ABDADAMatrixConfig) error {
 		for _, mode := range modes {
 			results := make([]benchRun, 0, cfg.Runs)
 			for run := 0; run < cfg.Runs; run++ {
-				result, err := runMatrixSearch(pos.FEN, mode, cfg.Depth, cfg.ThinkTime)
+				result, err := runMatrixSearch(pos.FEN, mode, cfg.Depth, cfg.ThinkTime, cfg.ForceMove)
 				if err != nil {
 					return fmt.Errorf("%s mode=%s run=%d: %w", pos.Tag, mode.Name, run+1, err)
 				}
@@ -624,7 +628,7 @@ func safeABDADAMode(name string, threads int, tt bool) matrixMode {
 	}
 }
 
-func runMatrixSearch(fen string, mode matrixMode, depth int, thinkTime time.Duration) (benchRun, error) {
+func runMatrixSearch(fen string, mode matrixMode, depth int, thinkTime time.Duration, forceMove string) (benchRun, error) {
 	parsed, err := ParseFEN(fen)
 	if err != nil {
 		return benchRun{}, err
@@ -658,7 +662,24 @@ func runMatrixSearch(fen string, mode matrixMode, depth int, thinkTime time.Dura
 	player.Debug = false
 
 	start := time.Now()
-	best := algorithm.GetBestMove(player, parsed.Board, parsed.Previous)
+	var best *ai.ScoredMove
+	if forceMove != "" {
+		if mode.Algorithm != ai.AlgorithmABDADA {
+			return benchRun{}, fmt.Errorf("--force-move currently supports ABDADA modes only")
+		}
+		if depth <= 0 {
+			return benchRun{}, fmt.Errorf("--force-move requires --depth")
+		}
+		move, err := MatchUCIMove(parsed.Board, parsed.Active, parsed.Previous, forceMove)
+		if err != nil {
+			return benchRun{}, fmt.Errorf("force move %s: %w", forceMove, err)
+		}
+		scored := algorithm.(*ai.ABDADA).ScoreRootMove(player, parsed.Board, move, depth)
+		best = &scored
+		player.LastSearchDepth = depth
+	} else {
+		best = algorithm.GetBestMove(player, parsed.Board, parsed.Previous)
+	}
 	elapsed := time.Since(start)
 
 	return benchRun{

@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
@@ -60,4 +61,92 @@ func TestStockfishClassicMaterialAdvantage(t *testing.T) {
 	if score < 400 {
 		t.Fatalf("White up a queen should be strongly winning, got %d cp", score)
 	}
+}
+
+func TestStockfishClassicQueenMinorPressureRecognizesBxg6(t *testing.T) {
+	start := boardFromFENPlacement(t, "4r1k1/p2nrp2/b1pp2p1/3p2Q1/N1Pp4/qP2P3/P1B3PP/R4RK1")
+
+	pressure := start.Copy()
+	board.MakeMove(&location.Move{
+		Start: location.NewLocation(1, 5), // c2
+		End:   location.NewLocation(5, 1), // g6
+	}, pressure)
+
+	material := start.Copy()
+	board.MakeMove(&location.Move{
+		Start: location.NewLocation(2, 3), // e3
+		End:   location.NewLocation(3, 4), // d4
+	}, material)
+
+	pressureScore := evaluateStockfishClassicScore(pressure, color.White)
+	materialScore := evaluateStockfishClassicScore(material, color.White)
+	if pressureScore < 300 {
+		t.Fatalf("expected Bxg6 queen/minor pressure to be clearly winning, got %d", pressureScore)
+	}
+	if pressureScore <= materialScore {
+		t.Fatalf("expected Bxg6 queen/minor pressure to beat exd4, got Bxg6=%d exd4=%d", pressureScore, materialScore)
+	}
+	if blackScore := evaluateStockfishClassicScore(pressure, color.Black); blackScore != -pressureScore {
+		t.Fatalf("expected side-to-move symmetry after Bxg6, white=%d black=%d", pressureScore, blackScore)
+	}
+}
+
+func boardFromFENPlacement(t *testing.T, placement string) *board.Board {
+	t.Helper()
+	b := &board.Board{}
+	ranks := strings.Split(placement, "/")
+	if len(ranks) != 8 {
+		t.Fatalf("invalid placement %q", placement)
+	}
+	for fenRankIdx, rank := range ranks {
+		row := location.CoordinateType(7 - fenRankIdx)
+		file := 0
+		for _, ch := range rank {
+			if ch >= '1' && ch <= '8' {
+				file += int(ch - '0')
+				continue
+			}
+			col := location.CoordinateType(7 - file)
+			loc := location.NewLocation(row, col)
+			p := pieceFromFENChar(t, ch)
+			p.SetPosition(loc)
+			b.SetPiece(loc, p)
+			if p.GetPieceType() == piece.KingType {
+				b.KingLocations[p.GetColor()] = loc
+			}
+			file++
+		}
+		if file != 8 {
+			t.Fatalf("invalid placement rank %q has %d files", rank, file)
+		}
+	}
+	return b
+}
+
+func pieceFromFENChar(t *testing.T, ch rune) board.Piece {
+	t.Helper()
+	c := color.White
+	if ch >= 'a' && ch <= 'z' {
+		c = color.Black
+		ch -= 'a' - 'A'
+	}
+	var p board.Piece
+	switch ch {
+	case 'P':
+		p = &board.Pawn{}
+	case 'N':
+		p = &board.Knight{}
+	case 'B':
+		p = &board.Bishop{}
+	case 'R':
+		p = &board.Rook{}
+	case 'Q':
+		p = &board.Queen{}
+	case 'K':
+		p = &board.King{}
+	default:
+		t.Fatalf("invalid FEN piece %q", ch)
+	}
+	p.SetColor(c)
+	return p
 }
