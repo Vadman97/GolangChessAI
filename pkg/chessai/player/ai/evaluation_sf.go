@@ -474,6 +474,10 @@ func (e *sfEval) colorScore(us color.Color) sfScore {
 	// Space.
 	sc = sc.add(e.space(us))
 
+	// Queenless rook/minor endings often need active kings even while the material
+	// phase still looks high because several rooks remain.
+	sc = sc.add(e.queenlessKingActivity(us))
+
 	// King danger to our own king (negative).
 	sc = sc.sub(e.kingDanger(us))
 
@@ -767,6 +771,42 @@ func (e *sfEval) kingDanger(us color.Color) sfScore {
 		return sfScore{}
 	}
 	return s2(kingDanger*kingDanger/4096, kingDanger/16)
+}
+
+// queenlessKingActivity rewards stepping the king into the game once queens are
+// off and the remaining material is rook/minor scale. The normal tapered king PSQT
+// underweights this because multiple rooks keep the phase high.
+func (e *sfEval) queenlessKingActivity(us color.Color) sfScore {
+	if e.pieceCount[color.White][piece.QueenType]+e.pieceCount[color.Black][piece.QueenType] != 0 {
+		return sfScore{}
+	}
+	nonPawn := 0
+	for _, c := range []color.Color{color.White, color.Black} {
+		nonPawn += e.pieceCount[c][piece.RookType]
+		nonPawn += e.pieceCount[c][piece.KnightType]
+		nonPawn += e.pieceCount[c][piece.BishopType]
+	}
+	if nonPawn > 6 {
+		return sfScore{}
+	}
+
+	k := e.b.KingLocations[us]
+	row, col := int(k.GetRow()), int(k.GetCol())
+	relRank := sfRelRank(us, row)
+	if relRank > 3 {
+		relRank = 3
+	}
+
+	// Doubled Manhattan distance to the board center (3.5, 3.5), so all integer
+	// math and no tie between the four center squares.
+	centerDist := abs(2*row-7) + abs(2*col-7)
+	centerActivity := 14 - centerDist
+	if centerActivity < 0 {
+		centerActivity = 0
+	}
+
+	activity := 110*relRank + 10*centerActivity
+	return s2(activity, activity)
 }
 
 // space rewards safe squares in the center files behind/near a side's own pawns,

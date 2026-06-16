@@ -66,6 +66,7 @@ func onlyKingAndPawns(b *board.Board, c color.Color) bool {
 
 type ABDADA struct {
 	player             *AIPlayer
+	abortPlayer        *AIPlayer
 	kill               uint32
 	currentSearchDepth int
 	NumThreads         int
@@ -163,7 +164,8 @@ func (ab *ABDADA) storeCounterMove(prev *board.LastMove, m location.Move) {
 }
 
 func (ab *ABDADA) isKilled() bool {
-	return atomic.LoadUint32(&ab.kill) != 0
+	return atomic.LoadUint32(&ab.kill) != 0 ||
+		(ab.abortPlayer != nil && ab.abortPlayer.isAborted())
 }
 
 func (ab *ABDADA) setKilled(v bool) {
@@ -176,6 +178,9 @@ func (ab *ABDADA) setKilled(v bool) {
 
 func stableDepthMove(previous, current ScoredMove) ScoredMove {
 	const scoreRegressionThreshold = 200
+	if current.ReturnThisMove {
+		return current
+	}
 	if previous.Score != NegInf &&
 		!previous.Move.Start.Equals(previous.Move.End) &&
 		current.Score < previous.Score-scoreRegressionThreshold {
@@ -473,6 +478,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	if ab.NumThreads == 1 {
 		best := ScoredMove{Score: NegInf}
 		second := ScoredMove{Score: NegInf}
+		rootResults := make([]ScoredMove, 0, len(orderedMoves))
 		for _, move := range orderedMoves {
 			if ab.player.isAborted() && !best.Move.Start.Equals(best.Move.End) {
 				break
@@ -484,9 +490,10 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 			if value.Score == OnEvaluation || value.Score == -OnEvaluation {
 				continue
 			}
+			rootResults = append(rootResults, value)
 			best, second = updateRootTopTwo(best, second, value)
 		}
-		best = ab.verifyCloseRootMoves(b, depth, best, second)
+		best = ab.verifyCloseRootMoves(b, depth, best, second, rootResults)
 		if !best.Move.Start.Equals(best.Move.End) {
 			ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), originalAlpha, originalBeta, &best)
 		}
@@ -495,9 +502,11 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 
 	best := ScoredMove{Score: NegInf}
 	second := ScoredMove{Score: NegInf}
+	rootResults := make([]ScoredMove, 0, len(orderedMoves))
 	firstRootMove := orderedMoves[0]
-	firstValue := ab.searchRootMove(b, firstRootMove, depth, NegInf, PosInf)
+	firstValue := ab.searchRootMoveForSelection(b, firstRootMove, depth, NegInf, PosInf)
 	if firstValue.Score != OnEvaluation && firstValue.Score != -OnEvaluation {
+		rootResults = append(rootResults, firstValue)
 		best, second = updateRootTopTwo(best, second, firstValue)
 		if best.Score > alpha {
 			alpha = best.Score
@@ -533,7 +542,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 				// in forcing promotion/mate lines that let TT-bound scores outrank
 				// the only non-mating defense. Keep alpha/beta pruning inside the
 				// child tree, but score each root move with a full window.
-				value := ab.searchRootMove(b, move, depth, NegInf, PosInf)
+				value := ab.searchRootMoveForSelection(b, move, depth, NegInf, PosInf)
 				results <- value
 			}
 		}()
@@ -560,9 +569,10 @@ collectResults:
 		if result.Score == OnEvaluation || result.Score == -OnEvaluation {
 			continue
 		}
+		rootResults = append(rootResults, result)
 		best, second = updateRootTopTwo(best, second, result)
 	}
-	best = ab.verifyCloseRootMoves(b, depth, best, second)
+	best = ab.verifyCloseRootMoves(b, depth, best, second, rootResults)
 	if !best.Move.Start.Equals(best.Move.End) {
 		ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), originalAlpha, originalBeta, &best)
 	}
@@ -590,24 +600,196 @@ func sameRootMove(a, b ScoredMove) bool {
 	return a.Move.Start.Equals(b.Move.Start) && a.Move.End.Equals(b.Move.End)
 }
 
-func (ab *ABDADA) verifyCloseRootMoves(b *board.Board, depth int, best, second ScoredMove) ScoredMove {
+func (ab *ABDADA) verifyCloseRootMoves(b *board.Board, depth int, best, second ScoredMove, candidates []ScoredMove) ScoredMove {
 	const verifyMargin = 150
 	if ab.player.isAborted() ||
-		depth < 4 ||
 		best.Move.Start.Equals(best.Move.End) ||
-		second.Move.Start.Equals(second.Move.End) ||
-		best.Score-second.Score > verifyMargin {
+		(second.Move.Start.Equals(second.Move.End) && !shouldDeepVerifyRoot(b, ab.player.PlayerColor, depth, best, candidates)) ||
+		(!second.Move.Start.Equals(second.Move.End) && best.Score-second.Score > verifyMargin &&
+			!shouldDeepVerifyRoot(b, ab.player.PlayerColor, depth, best, candidates)) {
 		return best
 	}
-	verifiedBest := ab.searchRootMove(b, best.Move, depth, NegInf, PosInf)
-	verifiedSecond := ab.searchRootMove(b, second.Move, depth, NegInf, PosInf)
+	verifyDepth := depth
+	if depth < 4 {
+		margin, quietOnly, verifyDepth, ok := deepRootVerifyParams(b, ab.player.PlayerColor, depth, best, candidates)
+		if !ok {
+			return best
+		}
+		return ab.verifyRootCandidates(b, verifyDepth, best, candidates, margin, quietOnly)
+	}
+	verifiedBest := ab.searchRootMoveForSelection(b, best.Move, verifyDepth, NegInf, PosInf)
+	verifiedSecond := ab.searchRootMoveForSelection(b, second.Move, verifyDepth, NegInf, PosInf)
 	if verifiedBest.Score == OnEvaluation || verifiedBest.Score == -OnEvaluation {
 		return best
 	}
 	if verifiedSecond.Score != OnEvaluation && verifiedSecond.Score != -OnEvaluation && verifiedSecond.Score > verifiedBest.Score {
+		verifiedSecond.ReturnThisMove = true
 		return verifiedSecond
 	}
 	return verifiedBest
+}
+
+func shouldDeepVerifyRoot(b *board.Board, side color.Color, depth int, best ScoredMove, candidates []ScoredMove) bool {
+	_, _, _, ok := deepRootVerifyParams(b, side, depth, best, candidates)
+	return ok
+}
+
+func deepRootVerifyParams(b *board.Board, side color.Color, depth int, best ScoredMove, candidates []ScoredMove) (margin int, quietOnly bool, verifyDepth int, ok bool) {
+	if depth != 3 || len(candidates) == 0 {
+		return 0, false, 0, false
+	}
+	if isQueenlessRookMinorEnding(b) {
+		return 30, true, depth + 2, hasCandidateWithinMargin(b, best, candidates, 30, true)
+	}
+	if isSevereRootKingDanger(b, side) {
+		return 900, false, depth + 2, hasCandidateWithinMargin(b, best, candidates, 900, false)
+	}
+	return 0, false, 0, false
+}
+
+func hasCandidateWithinMargin(b *board.Board, best ScoredMove, candidates []ScoredMove, margin int, quietOnly bool) bool {
+	for _, candidate := range candidates {
+		if sameRootMove(candidate, best) {
+			continue
+		}
+		if best.Score-candidate.Score > margin {
+			continue
+		}
+		if quietOnly && !isQuietRootMove(b, candidate.Move) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func (ab *ABDADA) verifyRootCandidates(b *board.Board, depth int, best ScoredMove, candidates []ScoredMove, margin int, quietOnly bool) ScoredMove {
+	verifiedBest := best
+	verifiedAny := false
+	for _, candidate := range candidates {
+		if best.Score-candidate.Score > margin {
+			continue
+		}
+		if quietOnly && !isQuietRootMove(b, candidate.Move) {
+			continue
+		}
+		verified := ab.searchRootMoveForSelection(b, candidate.Move, depth, NegInf, PosInf)
+		if verified.Score == OnEvaluation || verified.Score == -OnEvaluation {
+			continue
+		}
+		if !verifiedAny || verified.Score > verifiedBest.Score {
+			verifiedBest = verified
+			verifiedAny = true
+		}
+	}
+	if verifiedAny {
+		if !sameRootMove(verifiedBest, best) {
+			verifiedBest.ReturnThisMove = true
+		}
+		return verifiedBest
+	}
+	return best
+}
+
+func isSevereRootKingDanger(b *board.Board, side color.Color) bool {
+	them := side ^ 1
+	hasEnemyQueen := false
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		for col := location.CoordinateType(0); col < board.Width; col++ {
+			p := b.GetPiece(location.NewLocation(row, col))
+			if p != nil && p.GetColor() == them && p.GetPieceType() == piece.QueenType {
+				hasEnemyQueen = true
+				break
+			}
+		}
+	}
+	if !hasEnemyQueen {
+		return false
+	}
+
+	k := b.KingLocations[side]
+	kr, kc := int(k.GetRow()), int(k.GetCol())
+	var kingRing board.BitBoard
+	for dr := -1; dr <= 1; dr++ {
+		for dc := -1; dc <= 1; dc++ {
+			r, c := kr+dr, kc+dc
+			if r >= 0 && r < board.Height && c >= 0 && c < board.Width {
+				kingRing.SetLocation(location.NewLocation(location.CoordinateType(r), location.CoordinateType(c)))
+			}
+		}
+	}
+
+	shelterPawns := 0
+	ringAttackers := 0
+	queenAttacksRing := false
+	rookOrMinorAttacksRing := false
+	nearEnemyRook := false
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		for col := location.CoordinateType(0); col < board.Width; col++ {
+			p := b.GetPiece(location.NewLocation(row, col))
+			if p == nil {
+				continue
+			}
+			if p.GetColor() == side && p.GetPieceType() == piece.PawnType {
+				sq := board.BitBoard(1) << uint(board.Width*row+col)
+				if kingRing&sq != 0 {
+					shelterPawns++
+				}
+				continue
+			}
+			if p.GetColor() != them {
+				continue
+			}
+			pt := p.GetPieceType()
+			if pt == piece.RookType && sfChebyshev(int(row), int(col), kr, kc) <= 2 {
+				nearEnemyRook = true
+			}
+			if p.GetAttackableMoves(b).IntersectBitBoards(kingRing) == 0 {
+				continue
+			}
+			ringAttackers++
+			switch pt {
+			case piece.QueenType:
+				queenAttacksRing = true
+			case piece.RookType, piece.KnightType, piece.BishopType:
+				rookOrMinorAttacksRing = true
+			}
+		}
+	}
+	if shelterPawns > 1 {
+		return false
+	}
+	if ringAttackers >= 2 && (queenAttacksRing || rookOrMinorAttacksRing) {
+		return true
+	}
+	return nearEnemyRook
+}
+
+func isQueenlessRookMinorEnding(b *board.Board) bool {
+	nonPawn := 0
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		for col := location.CoordinateType(0); col < board.Width; col++ {
+			p := b.GetPiece(location.NewLocation(row, col))
+			if p == nil {
+				continue
+			}
+			switch p.GetPieceType() {
+			case piece.QueenType:
+				return false
+			case piece.RookType, piece.KnightType, piece.BishopType:
+				nonPawn++
+			}
+		}
+	}
+	return nonPawn <= 6
+}
+
+func isQuietRootMove(b *board.Board, move location.Move) bool {
+	if b.GetPiece(move.End) != nil || isEnPassantMove(b, move) {
+		return false
+	}
+	isPromo, _ := move.End.GetPawnPromotion()
+	return !isPromo
 }
 
 func (ab *ABDADA) searchRootMove(b *board.Board, move location.Move, depth, alpha, beta int) ScoredMove {
@@ -616,6 +798,22 @@ func (ab *ABDADA) searchRootMove(b *board.Board, move location.Move, depth, alph
 	value.Score = -value.Score
 	value.Move = move
 	return value
+}
+
+func (ab *ABDADA) searchRootMoveForSelection(b *board.Board, move location.Move, depth, alpha, beta int) ScoredMove {
+	if ab.NumThreads <= 1 && !ab.player.TranspositionTableEnabled {
+		return ab.searchRootMove(b, move, depth, alpha, beta)
+	}
+	worker := *ab
+	workerPlayer := ab.player.NewPonderPlayer(ab.player.PlayerColor)
+	workerPlayer.Metrics = ab.player.Metrics
+	workerPlayer.TranspositionTableEnabled = ab.player.TranspositionTableEnabled
+	if workerPlayer.TranspositionTableEnabled {
+		workerPlayer.transpositionTable = util.NewConcurrentBoardMap()
+	}
+	worker.player = workerPlayer
+	worker.abortPlayer = ab.player
+	return worker.searchRootMove(b, move, depth, alpha, beta)
 }
 
 func raiseRootAlpha(rootAlpha *int64, score int) {

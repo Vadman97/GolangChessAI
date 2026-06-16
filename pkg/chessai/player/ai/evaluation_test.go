@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -17,6 +18,15 @@ import (
 const boardsDirectory = "evaluation_boards"
 
 func TestBoardEvaluate(t *testing.T) {
+	prevStockfishClassic := config.Get().StockfishClassicEval
+	prevMaterialOnly := config.Get().MaterialOnlyEval
+	config.Get().StockfishClassicEval = false
+	config.Get().MaterialOnlyEval = false
+	t.Cleanup(func() {
+		config.Get().StockfishClassicEval = prevStockfishClassic
+		config.Get().MaterialOnlyEval = prevMaterialOnly
+	})
+
 	files, err := ioutil.ReadDir(boardsDirectory)
 	if err != nil {
 		log.Fatal(err)

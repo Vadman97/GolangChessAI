@@ -46,7 +46,7 @@ r1bqkb1r/ppp2ppp/2n2n2/3Pp3/2p1P3/2N2N2/PP3PPP/R1BQKB1R b KQkq - 0 6 | lichess-g
 r1b1k2r/p1p2ppp/2P5/1p2p3/P1p5/2n1BN2/5PPP/R1K2B1R b kq - 1 12 | lichess-gAacjwE9-ply24 | c3a4 | f7f6 | mistake loss=76cp sf-depth=10
 r3k2r/p1p3pp/2P1bp2/RP2p3/2p5/2n1BN2/5PPP/2K2B1R b kq - 2 14 | lichess-gAacjwE9-ply28 | e8f7 | e8g8 | mistake loss=78cp sf-depth=10
 r4rk1/p1p3pp/2P1bp2/RP2p3/2p5/2n1B3/3N1PPP/2K2B1R b - - 4 15 | lichess-gAacjwE9-ply30 | f8b8 | f8d8 | mistake loss=57cp sf-depth=10
-1r4k1/2p4p/2P2p2/R3p1p1/2Nr4/2K5/5PPP/R7 b - - 1 22 | lichess-gAacjwE9-ply44 | g8f7 | g8f8 | blunder loss=116cp sf-depth=10
+1r4k1/2p4p/2P2p2/R3p1p1/2Nr4/2K5/5PPP/R7 b - - 1 22 | lichess-gAacjwE9-ply44 | g8g7,d4d8,g8f7 | d4f4,b8d8,g8f8 | rook/minor ending; active king or immediate rook blockade needed, ABDADA depth 3 prefers passive rook checks; sf-depth=14
 2r5/R1p5/2Pk3p/4p1p1/4N3/2K5/5PPP/8 b - - 1 29 | lichess-gAacjwE9-ply58 | d6e6 | d6c6 | mistake loss=83cp sf-depth=10
 2r5/2pN4/R6p/2k1p1p1/8/2K5/5PPP/8 b - - 5 32 | lichess-gAacjwE9-ply64 | c5b5 | c5d5 | mistake loss=84cp sf-depth=10
 3r4/2p5/5N1R/3kp1p1/8/2K5/5PPP/8 b - - 2 34 | lichess-gAacjwE9-ply68 | d5c5 | d5e6 | mistake loss=92cp sf-depth=10
@@ -60,4 +60,4 @@ r7/2p5/4N2R/3kp3/8/2K5/5PPP/8 b - - 2 37 | lichess-gAacjwE9-ply74 | a8a7 | a8a3 
 4r1k1/p2nrp2/b1pp2p1/3p2Q1/N1Pp4/qP2P3/P1B3PP/R4RK1 w - - 0 27 | lichess-4HkIRFy9-ply53 | c2g6 | e3d4 | 27.exd4; shared ABDADA horizon miss, Bg6 attack was needed
 4r1k1/p2nrp2/b1pp2p1/6Q1/N1pP4/qP6/P1B3PP/R4RK1 w - - 0 28 | lichess-4HkIRFy9-ply55 | c2g6 | f1f3 | 28.Rf3; shared ABDADA horizon miss, Bg6 attack was needed
 6k1/p4p2/Q1ppn3/8/N5pP/5qP1/6K1/8 w - - 2 48 | lichess-4HkIRFy9-ply95 | g2h2 | g2g1 | 48.Kh2; late endgame check sequence, TT move was only a small Stockfish loss
-6k1/p4p2/Q1ppn3/8/N5pP/6q1/8/7K w - - 0 50 | lichess-4HkIRFy9-ply99 | a6e2 | a6c6 | 50.Qxc6; late endgame check sequence, TT/no-TT both chose the logged move at shallow search
+6k1/p4p2/Q1ppn3/8/N5pP/6q1/8/7K w - - 0 50 | lichess-4HkIRFy9-ply99 | a6c6 | a6e2 | 50.Qxc6; current SF depth=12 also prefers the logged move, keep as a TT/no-TT stability row

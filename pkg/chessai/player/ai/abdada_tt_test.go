@@ -247,6 +247,26 @@ func TestABDADAStableDepthMoveAcceptsSmallRegression(t *testing.T) {
 	}
 }
 
+func TestABDADAStableDepthMoveKeepsVerifiedRootMove(t *testing.T) {
+	prevMove := location.Move{
+		Start: location.NewLocation(1, 6),
+		End:   location.NewLocation(2, 6),
+	}
+	verifiedMove := location.Move{
+		Start: location.NewLocation(2, 1),
+		End:   location.NewLocation(2, 5),
+	}
+
+	got := stableDepthMove(
+		ScoredMove{Move: prevMove, Score: -266},
+		ScoredMove{Move: verifiedMove, Score: -507, ReturnThisMove: true},
+	)
+
+	if !got.Move.Equals(&verifiedMove) {
+		t.Fatalf("expected verified move %s, got %s", verifiedMove, got.Move)
+	}
+}
+
 func TestABDADARootAspirationFailLowStoresUpperBound(t *testing.T) {
 	b := &board.Board{}
 	b.ResetDefault()
