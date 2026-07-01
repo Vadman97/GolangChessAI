@@ -167,10 +167,16 @@ func (r *King) canCastle(m *location.Move, b *Board) bool {
 		rightLocation = m.End
 		rightLocation, _ = rightLocation.AddRelative(location.RightMove)
 	}
+	// The board doesn't change across these squares, so the enemy attack map is
+	// computed once here rather than once per square inside underAttack — that
+	// used to recompute the full enemy GetAllAttackableMoves scan (allocating a
+	// Piece per occupied square) 3-4x per canCastle call, and canCastle runs on
+	// every king move generation until a side castles or its king/rooks move.
+	enemyAttacks := b.GetAllAttackableMoves(r.Color ^ 1)
 	llRow, llCol := leftLocation.Get()
 	for c := llCol; c <= rightLocation.GetCol(); c++ {
 		loc := location.NewLocation(llRow, c)
-		if r.underAttack(loc, b) {
+		if enemyAttacks.IsLocationSet(loc) {
 			return false
 		}
 		data := b.getPieceData(loc)
@@ -189,7 +195,6 @@ func (r *King) canCastle(m *location.Move, b *Board) bool {
  * of the opposing color).
  */
 func (r *King) underAttack(location location.Location, b *Board) bool {
-	var potentialAttackMoves BitBoard
-	potentialAttackMoves = b.GetAllAttackableMoves(r.Color ^ 1)
-	return potentialAttackMoves.IsLocationSet(location)
+	attacks := b.GetAllAttackableMoves(r.Color ^ 1)
+	return attacks.IsLocationSet(location)
 }
