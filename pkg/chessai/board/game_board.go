@@ -209,6 +209,20 @@ func (b *Board) GetPiece(l location.Location) Piece {
 	return decodeData(l, data)
 }
 
+// GetPieceTypeColor reads the piece type and color at l without allocating a
+// Piece interface value. Use this instead of GetPiece whenever only the type
+// and color are needed (e.g. material counting, pawn-structure checks) — it
+// is called extremely often (every leaf evaluation scans the whole board),
+// and GetPiece's heap allocation there was a dominant source of GC pressure.
+func (b *Board) GetPieceTypeColor(l location.Location) (pieceType byte, c color.Color, ok bool) {
+	data := b.getPieceData(l)
+	pieceType = (data & 0xE) >> 1
+	if pieceType == piece.NilType {
+		return piece.NilType, 0, false
+	}
+	return pieceType, color.Color(data & 0x1), true
+}
+
 func (b *Board) getPieceData(l location.Location) byte {
 	pos := getBitOffset(l)
 	row, _ := l.Get()
@@ -619,40 +633,43 @@ func (b *Board) IsInsufficientMaterial() bool {
 		pieceType   byte
 		squareColor byte // (row+col)%2: 0=light, 1=dark
 	}
-	var whitePieces, blackPieces []pieceInfo
+	// At most one non-king piece per side matters (more than that is always
+	// sufficient material), so plain locals avoid a slice allocation here —
+	// this runs on every leaf evaluation in the search.
+	var wn, bn int
+	var whiteSolo, blackSolo pieceInfo
 	for row := location.CoordinateType(0); row < Height; row++ {
 		for col := location.CoordinateType(0); col < Width; col++ {
-			p := b.GetPiece(location.NewLocation(row, col))
-			if p == nil || p.GetPieceType() == piece.KingType {
+			pt, c, ok := b.GetPieceTypeColor(location.NewLocation(row, col))
+			if !ok || pt == piece.KingType {
 				continue
 			}
-			info := pieceInfo{p.GetPieceType(), (row + col) % 2}
-			if p.GetColor() == color.White {
-				whitePieces = append(whitePieces, info)
+			info := pieceInfo{pt, byte(row+col) % 2}
+			if c == color.White {
+				wn++
+				whiteSolo = info
 			} else {
-				blackPieces = append(blackPieces, info)
+				bn++
+				blackSolo = info
 			}
 		}
 	}
-	wn, bn := len(whitePieces), len(blackPieces)
 	// K vs K
 	if wn == 0 && bn == 0 {
 		return true
 	}
 	// K+N vs K or K+B vs K
 	if (wn == 1 && bn == 0) || (wn == 0 && bn == 1) {
-		var solo pieceInfo
-		if wn == 1 {
-			solo = whitePieces[0]
-		} else {
-			solo = blackPieces[0]
+		solo := whiteSolo
+		if bn == 1 {
+			solo = blackSolo
 		}
 		return solo.pieceType == piece.KnightType || solo.pieceType == piece.BishopType
 	}
 	// K+B vs K+B, same square color
 	if wn == 1 && bn == 1 {
-		if whitePieces[0].pieceType == piece.BishopType && blackPieces[0].pieceType == piece.BishopType {
-			return whitePieces[0].squareColor == blackPieces[0].squareColor
+		if whiteSolo.pieceType == piece.BishopType && blackSolo.pieceType == piece.BishopType {
+			return whiteSolo.squareColor == blackSolo.squareColor
 		}
 	}
 	return false

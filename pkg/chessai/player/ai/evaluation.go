@@ -9,43 +9,30 @@ import (
 	"github.com/steakknife/hamming"
 )
 
+// pieceTypeCounts is indexed [color][pieceType]; pieceType constants run 0(Nil)-6(Pawn).
+type pieceTypeCounts [color.NumColors][7]uint8
+
 type Evaluation struct {
 	// [color][pieceType] -> overall piece count
-	PieceCounts map[color.Color]map[byte]uint8
+	PieceCounts pieceTypeCounts
 	// [color][pieceType] -> count of pieces off starting position
-	PieceAdvanced map[color.Color]map[byte]uint8
+	PieceAdvanced pieceTypeCounts
 	// [color][column] -> num pawns
-	PawnColumns map[color.Color]map[location.CoordinateType]uint8
-	// [color][column] -> num pawns
-	PawnRows map[color.Color]map[location.CoordinateType]uint8
+	PawnColumns [color.NumColors][board.Width]uint8
+	// [color][row] -> num pawns
+	PawnRows [color.NumColors][board.Height]uint8
 	// [color] -> num moves
-	NumMoves   map[color.Color]uint16
-	NumAttacks map[color.Color]uint16
+	NumMoves   [color.NumColors]uint16
+	NumAttacks [color.NumColors]uint16
 	TotalScore int
 }
 
+// NewEvaluation allocates on the heap only for the returned pointer — all
+// counting fields are fixed-size arrays (previously nested maps), avoiding
+// the 8 map allocations + per-increment hash lookups this used to cost on
+// every single evaluated position (every leaf/quiescence node in the search).
 func NewEvaluation() *Evaluation {
-	e := Evaluation{
-		PieceCounts: map[color.Color]map[byte]uint8{
-			color.Black: {},
-			color.White: {},
-		},
-		PieceAdvanced: map[color.Color]map[byte]uint8{
-			color.Black: {},
-			color.White: {},
-		},
-		PawnColumns: map[color.Color]map[location.CoordinateType]uint8{
-			color.Black: {},
-			color.White: {},
-		},
-		PawnRows: map[color.Color]map[location.CoordinateType]uint8{
-			color.Black: {},
-			color.White: {},
-		},
-		NumMoves:   map[color.Color]uint16{},
-		NumAttacks: map[color.Color]uint16{},
-	}
-	return &e
+	return &Evaluation{}
 }
 
 var PieceValue = map[byte]int{
@@ -174,8 +161,8 @@ func isKnightOutpost(b *board.Board, row, col location.CoordinateType, knightCol
 			rStart, rEnd, rStep = int(row)-1, -1, -1
 		}
 		for r := rStart; r != rEnd; r += rStep {
-			p := b.GetPiece(location.NewLocation(location.CoordinateType(r), location.CoordinateType(ac)))
-			if p != nil && p.GetColor() == enemy && p.GetPieceType() == piece.PawnType {
+			pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(r), location.CoordinateType(ac)))
+			if ok && pc == enemy && pt == piece.PawnType {
 				return false
 			}
 		}
@@ -214,16 +201,16 @@ func backwardPawnPenalty(b *board.Board, row, col location.CoordinateType, c col
 		// For Black (own back rank = row 7): "behind" = row' > row.
 		if c == color.White {
 			for r := location.CoordinateType(0); r < row; r++ {
-				p := b.GetPiece(location.NewLocation(r, location.CoordinateType(adjCol)))
-				if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+				pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(r, location.CoordinateType(adjCol)))
+				if ok && pc == c && pt == piece.PawnType {
 					hasSupport = true
 					break
 				}
 			}
 		} else {
 			for r := location.CoordinateType(7); r > row; r-- {
-				p := b.GetPiece(location.NewLocation(r, location.CoordinateType(adjCol)))
-				if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+				pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(r, location.CoordinateType(adjCol)))
+				if ok && pc == c && pt == piece.PawnType {
 					hasSupport = true
 					break
 				}
@@ -241,8 +228,8 @@ func backwardPawnPenalty(b *board.Board, row, col location.CoordinateType, c col
 	hasFriendlyAhead := false
 	if c == color.White {
 		for r := row + 1; int(r) < board.Height; r++ {
-			p := b.GetPiece(location.NewLocation(r, col))
-			if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+			pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(r, col))
+			if ok && pc == c && pt == piece.PawnType {
 				hasFriendlyAhead = true
 				break
 			}
@@ -250,8 +237,8 @@ func backwardPawnPenalty(b *board.Board, row, col location.CoordinateType, c col
 	} else {
 		if row > 0 {
 			for r := row - 1; ; r-- {
-				p := b.GetPiece(location.NewLocation(r, col))
-				if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+				pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(r, col))
+				if ok && pc == c && pt == piece.PawnType {
 					hasFriendlyAhead = true
 					break
 				}
@@ -284,8 +271,8 @@ func isPassedPawn(b *board.Board, row, col location.CoordinateType, pawnColor co
 			continue
 		}
 		for r := rStart; r != rEnd; r += rStep {
-			p := b.GetPiece(location.NewLocation(location.CoordinateType(r), location.CoordinateType(c)))
-			if p != nil && p.GetColor() == enemy && p.GetPieceType() == piece.PawnType {
+			pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(r), location.CoordinateType(c)))
+			if ok && pc == enemy && pt == piece.PawnType {
 				return false
 			}
 		}
@@ -296,11 +283,11 @@ func isPassedPawn(b *board.Board, row, col location.CoordinateType, pawnColor co
 func rookPasserActivityBonus(b *board.Board, rookRow, rookCol location.CoordinateType, rookColor color.Color) int {
 	bonus := 0
 	for row := location.CoordinateType(0); row < board.Height; row++ {
-		p := b.GetPiece(location.NewLocation(row, rookCol))
-		if p == nil || p.GetPieceType() != piece.PawnType || !isPassedPawn(b, row, rookCol, p.GetColor()) {
+		pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(row, rookCol))
+		if !ok || pt != piece.PawnType || !isPassedPawn(b, row, rookCol, pc) {
 			continue
 		}
-		pawnColor := p.GetColor()
+		pawnColor := pc
 		rank := int(row)
 		if pawnColor == color.Black {
 			rank = 7 - int(row)
@@ -446,7 +433,7 @@ var kingEndgamePST = [8][8]int{
 
 // endgamePhase returns a value 0–256 where 256 = full middlegame, 0 = full endgame.
 // Computed from total non-pawn, non-king material on the board.
-func endgamePhase(pieceCounts map[color.Color]map[byte]uint8) int {
+func endgamePhase(pieceCounts pieceTypeCounts) int {
 	const maxPhase = 2*4 + 2*4 + 2*2 // 2 rooks + 2 minors + 1 queen per side * 2 sides
 	phase := 0
 	for _, c := range []color.Color{color.White, color.Black} {
@@ -634,8 +621,8 @@ func kingSafety(b *board.Board, kingColor color.Color) int {
 			if r < 0 || r >= board.Height {
 				break
 			}
-			p := b.GetPiece(location.NewLocation(location.CoordinateType(r), location.CoordinateType(col)))
-			if p != nil && p.GetColor() == kingColor && p.GetPieceType() == piece.PawnType {
+			pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(r), location.CoordinateType(col)))
+			if ok && pc == kingColor && pt == piece.PawnType {
 				hasPawn = true
 				break
 			}
@@ -644,9 +631,8 @@ func kingSafety(b *board.Board, kingColor color.Color) int {
 			score += KingOpenFilePenalty
 			// additional penalty if an enemy slider threatens down this file
 			for row := 0; row < board.Height; row++ {
-				p := b.GetPiece(location.NewLocation(location.CoordinateType(row), location.CoordinateType(col)))
-				if p != nil && p.GetColor() == enemy {
-					pt := p.GetPieceType()
+				pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(row), location.CoordinateType(col)))
+				if ok && pc == enemy {
 					if pt == piece.RookType || pt == piece.QueenType {
 						score += KingEnemySliderPenalty
 						break
@@ -676,8 +662,8 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		// side-to-move relative. No PST, mobility, pawn structure, king safety, etc.
 		for row := location.CoordinateType(0); row < board.Height; row++ {
 			for col := location.CoordinateType(0); col < board.Width; col++ {
-				if gamePiece := b.GetPiece(location.NewLocation(row, col)); gamePiece != nil {
-					eval.PieceCounts[gamePiece.GetColor()][gamePiece.GetPieceType()]++
+				if pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(row, col)); ok {
+					eval.PieceCounts[pc][pt]++
 				}
 			}
 		}
@@ -699,8 +685,8 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		// First pass: count pieces so endgamePhase can be computed before PST scoring.
 		for row := location.CoordinateType(0); row < board.Height; row++ {
 			for col := location.CoordinateType(0); col < board.Width; col++ {
-				if gamePiece := b.GetPiece(location.NewLocation(row, col)); gamePiece != nil {
-					eval.PieceCounts[gamePiece.GetColor()][gamePiece.GetPieceType()]++
+				if pt, pc, ok := b.GetPieceTypeColor(location.NewLocation(row, col)); ok {
+					eval.PieceCounts[pc][pt]++
 				}
 			}
 		}
@@ -769,11 +755,10 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		// Rook open/semi-open file bonus: second pass after PawnColumns is complete.
 		for row := location.CoordinateType(0); row < board.Height; row++ {
 			for col := location.CoordinateType(0); col < board.Width; col++ {
-				p := b.GetPiece(location.NewLocation(row, col))
-				if p == nil || p.GetPieceType() != piece.RookType {
+				pt, c, ok := b.GetPieceTypeColor(location.NewLocation(row, col))
+				if !ok || pt != piece.RookType {
 					continue
 				}
-				c := p.GetColor()
 				friendlyPawns := eval.PawnColumns[c][col] > 0
 				enemyPawns := eval.PawnColumns[c^1][col] > 0
 				if !friendlyPawns && !enemyPawns {
@@ -800,11 +785,10 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 		// ignoring defensive knight maneuvers in K+PP vs K+N-type endings.
 		for row := location.CoordinateType(0); row < board.Height; row++ {
 			for col := location.CoordinateType(0); col < board.Width; col++ {
-				p := b.GetPiece(location.NewLocation(row, col))
-				if p == nil || p.GetPieceType() != piece.KnightType {
+				pt, c, ok := b.GetPieceTypeColor(location.NewLocation(row, col))
+				if !ok || pt != piece.KnightType {
 					continue
 				}
-				c := p.GetColor()
 				enemy := c ^ 1
 				// enemyForward: direction enemy pawns advance (+1 for White, -1 for Black).
 				enemyForward := 1
@@ -822,8 +806,8 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 					if pr < 0 || pr >= board.Height {
 						continue
 					}
-					ep := b.GetPiece(location.NewLocation(location.CoordinateType(pr), location.CoordinateType(tc)))
-					if ep == nil || ep.GetColor() != enemy || ep.GetPieceType() != piece.PawnType {
+					ept, epc, epok := b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(pr), location.CoordinateType(tc)))
+					if !epok || epc != enemy || ept != piece.PawnType {
 						continue
 					}
 					pawnRow := location.CoordinateType(pr)
@@ -997,11 +981,10 @@ func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 			endgameFactor := kingPasserPhaseLimit - phase // 0 near middlegame, max at full endgame
 			for row := location.CoordinateType(0); row < board.Height; row++ {
 				for col := location.CoordinateType(0); col < board.Width; col++ {
-					p := b.GetPiece(location.NewLocation(row, col))
-					if p == nil || p.GetPieceType() != piece.PawnType {
+					pt, c, ok := b.GetPieceTypeColor(location.NewLocation(row, col))
+					if !ok || pt != piece.PawnType {
 						continue
 					}
-					c := p.GetColor()
 					if !isPassedPawn(b, row, col, c) {
 						continue
 					}

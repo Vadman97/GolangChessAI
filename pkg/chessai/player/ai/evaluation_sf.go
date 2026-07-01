@@ -268,10 +268,8 @@ func evaluateStockfishClassicScore(b *board.Board, whoMoves color.Color) int {
 	e.pieces = pieces
 	e.occAll = e.occ[color.White].CombineBitBoards(e.occ[color.Black])
 
-	// Reuse the existing phase computation (0..256) by adapting to its map signature.
-	pc := map[color.Color]map[byte]uint8{
-		color.White: {}, color.Black: {},
-	}
+	// Reuse the existing phase computation (0..256) by adapting to its array signature.
+	var pc pieceTypeCounts
 	for _, c := range []color.Color{color.White, color.Black} {
 		for pt := byte(1); pt <= piece.PawnType; pt++ {
 			pc[c][pt] = uint8(e.pieceCount[c][pt])
@@ -302,7 +300,7 @@ func evaluateStockfishClassicScore(b *board.Board, whoMoves color.Color) int {
 				}
 				fr := pcInf.row + forward
 				if fr >= 0 && fr < board.Height {
-					if b.GetPiece(location.NewLocation(location.CoordinateType(fr), location.CoordinateType(pcInf.col))) != nil {
+					if _, _, occupied := b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(fr), location.CoordinateType(pcInf.col))); occupied {
 						blocked = true
 					}
 				}
@@ -487,8 +485,8 @@ func (e *sfEval) colorScore(us color.Color) sfScore {
 // fileHasPawn reports whether color c has a pawn on the given column.
 func (e *sfEval) fileHasPawn(c color.Color, col int) bool {
 	for row := 0; row < board.Height; row++ {
-		p := e.b.GetPiece(location.NewLocation(location.CoordinateType(row), location.CoordinateType(col)))
-		if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+		pt, pc, ok := e.b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(row), location.CoordinateType(col)))
+		if ok && pc == c && pt == piece.PawnType {
 			return true
 		}
 	}
@@ -506,8 +504,8 @@ func (e *sfEval) isDoubledBehind(c color.Color, row, col int) bool {
 	if r < 0 || r >= board.Height {
 		return false
 	}
-	p := e.b.GetPiece(location.NewLocation(location.CoordinateType(r), location.CoordinateType(col)))
-	return p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType
+	pt, pc, ok := e.b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(r), location.CoordinateType(col)))
+	return ok && pc == c && pt == piece.PawnType
 }
 
 // isConnectedPawn reports whether the pawn of color c at (row,col) is part of a
@@ -524,8 +522,8 @@ func (e *sfEval) isConnectedPawn(c color.Color, row, col, forward int) bool {
 			if ar < 0 || ar >= board.Height {
 				continue
 			}
-			p := e.b.GetPiece(location.NewLocation(location.CoordinateType(ar), location.CoordinateType(ac)))
-			if p != nil && p.GetColor() == c && p.GetPieceType() == piece.PawnType {
+			pt, pc, ok := e.b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(ar), location.CoordinateType(ac)))
+			if ok && pc == c && pt == piece.PawnType {
 				return true
 			}
 		}
@@ -591,16 +589,16 @@ func (e *sfEval) threats(us color.Color) sfScore {
 	target := weak.CombineBitBoards(defendedNonPawn).IntersectBitBoards(minorAttacks)
 	for x := uint64(target); x != 0; x &= x - 1 {
 		sq := bits.TrailingZeros64(x)
-		if p := e.pieceAt(sq); p != nil {
-			sc = sc.add(sfThreatByMinor[p.GetPieceType()])
+		if pt, ok := e.pieceTypeAt(sq); ok {
+			sc = sc.add(sfThreatByMinor[pt])
 		}
 	}
 
 	rookTarget := weak.IntersectBitBoards(e.attackedBy[us][piece.RookType])
 	for x := uint64(rookTarget); x != 0; x &= x - 1 {
 		sq := bits.TrailingZeros64(x)
-		if p := e.pieceAt(sq); p != nil {
-			sc = sc.add(sfThreatByRook[p.GetPieceType()])
+		if pt, ok := e.pieceTypeAt(sq); ok {
+			sc = sc.add(sfThreatByRook[pt])
 		}
 	}
 
@@ -637,9 +635,11 @@ func (e *sfEval) occupiedNonPawn(c color.Color) board.BitBoard {
 	return out
 }
 
-// pieceAt returns the piece at a 0..63 bit-square index.
-func (e *sfEval) pieceAt(sq int) board.Piece {
-	return e.b.GetPiece(location.NewLocation(location.CoordinateType(sq/board.Width), location.CoordinateType(sq%board.Width)))
+// pieceTypeAt returns the piece type at a 0..63 bit-square index, and whether
+// the square is occupied at all.
+func (e *sfEval) pieceTypeAt(sq int) (pieceType byte, ok bool) {
+	pt, _, ok := e.b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(sq/board.Width), location.CoordinateType(sq%board.Width)))
+	return pt, ok
 }
 
 // pawnsOn returns the bitboard of color c's pawns that stand on squares in `mask`.
@@ -833,8 +833,8 @@ func (e *sfEval) space(us color.Color) sfScore {
 		for col := 2; col <= 5; col++ {
 			sq := board.BitBoard(1) << uint(board.Width*row+col)
 			// Safe = not occupied by our pawn, not attacked by an enemy pawn.
-			p := e.b.GetPiece(location.NewLocation(location.CoordinateType(row), location.CoordinateType(col)))
-			if p != nil && p.GetColor() == us && p.GetPieceType() == piece.PawnType {
+			pt, pc, ok := e.b.GetPieceTypeColor(location.NewLocation(location.CoordinateType(row), location.CoordinateType(col)))
+			if ok && pc == us && pt == piece.PawnType {
 				continue
 			}
 			if e.attackedBy[them][piece.PawnType]&sq != 0 {
