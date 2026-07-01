@@ -530,8 +530,11 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	}
 	jobs := make(chan location.Move, len(remainingMoves))
 	results := make(chan ScoredMove, len(remainingMoves))
+	var wg sync.WaitGroup
+	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
 		go func() {
+			defer wg.Done()
 			for move := range jobs {
 				if ab.player.isAborted() {
 					continue
@@ -551,6 +554,14 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 		jobs <- move
 	}
 	close(jobs)
+
+	// Workers keep running (and touching b via applyMove) until they drain
+	// jobs, even after an abort short-circuits collection below. b is the
+	// caller's live board and gets mutated in place for the next move as
+	// soon as this function returns, so any straggler goroutine must be
+	// joined before we return — otherwise it can later call applyMove on a
+	// board that has since moved on, panicking on "no piece at start".
+	defer wg.Wait()
 
 	ticker := time.NewTicker(time.Millisecond)
 	defer ticker.Stop()
@@ -938,49 +949,22 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 				break
 			}
 		}
-		// Aspiration windows: start with a narrow window around the previous score.
-		// On failure, widen exponentially until the full window is used.
-		alpha, beta := NegInf, PosInf
-		delta := aspirationDelta
-		// Skip aspiration windows when the previous score was a mate — the window
-		// would be centered on a huge value, causing repeated fail-lows as normal
-		// evals fall outside it, wasting time on re-searches.
-		isMate := best.Score >= WinScore || best.Score <= LossScore
-		if ab.currentSearchDepth > iterativeIncrement && best.Score != NegInf && !isMate {
-			alpha = best.Score - delta
-			beta = best.Score + delta
-		}
-
+		// getBestMove always scores every root move with a full NegInf/PosInf
+		// window (see searchRootMove) — root moves are never actually pruned by
+		// an aspiration window, only the child trees beneath each root move are.
+		// A narrower alpha/beta here therefore has no effect on the search other
+		// than making the fail-low/fail-high checks below fire whenever the
+		// score merely moves more than aspirationDelta between depths, which is
+		// common in tactical positions. Since re-running with a wider window
+		// recomputes the exact same full-window result, that retry loop used to
+		// burn 2-3x the search time for zero benefit. Search once with a full
+		// window instead.
 		var newGuess ScoredMove
-		for {
-			thinking, done := make(chan bool), make(chan bool, 1)
-			go ab.player.trackThinkTime(thinking, done, start)
-			newGuess = ab.getBestMove(b, ab.currentSearchDepth, alpha, beta, previousMove)
-			close(thinking)
-			<-done
-
-			if ab.player.isAborted() {
-				break
-			}
-
-			if newGuess.Score <= alpha {
-				// Fail-low: widen the window downward.
-				delta *= aspirationWiden
-				alpha = newGuess.Score - delta
-				if alpha < NegInf {
-					alpha = NegInf
-				}
-			} else if newGuess.Score >= beta {
-				// Fail-high: widen the window upward.
-				delta *= aspirationWiden
-				beta = newGuess.Score + delta
-				if beta > PosInf {
-					beta = PosInf
-				}
-			} else {
-				break // search succeeded within the window
-			}
-		}
+		thinking, done := make(chan bool), make(chan bool, 1)
+		go ab.player.trackThinkTime(thinking, done, start)
+		newGuess = ab.getBestMove(b, ab.currentSearchDepth, NegInf, PosInf, previousMove)
+		close(thinking)
+		<-done
 
 		if !ab.player.isAborted() {
 			prevForStability := best
