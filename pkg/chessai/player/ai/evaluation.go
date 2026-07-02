@@ -526,17 +526,36 @@ type evaluationPair struct {
 	whoMoves color.Color
 }
 
+// terminalScore checks for checkmate/stalemate/insufficient material and returns
+// the terminal score plus true if the position is terminal.
+//
+// IsInCheckmate(whoMoves) and IsStalemate(whoMoves) both reduce to
+// "HasLegalMove(whoMoves) && IsKingInCheck(whoMoves)" — computing them separately
+// re-ran the (pin-data + move-scan) work for whoMoves twice per evaluation, which
+// showed up as a hot path since this runs on every leaf node in search. Computing
+// them once here and deriving both checks from the same result halves that cost.
+func terminalScore(b *board.Board, whoMoves color.Color) (int, bool) {
+	if b.IsInCheckmate(whoMoves^1, nil) {
+		return WinScore, true
+	}
+	hasLegalMove := b.HasLegalMove(whoMoves, nil)
+	kingInCheck := b.IsKingInCheck(whoMoves)
+	if !hasLegalMove && kingInCheck {
+		return LossScore, true
+	}
+	if (!hasLegalMove && !kingInCheck) || b.IsInsufficientMaterial() {
+		return StalemateScore, true
+	}
+	return 0, false
+}
+
 // TODO(Vadim) make this a static function so evaluation cache is global
 func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
 	// Check terminal wins/losses before draw counters. A game can have prior
 	// repetition history without the current position being a threefold draw.
-	if b.IsInCheckmate(whoMoves^1, nil) {
-		eval.TotalScore = WinScore
-	} else if b.IsInCheckmate(whoMoves, nil) {
-		eval.TotalScore = LossScore
-	} else if b.IsStalemate(whoMoves, nil) || b.IsInsufficientMaterial() {
-		eval.TotalScore = StalemateScore
+	if score, terminal := terminalScore(b, whoMoves); terminal {
+		eval.TotalScore = score
 	} else if b.MovesSinceNoDraw >= 100 {
 		// Vadim: >= instead of == because AI simulation will go beyond 100, it will know no win is possible
 		// Alex: This value may change, but AI right now prevents draws
@@ -647,16 +666,12 @@ func kingSafety(b *board.Board, kingColor color.Color) int {
 func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
 	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
-	if b.IsInCheckmate(whoMoves^1, nil) {
-		eval.TotalScore = WinScore
-	} else if b.IsInCheckmate(whoMoves, nil) {
-		eval.TotalScore = LossScore
-	} else if b.IsStalemate(whoMoves, nil) || b.IsInsufficientMaterial() {
-		// Stalemate: the side to move has no legal moves and is not in check.
-		// Only check the side to move — checking whoMoves^1 (the side NOT to move)
-		// would misidentify positions where the opponent is boxed in (but can still
-		// be checkmated on the next move) as draws instead of wins.
-		eval.TotalScore = StalemateScore
+	// Stalemate: the side to move has no legal moves and is not in check.
+	// Only check the side to move — checking whoMoves^1 (the side NOT to move)
+	// would misidentify positions where the opponent is boxed in (but can still
+	// be checkmated on the next move) as draws instead of wins.
+	if score, terminal := terminalScore(b, whoMoves); terminal {
+		eval.TotalScore = score
 	} else if config.Get().MaterialOnlyEval {
 		// Material-only ablation eval: score is purely the sum of piece values,
 		// side-to-move relative. No PST, mobility, pawn structure, king safety, etc.

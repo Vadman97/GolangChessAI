@@ -247,7 +247,9 @@ func evaluateStockfishClassicScore(b *board.Board, whoMoves color.Color) int {
 	e := &sfEval{b: b}
 
 	// --- Pass 1: occupancy, piece counts, per-piece attack bitboards. ---
-	var pieces []pcGeneric
+	// Preallocated to the max possible piece count (32) to avoid repeated
+	// slice growth reallocations on this hot path (runs on every leaf eval).
+	pieces := make([]pcGeneric, 0, 32)
 	for row := 0; row < board.Height; row++ {
 		for col := 0; col < board.Width; col++ {
 			p := b.GetPiece(location.NewLocation(location.CoordinateType(row), location.CoordinateType(col)))

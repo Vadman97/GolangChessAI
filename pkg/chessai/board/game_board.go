@@ -515,12 +515,14 @@ func (b *Board) getAllAttackableMoves(color color.Color) BitBoard {
 		}
 		for c := 0; c < Width; c++ {
 			loc := location.NewLocation(location.CoordinateType(r), location.CoordinateType(c))
-			if !b.IsEmpty(loc) {
+			// Check color via GetPieceTypeColor (no allocation) before paying for
+			// GetPiece's heap allocation — this call runs on every check/legality
+			// test in search, and skipping it for the ~half of squares holding the
+			// opponent's pieces meaningfully cuts GC pressure.
+			if _, pc, ok := b.GetPieceTypeColor(loc); ok && pc == color {
 				pieceOnLocation := b.GetPiece(loc)
-				if pieceOnLocation.GetColor() == color {
-					attackableMoves := pieceOnLocation.GetAttackableMoves(b)
-					attackable = attackable.CombineBitBoards(attackableMoves)
-				}
+				attackableMoves := pieceOnLocation.GetAttackableMoves(b)
+				attackable = attackable.CombineBitBoards(attackableMoves)
 			}
 		}
 	}
@@ -541,13 +543,11 @@ func (b *Board) GetPieceAttackableMoves(color color.Color) (boards [piece.NumPie
 		}
 		for c := 0; c < Width; c++ {
 			loc := location.NewLocation(location.CoordinateType(r), location.CoordinateType(c))
-			if !b.IsEmpty(loc) {
+			if _, pc, ok := b.GetPieceTypeColor(loc); ok && pc == color {
 				pieceOnLocation := b.GetPiece(loc)
-				if pieceOnLocation.GetColor() == color {
-					pType := pieceOnLocation.GetPieceType()
-					attackableMoves := pieceOnLocation.GetAttackableMoves(b)
-					boards[pType] = boards[pType].CombineBitBoards(attackableMoves)
-				}
+				pType := pieceOnLocation.GetPieceType()
+				attackableMoves := pieceOnLocation.GetAttackableMoves(b)
+				boards[pType] = boards[pType].CombineBitBoards(attackableMoves)
 			}
 		}
 	}
