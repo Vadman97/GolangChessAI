@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"runtime/debug"
 	"runtime/pprof"
 	"strconv"
 	"strings"
@@ -25,6 +26,16 @@ import (
 )
 
 func main() {
+	// Search is heavily allocation-bound (board/piece decoding, move slices) and
+	// runs in short, high-throughput bursts under a wall-clock budget. The default
+	// GOGC=100 triggers frequent concurrent GC cycles that contend with search
+	// goroutines and disproportionately hurt multi-threaded ABDADA scaling (measured
+	// only ~2.5x speedup on 8 threads vs 1, with mallocgc/scanObject ~30% of CPU
+	// profile time). Raising GOGC trades memory for fewer GC cycles and measured
+	// ~10-15% more search nodes/sec at threads=8. SetMemoryLimit caps worst-case
+	// heap growth for long-running server/lichess modes.
+	debug.SetGCPercent(400)
+	debug.SetMemoryLimit(2 << 30) // 2 GiB soft cap
 	if len(os.Args) > 1 && os.Args[1] == "profile" {
 		f, err := os.Create("cpu.pprof")
 		if err != nil {
