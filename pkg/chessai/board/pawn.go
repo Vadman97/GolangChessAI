@@ -51,9 +51,9 @@ func (r *Pawn) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
  */
 func (r *Pawn) GetAttackableMoves(board *Board) BitBoard {
 	attackableBoard := BitBoard(0)
-	locations := r.getAttackLocations(board)
-	for _, loc := range *locations {
-		attackableBoard.SetLocation(loc)
+	locs, n := r.attackLocations()
+	for i := 0; i < n; i++ {
+		attackableBoard.SetLocation(locs[i])
 	}
 	return attackableBoard
 }
@@ -66,22 +66,22 @@ func (r *Pawn) hasMoved() bool {
 }
 
 /**
- * Determines possible attack locations (diagonal ahead to left or right). Only returns inBounds locations
- * TODO cache lookups
+ * Determines possible attack locations (diagonal ahead to left or right). Only returns inBounds locations.
+ * Fixed-size return (no heap allocation): this runs for every pawn on every evaluation.
  */
-func (r *Pawn) getAttackLocations(board *Board) *[]location.Location {
-	var locations []location.Location
+func (r *Pawn) attackLocations() (locs [2]location.Location, n int) {
 	for i := -1; i <= 1; i += 2 {
 		loc := r.GetPosition()
 		loc, inBounds := loc.AddRelative(location.RelativeLocation{Col: int8(i)})
 		if inBounds {
 			loc, inBounds = loc.AddRelative(r.forward(1))
 			if inBounds {
-				locations = append(locations, loc)
+				locs[n] = loc
+				n++
 			}
 		}
 	}
-	return &locations
+	return
 }
 
 /**
@@ -89,8 +89,8 @@ func (r *Pawn) getAttackLocations(board *Board) *[]location.Location {
  */
 func (r *Pawn) getCaptureMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
-	locations := r.getAttackLocations(board)
-	for _, loc := range *locations {
+	locs, n := r.attackLocations()
+	for _, loc := range locs[:n] {
 		// Use raw piece data to avoid GetPiece heap allocation just for a color check.
 		data := board.getPieceData(loc)
 		if data == 0 || data&0x1 == r.Color {

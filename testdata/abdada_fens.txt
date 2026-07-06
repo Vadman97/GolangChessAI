@@ -61,3 +61,5 @@ r7/2p5/4N2R/3kp3/8/2K5/5PPP/8 b - - 2 37 | lichess-gAacjwE9-ply74 | a8a7 | a8a3 
 4r1k1/p2nrp2/b1pp2p1/6Q1/N1pP4/qP6/P1B3PP/R4RK1 w - - 0 28 | lichess-4HkIRFy9-ply55 | c2g6 | f1f3 | 28.Rf3; shared ABDADA horizon miss, Bg6 attack was needed
 6k1/p4p2/Q1ppn3/8/N5pP/5qP1/6K1/8 w - - 2 48 | lichess-4HkIRFy9-ply95 | g2h2 | g2g1 | 48.Kh2; late endgame check sequence, TT move was only a small Stockfish loss
 6k1/p4p2/Q1ppn3/8/N5pP/6q1/8/7K w - - 0 50 | lichess-4HkIRFy9-ply99 | a6c6 | a6e2 | 50.Qxc6; current SF depth=12 also prefers the logged move, keep as a TT/no-TT stability row
+5k2/3R3p/8/1P1p1pp1/3Bn3/1P1r4/7K/8 w - - 6 50 | selfplay-2026-07-06-g1m50 | d7d5 | d4g1 | selfplay game1 move50: Rxd5 exchange sequence holds (SF -25); passive Bg1 lost; engine picks b6 (198cp loss) at depth 7, Rxd5 at depth 8
+3R4/5k1p/8/1Pnp1p2/6pK/1P1r4/8/8 w - - 2 55 | selfplay-2026-07-06-g1m55 | b5b6 | d8h8 | quiet mate net: after Rh8 black mates in 4 starting with quiet Ne6; b6 is longest resistance; engine must at least see the mate score

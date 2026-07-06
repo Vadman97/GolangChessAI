@@ -28,15 +28,17 @@ func TestBoardMove(t *testing.T) {
 	board2 := Board{}
 	board2.SetPiece(util.End, &Rook{})
 	board2.SetPiece(util.Start, &Rook{})
-	startPiece := board2.GetPiece(util.Start)
-	startPiece.SetPosition(util.End)
 	MakeMove(&location.Move{
 		Start: util.Start,
 		End:   util.End,
 	}, &board2)
+	// Pieces returned by GetPiece are shared immutable instances (pieceTable);
+	// verify the moved rook by type and position instead of mutating a
+	// decoded piece to build the expected value.
 	assert.Nil(t, board2.GetPiece(util.Start))
-	assert.Equal(t, startPiece, board2.GetPiece(util.End))
-	assert.Equal(t, util.End, board2.GetPiece(util.End).GetPosition())
+	endPiece := board2.GetPiece(util.End)
+	assert.IsType(t, &Rook{}, endPiece)
+	assert.Equal(t, util.End, endPiece.GetPosition())
 }
 
 func TestBoardMoveClear(t *testing.T) {

@@ -97,7 +97,7 @@ type Board struct {
 	// Pin data cached for the duration of a single getAllMoves call.
 	// pinMaskValid is true only inside getAllMoves; willMoveLeaveKingInCheck uses it
 	// to skip the expensive make/unmake+ray-cast for non-pinned, non-king pieces.
-	pinMaskValid bool
+	pinMaskValid  bool
 	pinnedSquares uint64 // bit row*8+col set → that square holds a pinned friendly piece
 	kingInCheck   bool   // true if the side-to-move's king is in check at the start of getAllMoves
 }
@@ -773,6 +773,29 @@ func PieceFromType(pieceTypeData byte) Piece {
 	}
 }
 
+// pieceTable holds one shared immutable instance of every (color, type,
+// square) piece. decodeData returns pointers into it instead of allocating:
+// PieceFromType boxing per GetPiece call was ~21% of allocation CPU in search
+// profiles. Pieces are never mutated after creation (SetColor/SetPosition are
+// only called at creation/promotion time on freshly allocated pieces), so
+// sharing is safe.
+var pieceTable [color.NumColors][piece.PawnType + 1][Height * Width]Piece
+
+func init() {
+	for c := byte(0); c < color.NumColors; c++ {
+		for t := byte(piece.RookType); t <= piece.PawnType; t++ {
+			for row := 0; row < Height; row++ {
+				for col := 0; col < Width; col++ {
+					p := PieceFromType(t)
+					p.SetColor(c)
+					p.SetPosition(location.NewLocation(location.CoordinateType(row), location.CoordinateType(col)))
+					pieceTable[c][t][row*Width+col] = p
+				}
+			}
+		}
+	}
+}
+
 func decodeData(l location.Location, data byte) Piece {
 	// constants: 3 upper bits contain piece type, bottom 1 bit contains Color
 	pieceTypeData := (data & 0xE) >> 1
@@ -782,10 +805,7 @@ func decodeData(l location.Location, data byte) Piece {
 	}
 	colorData := data & 0x1
 
-	p := PieceFromType(pieceTypeData)
-	p.SetPosition(l)
-	p.SetColor(colorData)
-	return p
+	return pieceTable[colorData][pieceTypeData][int(l.GetRow())*Width+int(l.GetCol())]
 }
 
 // Returns piece data in lower bits

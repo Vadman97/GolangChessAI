@@ -257,7 +257,8 @@ func unApplyMove(bn *board.Board, fromRow, fromCol, toRow, toCol uint8,
 		p.SetPosition(fromLoc)
 		restored = p
 	} else {
-		movedPiece.SetPosition(fromLoc)
+		// No SetPosition: decoded pieces are shared immutable instances, and
+		// SetPiece encodes only type+color (position is implicit in the square).
 		restored = movedPiece
 	}
 	wn.SetPiece(fromLoc, restored)
@@ -278,7 +279,6 @@ func unApplyMove(bn *board.Board, fromRow, fromCol, toRow, toCol uint8,
 			rook := wn.GetPiece(rookTo)
 			if rook != nil {
 				wn.SetPiece(rookTo, nil)
-				rook.SetPosition(rookFrom)
 				wn.SetPiece(rookFrom, rook)
 			}
 		} else if colDiff == -2 {
@@ -289,7 +289,6 @@ func unApplyMove(bn *board.Board, fromRow, fromCol, toRow, toCol uint8,
 			rook := wn.GetPiece(rookTo)
 			if rook != nil {
 				wn.SetPiece(rookTo, nil)
-				rook.SetPosition(rookFrom)
 				wn.SetPiece(rookFrom, rook)
 			}
 		}

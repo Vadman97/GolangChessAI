@@ -86,6 +86,14 @@ type ScoredMove struct {
 	MoveSequence   []location.Move
 	Score          int
 	ReturnThisMove bool
+	// PathDependentDraw marks a score derived (directly or through the chosen
+	// child line) from a repetition or 50-move draw. Such scores are only
+	// valid along the search path that produced them: the same position
+	// reached via a different move order has different repeat/50-move
+	// counters, which are not part of the Zobrist hash. Tainted scores must
+	// never be stored in the transposition table — a cached path-dependent 0
+	// can hard-cut an unrelated line (seen as a winning move reported as 0).
+	PathDependentDraw bool
 }
 
 func (s ScoredMove) NegScore() ScoredMove {
@@ -167,6 +175,49 @@ func newAlgorithmLike(algorithm Algorithm) Algorithm {
 	}
 }
 
+// NewRootWorkerPlayer creates an isolated per-thread search player for the
+// parallel root loop. Unlike NewPonderPlayer it reuses the parent's printer
+// channel (allocating a fresh 1M-slot channel per root move dominated malloc
+// time) and lives for the whole game; its transposition table accumulates
+// across root moves and iterative-deepening depths within one move and is
+// replaced at move boundaries (syncFromParent) to bound memory.
+func (p *AIPlayer) NewRootWorkerPlayer() *AIPlayer {
+	w := &AIPlayer{
+		Algorithm:                 p.Algorithm,
+		TranspositionTableEnabled: p.TranspositionTableEnabled,
+		PlayerColor:               p.PlayerColor,
+		MaxSearchDepth:            p.MaxSearchDepth,
+		Metrics:                   p.Metrics,
+		Debug:                     false,
+		PrintInfo:                 false,
+		evaluationMap:             p.evaluationMap,
+		printer:                   p.printer,
+		ttGeneration:              atomic.LoadUint32(&p.ttGeneration),
+	}
+	if w.TranspositionTableEnabled {
+		w.transpositionTable = util.NewConcurrentBoardMap()
+	}
+	return w
+}
+
+// syncFromParent refreshes the per-move state a persistent root worker shares
+// with the live player: metrics (reset each move), the eval cache pointer
+// (replaced by ClearCaches), and the TT generation (bumped on ponder miss so
+// stale entries are demoted to move-ordering-only). The worker TT is replaced
+// each move: cross-depth reuse within one move is the validated win, while
+// letting nine per-worker TTs grow for a whole game pushed RSS to the 2GiB
+// soft memory cap (GC thrash → late-game speed collapse).
+func (w *AIPlayer) syncFromParent(p *AIPlayer) {
+	w.Metrics = p.Metrics
+	w.evaluationMap = p.evaluationMap
+	w.TranspositionTableEnabled = p.TranspositionTableEnabled
+	if w.TranspositionTableEnabled {
+		w.transpositionTable = util.NewConcurrentBoardMap()
+	}
+	atomic.StoreUint32(&w.ttGeneration, atomic.LoadUint32(&p.ttGeneration))
+	w.setAbort(false)
+}
+
 // NewPonderPlayer creates an isolated search player for background pondering.
 // It shares the expensive caches with the real player so the ponder warms the
 // TT, but keeps abort/search state and algorithm fields separate.
@@ -182,8 +233,10 @@ func (p *AIPlayer) NewPonderPlayer(c color.Color) *AIPlayer {
 		PrintInfo:                 false,
 		evaluationMap:             p.evaluationMap,
 		transpositionTable:        p.transpositionTable,
-		printer:                   make(chan string, 1000000),
-		ttGeneration:              atomic.LoadUint32(&p.ttGeneration),
+		// Drained by the ponder's own printThread during GetBestMove; a small
+		// buffer suffices (the old 1M-slot channel was a 16MB allocation).
+		printer:      make(chan string, 4096),
+		ttGeneration: atomic.LoadUint32(&p.ttGeneration),
 	}
 	return ponder
 }
@@ -242,6 +295,13 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 		p.setAbort(false)
 		// reset metrics for each move
 		p.Metrics = &Metrics{}
+		// Bound cache growth: the eval map adds ~50-100K entries per move and
+		// never shrinks, pinning RSS at the 2GiB soft memory limit within one
+		// long game — at the cap the GC runs continuously and search speed
+		// collapses. ClearCaches drops the maps once they exceed the
+		// configured element budget (a one-move warm-up hiccup, far cheaper
+		// than GC thrash).
+		p.ClearCaches(false)
 
 		if p.Algorithm != nil {
 			scoredMove := p.Algorithm.GetBestMove(p, b, previousMove)

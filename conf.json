@@ -4,7 +4,7 @@
   "MemoryLimit": 50000,
   "CacheGetAllMoves": true,
   "CacheGetAllAttackableMoves": true,
-  "CacheMaxPlayerElements": 100000000,
+  "CacheMaxPlayerElements": 2000000,
   "IterativeIncrement": 1,
   "TranspositionTableEnabled": true,
   "MaterialOnlyEval": false,

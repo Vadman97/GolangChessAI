@@ -14,8 +14,14 @@ const (
 
 type BoardHash = [33]byte
 
+// perColorEntry holds the stored value for each side to move. A fixed-size
+// array instead of an inner map: the old map[color.Color]interface{} allocated
+// a fresh map per position (runtime.NewEmptyMap was ~28% of allocation CPU in
+// search profiles). A nil slot means "not stored" — callers never store nil.
+type perColorEntry = [color.NumColors]interface{}
+
 type ConcurrentBoardMap struct {
-	entryMap                       [NumSlices]map[BoardHash]map[color.Color]interface{}
+	entryMap                       [NumSlices]map[BoardHash]perColorEntry
 	locks                          [NumSlices]sync.RWMutex
 	lockUsage                      [NumSlices]uint64
 	numHits, numWrites, numQueries [NumSlices]uint64
@@ -25,7 +31,7 @@ func NewConcurrentBoardMap() *ConcurrentBoardMap {
 	var m ConcurrentBoardMap
 	for i := 0; i < NumSlices; i++ {
 		if m.entryMap[i] == nil {
-			m.entryMap[i] = make(map[BoardHash]map[color.Color]interface{})
+			m.entryMap[i] = make(map[BoardHash]perColorEntry)
 		}
 	}
 	return &m
@@ -42,28 +48,33 @@ func (m *ConcurrentBoardMap) getLock(hash *BoardHash, currentTurn color.Color) (
 }
 
 func (m *ConcurrentBoardMap) Store(hash *BoardHash, currentTurn color.Color, value interface{}) {
+	if currentTurn >= color.NumColors {
+		// The old inner map tolerated arbitrary color keys; keep invalid
+		// colors graceful (drop) instead of indexing past the array.
+		return
+	}
 	lock, lockIdx := m.getLock(hash, currentTurn)
 	lock.Lock()
 	defer lock.Unlock()
 
 	atomic.AddUint64(&m.numWrites[lockIdx], 1)
-	_, ok := m.entryMap[lockIdx][*hash]
-	if !ok {
-		m.entryMap[lockIdx][*hash] = make(map[color.Color]interface{})
-	}
-	m.entryMap[lockIdx][*hash][currentTurn] = value
+	entry := m.entryMap[lockIdx][*hash]
+	entry[currentTurn] = value
+	m.entryMap[lockIdx][*hash] = entry
 }
 
 func (m *ConcurrentBoardMap) Read(hash *BoardHash, currentTurn color.Color) (interface{}, bool) {
+	if currentTurn >= color.NumColors {
+		return nil, false
+	}
 	lock, lockIdx := m.getLock(hash, currentTurn)
 	lock.RLock()
 	defer lock.RUnlock()
 	atomic.AddUint64(&m.numQueries[lockIdx], 1)
 
-	m1, ok := m.entryMap[lockIdx][*hash]
+	entry, ok := m.entryMap[lockIdx][*hash]
 	if ok {
-		v, ok := m1[currentTurn]
-		if ok {
+		if v := entry[currentTurn]; v != nil {
 			atomic.AddUint64(&m.numHits[lockIdx], 1)
 			return v, true
 		}

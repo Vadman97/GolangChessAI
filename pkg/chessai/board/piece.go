@@ -6,6 +6,10 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
 )
 
+// Piece is a read-only view of a square's contents. Pieces returned by
+// Board.GetPiece are shared immutable instances (see pieceTable in
+// game_board.go): SetColor/SetPosition must only be called at creation time
+// on freshly allocated pieces (PieceFromType), never on a decoded piece.
 type Piece interface {
 	GetChar() rune
 	GetColor() byte
@@ -71,6 +75,15 @@ func MakeMove(m *location.Move, b *Board) *LastMove {
 
 		// here, not in game so that AI can keep track of FiftyMoveDraw condition
 		b.UpdateDrawCounter(lm)
+
+		// After an irreversible move (pawn advance or capture, detected by the
+		// 50-move counter reset) no earlier position can ever recur, so the
+		// repetition history is dead weight: drop it. This keeps the per-node
+		// history append and the repetition scan below proportional to the
+		// current reversible-move run instead of the whole game + search path.
+		if b.MovesSinceNoDraw == 0 {
+			b.PreviousPositions = nil
+		}
 
 		h := b.Hash()
 		// Count how many times the position we just reached has occurred before.

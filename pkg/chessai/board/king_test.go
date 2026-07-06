@@ -79,7 +79,8 @@ func TestKing_GetCastleMoves(t *testing.T) {
 func TestKing_underAttackInvalidColor(t *testing.T) {
 	bo1 := &Board{}
 	bo1.ResetDefault()
-	king := bo1.GetPiece(location.NewLocation(7, 3)).(*King)
-	king.SetColor(4)
+	// Construct the invalid-color king directly: pieces returned by GetPiece
+	// are shared immutable instances (see pieceTable) and must not be mutated.
+	king := &King{Location: location.NewLocation(7, 3), Color: 4}
 	assert.False(t, king.underAttack(location.NewLocation(2, 3), bo1))
 }

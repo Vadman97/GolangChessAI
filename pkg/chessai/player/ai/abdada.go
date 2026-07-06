@@ -39,6 +39,13 @@ const (
 	razorDepth  = 1
 	razorMargin = 2 * PawnValueWeight // 200 cp
 
+	// Root sibling scout margin: siblings are scouted with the window
+	// (bestSoFar-rootScoutMargin, bestSoFar+1). A fail-low proves the move is
+	// at least rootScoutMargin below the current best, so it can never be
+	// selected — and because rootScoutMargin exceeds verifyCloseRootMoves'
+	// 150cp margin, a discarded move can also never be a "close second" that
+	// verification would need an exact score for.
+	rootScoutMargin = 200
 )
 
 // squareIdx converts a location to a flat [0,63] index for history/killer tables.
@@ -83,6 +90,17 @@ type ABDADA struct {
 	// countermove[from][to]: best quiet response to the opponent's last move (from→to).
 	// Cheap heuristic between killers and history in move ordering.
 	countermove [board.Height * board.Width][board.Height * board.Width]location.Move
+
+	// rootWorkerABs are persistent per-thread search contexts for the parallel
+	// root loop. Each owns an isolated AIPlayer with its own transposition
+	// table that is reused across root moves, iterative-deepening depths, and
+	// game moves — the cross-depth TT reuse is what makes iterative deepening
+	// effective. selectAB serves the sequential callers (first root move,
+	// close-root verification). workersFor tracks which live player the pool
+	// was built for so analysis paths that swap ab.player rebuild it.
+	rootWorkerABs []*ABDADA
+	selectAB      *ABDADA
+	workersFor    *AIPlayer
 }
 
 type RootMoveScore struct {
@@ -218,7 +236,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	// game only reached depth 5 and walked into a perpetual it scored as +6.
 	// Never at the root (ply 0): we still owe a move there.
 	if ply > 0 && root.CurrentPositionRepeats >= 1 {
-		return ScoredMove{Score: StalemateScore}
+		return ScoredMove{Score: StalemateScore, PathDependentDraw: true}
 	}
 
 	inCheck := root.IsKingInCheck(currentPlayer)
@@ -256,6 +274,9 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	if ab.player.terminalNode(root, movesArr) {
 		return ScoredMove{
 			Score: AdjustMateScore(ab.player.EvaluateBoard(root, currentPlayer).TotalScore, depth),
+			// Repetition/50-move terminals depend on path counters that are
+			// not in the position hash; checkmate/stalemate/material do not.
+			PathDependentDraw: root.CurrentPositionRepeats >= 2 || root.MovesSinceNoDraw >= 100,
 		}
 	}
 
@@ -290,7 +311,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		nullVal.Score = -nullVal.Score
 		if nullVal.Score >= beta {
 			atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, 1)
-			return ScoredMove{Score: beta}
+			return ScoredMove{Score: beta, PathDependentDraw: nullVal.PathDependentDraw}
 		}
 	}
 
@@ -475,6 +496,53 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	ttAnswer := ab.ttRead(b, ab.player.PlayerColor, uint16(depth), alpha, beta, false)
 	orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, [2]location.Move{}, ab, b, previousMove)
 
+	// rootAlpha is the best exact root score found so far this depth, raised
+	// atomically as results land. Root sibling scouting: once an exact score
+	// exists, siblings are first searched with the cheap window
+	// (rootAlpha-rootScoutMargin, rootAlpha+1). A fail-low move can never be
+	// selected (see rootScoutMargin), so its exact score is not needed and it
+	// is dropped. A fail-high gets a full-window re-search so every score that
+	// can influence selection stays exact — scores from a moving window are
+	// bounds, not comparable values, which is why root moves were previously
+	// always searched full-window.
+	rootAlpha := int64(NegInf)
+	scoutedRootSearch := func(w *ABDADA, move location.Move) ScoredMove {
+		a := int(atomic.LoadInt64(&rootAlpha))
+		// No scouting at shallow depths: deepRootVerifyParams re-verifies
+		// depth-3 results with margins up to 900cp (king-danger mating nets,
+		// queenless endings), far beyond rootScoutMargin — a scouted-out move
+		// would be invisible to that rescue pass. Shallow iterations are cheap
+		// to search full-window anyway.
+		if a <= NegInf || depth <= 3 {
+			value := w.searchRootMove(b, move, depth, NegInf, PosInf)
+			if value.Score != OnEvaluation && value.Score != -OnEvaluation {
+				raiseRootAlpha(&rootAlpha, value.Score)
+			}
+			return value
+		}
+		scoutAlpha := a - rootScoutMargin
+		value := w.searchRootMove(b, move, depth, scoutAlpha, a+1)
+		if value.Score == OnEvaluation || value.Score == -OnEvaluation {
+			return value
+		}
+		if value.Score > a {
+			// Scout failed high: this move may beat the current best — get an
+			// exact full-window score before comparing.
+			value = w.searchRootMove(b, move, depth, NegInf, PosInf)
+			if value.Score != OnEvaluation && value.Score != -OnEvaluation {
+				raiseRootAlpha(&rootAlpha, value.Score)
+			}
+			return value
+		}
+		if value.Score <= scoutAlpha {
+			// Fail-low: only an upper bound, not comparable to exact scores.
+			return ScoredMove{Score: OnEvaluation}
+		}
+		// Score strictly inside the scout window is exact: keep it so close
+		// seconds stay visible to verifyCloseRootMoves.
+		return value
+	}
+
 	if ab.NumThreads == 1 {
 		best := ScoredMove{Score: NegInf}
 		second := ScoredMove{Score: NegInf}
@@ -483,10 +551,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 			if ab.player.isAborted() && !best.Move.Start.Equals(best.Move.End) {
 				break
 			}
-			child, pm := ab.player.applyMove(b, &move)
-			value := ab.ABDADA(child, depth-1, NegInf, PosInf, false, ab.player.PlayerColor^1, pm, true, 1, maxExtensions)
-			value.Score = -value.Score
-			value.Move = move
+			value := scoutedRootSearch(ab, move)
 			if value.Score == OnEvaluation || value.Score == -OnEvaluation {
 				continue
 			}
@@ -508,6 +573,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	if firstValue.Score != OnEvaluation && firstValue.Score != -OnEvaluation {
 		rootResults = append(rootResults, firstValue)
 		best, second = updateRootTopTwo(best, second, firstValue)
+		raiseRootAlpha(&rootAlpha, firstValue.Score)
 		if best.Score > alpha {
 			alpha = best.Score
 		}
@@ -528,25 +594,20 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	if workerCount > len(remainingMoves) {
 		workerCount = len(remainingMoves)
 	}
+	ab.ensureRootWorkers(workerCount)
 	jobs := make(chan location.Move, len(remainingMoves))
 	results := make(chan ScoredMove, len(remainingMoves))
 	var wg sync.WaitGroup
 	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
+		w := ab.rootWorkerABs[i]
 		go func() {
 			defer wg.Done()
 			for move := range jobs {
 				if ab.player.isAborted() {
 					continue
 				}
-				// Root move scores are used for final move selection, so they must
-				// be exact. Searching root siblings with a moving alpha window can
-				// return fail-low/fail-high bounds that look comparable but are not;
-				// in forcing promotion/mate lines that let TT-bound scores outrank
-				// the only non-mating defense. Keep alpha/beta pruning inside the
-				// child tree, but score each root move with a full window.
-				value := ab.searchRootMoveForSelection(b, move, depth, NegInf, PosInf)
-				results <- value
+				results <- scoutedRootSearch(w, move)
 			}
 		}()
 	}
@@ -811,20 +872,76 @@ func (ab *ABDADA) searchRootMove(b *board.Board, move location.Move, depth, alph
 	return value
 }
 
+// newWorkerAB builds one persistent isolated search context bound to ab's
+// live player for aborts. NumThreads=1 so nested calls never re-enter the
+// parallel root path.
+func (ab *ABDADA) newWorkerAB() *ABDADA {
+	w := &ABDADA{
+		NumThreads:      1,
+		DisableNullMove: ab.DisableNullMove,
+		DisableLMR:      ab.DisableLMR,
+		DisableFutility: ab.DisableFutility,
+		DisableRazoring: ab.DisableRazoring,
+	}
+	w.player = ab.player.NewRootWorkerPlayer()
+	w.abortPlayer = ab.player
+	return w
+}
+
+// ensureRootWorkers grows the persistent worker pool to workerCount (plus the
+// sequential selectAB). Grow-only: existing workers keep their TTs and
+// heuristic tables across iterative-deepening depths within a move —
+// cross-depth reuse is what makes iterative deepening effective. (TTs are
+// replaced at move boundaries by syncFromParent to cap memory.) Aborted
+// searches never write to worker TTs (syncTTWrite checks the live player's
+// abort flag via abortPlayer), and ttGeneration demotion handles ponder-miss
+// staleness. Safe to call every depth.
+func (ab *ABDADA) ensureRootWorkers(workerCount int) {
+	if ab.workersFor != ab.player {
+		ab.rootWorkerABs = nil
+		ab.selectAB = nil
+		ab.workersFor = ab.player
+	}
+	for len(ab.rootWorkerABs) < workerCount {
+		ab.rootWorkerABs = append(ab.rootWorkerABs, ab.newWorkerAB())
+	}
+	if ab.selectAB == nil {
+		ab.selectAB = ab.newWorkerAB()
+	}
+}
+
+// syncRootWorkersForMove refreshes per-move state on all persistent workers:
+// the metrics pointer (reset each move by AIPlayer.GetBestMove), the eval
+// cache pointer, a fresh TT (bounding memory to one move's growth), the TT
+// generation, and the killer/history/countermove tables (per-move, like the
+// live player's). Called once per GetBestMove.
+func (ab *ABDADA) syncRootWorkersForMove() {
+	if ab.workersFor != ab.player {
+		ab.rootWorkerABs = nil
+		ab.selectAB = nil
+		ab.workersFor = ab.player
+		return
+	}
+	for _, w := range ab.rootWorkerABs {
+		w.abortPlayer = ab.player
+		w.player.syncFromParent(ab.player)
+		w.resetRootSearchHeuristics()
+	}
+	if ab.selectAB != nil {
+		ab.selectAB.abortPlayer = ab.player
+		ab.selectAB.player.syncFromParent(ab.player)
+		ab.selectAB.resetRootSearchHeuristics()
+	}
+}
+
 func (ab *ABDADA) searchRootMoveForSelection(b *board.Board, move location.Move, depth, alpha, beta int) ScoredMove {
 	if ab.NumThreads <= 1 && !ab.player.TranspositionTableEnabled {
 		return ab.searchRootMove(b, move, depth, alpha, beta)
 	}
-	worker := *ab
-	workerPlayer := ab.player.NewPonderPlayer(ab.player.PlayerColor)
-	workerPlayer.Metrics = ab.player.Metrics
-	workerPlayer.TranspositionTableEnabled = ab.player.TranspositionTableEnabled
-	if workerPlayer.TranspositionTableEnabled {
-		workerPlayer.transpositionTable = util.NewConcurrentBoardMap()
+	if ab.selectAB == nil || ab.workersFor != ab.player {
+		ab.ensureRootWorkers(0)
 	}
-	worker.player = workerPlayer
-	worker.abortPlayer = ab.player
-	return worker.searchRootMove(b, move, depth, alpha, beta)
+	return ab.selectAB.searchRootMove(b, move, depth, alpha, beta)
 }
 
 func raiseRootAlpha(rootAlpha *int64, score int) {
@@ -949,16 +1066,12 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 				break
 			}
 		}
-		// getBestMove always scores every root move with a full NegInf/PosInf
-		// window (see searchRootMove) — root moves are never actually pruned by
-		// an aspiration window, only the child trees beneath each root move are.
-		// A narrower alpha/beta here therefore has no effect on the search other
-		// than making the fail-low/fail-high checks below fire whenever the
-		// score merely moves more than aspirationDelta between depths, which is
-		// common in tactical positions. Since re-running with a wider window
-		// recomputes the exact same full-window result, that retry loop used to
-		// burn 2-3x the search time for zero benefit. Search once with a full
-		// window instead.
+		// Root moves are scored exactly: the first move (and any scout
+		// fail-high) gets a full NegInf/PosInf window, and siblings are
+		// scouted against the best-so-far (see scoutedRootSearch). An
+		// aspiration window at this level would only re-trigger full
+		// re-searches on ordinary between-depth score swings, so search once
+		// per depth instead.
 		var newGuess ScoredMove
 		thinking, done := make(chan bool), make(chan bool, 1)
 		go ab.player.trackThinkTime(thinking, done, start)
@@ -994,6 +1107,7 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
 	ab.resetRootSearchHeuristics()
+	ab.syncRootWorkersForMove()
 	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {
 		log.Printf("Trying to use %s with move caching enabled.\n", ab.GetName())
 		log.Println("Disabling GetAllMoves, GetAllAttackableMoves caching.")
@@ -1182,6 +1296,12 @@ type TTAnswer struct {
 func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, sm *ScoredMove) {
 	if ab.player.TranspositionTableEnabled {
 		if ab.player.isAborted() || ab.isKilled() {
+			return
+		}
+		// Never cache scores that flowed through a repetition/50-move draw:
+		// they are only valid for the path that produced them (see
+		// ScoredMove.PathDependentDraw).
+		if sm.PathDependentDraw {
 			return
 		}
 		// PosInf/NegInf are search bounds, not board evaluations.  Writing them
