@@ -534,10 +534,15 @@ type evaluationPair struct {
 // re-ran the (pin-data + move-scan) work for whoMoves twice per evaluation, which
 // showed up as a hot path since this runs on every leaf node in search. Computing
 // them once here and deriving both checks from the same result halves that cost.
+//
+// Note: there is no "whoMoves^1 is checkmated" case to check for here. whoMoves^1
+// is the side that just moved to reach this position, and move generation
+// (willMoveLeaveKingInCheck) guarantees a legal mover never leaves their own king
+// in check — so whoMoves^1 can never be in check, let alone checkmated, in any
+// board reachable through search. A prior version called IsInCheckmate(whoMoves^1)
+// here; it always evaluated false but still paid for a full move-scan + attack
+// bitboard on the wrong color on every quiescence-search standPat call.
 func terminalScore(b *board.Board, whoMoves color.Color) (int, bool) {
-	if b.IsInCheckmate(whoMoves^1, nil) {
-		return WinScore, true
-	}
 	hasLegalMove := b.HasLegalMove(whoMoves, nil)
 	kingInCheck := b.IsKingInCheck(whoMoves)
 	if !hasLegalMove && kingInCheck {

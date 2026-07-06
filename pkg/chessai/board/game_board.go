@@ -652,6 +652,15 @@ func (b *Board) IsInsufficientMaterial() bool {
 				bn++
 				blackSolo = info
 			}
+			// Insufficient material requires both sides to have at most one
+			// non-king piece; once either side reaches two, material is always
+			// sufficient regardless of what's left on the board. Bailing out here
+			// turns this from an unconditional 64-square scan (run on nearly every
+			// leaf node) into a handful of iterations for any normal middlegame
+			// position, since most squares in the first couple of rows are occupied.
+			if wn >= 2 || bn >= 2 {
+				return false
+			}
 		}
 	}
 	// K vs K
