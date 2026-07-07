@@ -123,92 +123,56 @@ func (b *Board) unmakeFastMove(undo fastUndo) {
 func (b *Board) computePinData(c byte) (pinnedMask uint64, inCheck bool) {
 	kingLoc := b.KingLocations[c]
 	opp := c ^ 1
+	krC, kcC := kingLoc.Get()
+	kr, kc := int(krC), int(kcC)
 
-	// Rook/queen directions (ranks and files)
-	for _, dir := range [4]location.RelativeLocation{
-		location.UpMove, location.DownMove, location.LeftMove, location.RightMove,
-	} {
+	// Sliding rays: dirs[0:4] orthogonal (rook/queen), dirs[4:8] diagonal
+	// (bishop/queen). Raw int walking with pieceDataRC — this runs once per
+	// getAllMoves call, and the Location round-trips dominated its cost.
+	dirs := [8][2]int{{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, 1}, {1, 1}, {-1, -1}, {1, -1}}
+	for i, d := range dirs {
 		var pinnedIdx uint64
 		hasPinCandidate := false
-		loc := kingLoc
-		for {
-			var ok bool
-			loc, ok = loc.AddRelative(dir)
-			if !ok {
-				break
-			}
-			data := b.getPieceData(loc)
+		r, cc := kr+d[0], kc+d[1]
+		for r >= 0 && r < Height && cc >= 0 && cc < Width {
+			data := b.pieceDataRC(r, cc)
 			if data == 0 {
+				r += d[0]
+				cc += d[1]
 				continue
 			}
 			if data&0x1 == c {
 				if !hasPinCandidate {
-					row, col := loc.Get()
-					pinnedIdx = uint64(row)*8 + uint64(col)
+					pinnedIdx = uint64(r)*8 + uint64(cc)
 					hasPinCandidate = true
-				} else {
-					break // second friendly — nothing is pinned on this ray
+					r += d[0]
+					cc += d[1]
+					continue
 				}
-			} else {
-				t := (data & 0xE) >> 1
-				if t == piece.RookType || t == piece.QueenType {
-					if !hasPinCandidate {
-						inCheck = true
-					} else {
-						pinnedMask |= uint64(1) << pinnedIdx
-					}
-				}
-				break
+				break // second friendly — nothing is pinned on this ray
 			}
-		}
-	}
-
-	// Bishop/queen directions (diagonals)
-	for _, dir := range [4]location.RelativeLocation{
-		location.RightUpMove, location.RightDownMove, location.LeftUpMove, location.LeftDownMove,
-	} {
-		var pinnedIdx uint64
-		hasPinCandidate := false
-		loc := kingLoc
-		for {
-			var ok bool
-			loc, ok = loc.AddRelative(dir)
-			if !ok {
-				break
-			}
-			data := b.getPieceData(loc)
-			if data == 0 {
-				continue
-			}
-			if data&0x1 == c {
+			t := (data & 0xE) >> 1
+			if t == piece.QueenType ||
+				(i < 4 && t == piece.RookType) ||
+				(i >= 4 && t == piece.BishopType) {
 				if !hasPinCandidate {
-					row, col := loc.Get()
-					pinnedIdx = uint64(row)*8 + uint64(col)
-					hasPinCandidate = true
+					inCheck = true
 				} else {
-					break
+					pinnedMask |= uint64(1) << pinnedIdx
 				}
-			} else {
-				t := (data & 0xE) >> 1
-				if t == piece.BishopType || t == piece.QueenType {
-					if !hasPinCandidate {
-						inCheck = true
-					} else {
-						pinnedMask |= uint64(1) << pinnedIdx
-					}
-				}
-				break
 			}
+			break
 		}
 	}
 
 	// Knight attacks on king
-	for _, delta := range possibleMoves {
-		loc, ok := kingLoc.AddRelative(delta)
-		if !ok {
+	knightJumps := [8][2]int{{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}}
+	for _, d := range knightJumps {
+		r, cc := kr+d[0], kc+d[1]
+		if r < 0 || r >= Height || cc < 0 || cc >= Width {
 			continue
 		}
-		data := b.getPieceData(loc)
+		data := b.pieceDataRC(r, cc)
 		if data != 0 && data&0x1 == opp && (data&0xE)>>1 == piece.KnightType {
 			inCheck = true
 		}
@@ -217,15 +181,17 @@ func (b *Board) computePinData(c byte) (pinnedMask uint64, inCheck bool) {
 	// Pawn attacks on king: opponent pawns attack diagonally "forward" from their perspective.
 	// opp=White(0) attacks toward higher rows → pawn sits one row below king
 	// opp=Black(1) attacks toward lower rows → pawn sits one row above king
-	pawnRowDelta := int8(2*int(opp) - 1) // opp=0 → -1, opp=1 → +1
-	for _, colDelta := range [2]int8{-1, 1} {
-		loc, ok := kingLoc.AddRelative(location.RelativeLocation{Row: pawnRowDelta, Col: colDelta})
-		if !ok {
-			continue
-		}
-		data := b.getPieceData(loc)
-		if data != 0 && data&0x1 == opp && (data&0xE)>>1 == piece.PawnType {
-			inCheck = true
+	pr := kr + 2*int(opp) - 1 // opp=0 → kr-1, opp=1 → kr+1
+	if pr >= 0 && pr < Height {
+		for _, dc := range [2]int{-1, 1} {
+			cc := kc + dc
+			if cc < 0 || cc >= Width {
+				continue
+			}
+			data := b.pieceDataRC(pr, cc)
+			if data != 0 && data&0x1 == opp && (data&0xE)>>1 == piece.PawnType {
+				inCheck = true
+			}
 		}
 	}
 
@@ -233,67 +199,46 @@ func (b *Board) computePinData(c byte) (pinnedMask uint64, inCheck bool) {
 }
 
 // isKingInCheckFast checks whether the king of color c at kingLoc is under attack.
-// It ray-casts from the king position rather than computing the full opponent attack map.
+// It ray-casts from the king position rather than computing the full opponent
+// attack map. Runs once per generated move (legality filter), so it walks raw
+// int coordinates with pieceDataRC instead of paying Location encode/decode on
+// every ray square.
 func (b *Board) isKingInCheckFast(kingLoc location.Location, c byte) bool {
 	opp := c ^ 1
+	krC, kcC := kingLoc.Get()
+	kr, kc := int(krC), int(kcC)
 
-	// Rook/queen: check along ranks and files
-	for _, dir := range [4]location.RelativeLocation{
-		location.UpMove, location.DownMove, location.LeftMove, location.RightMove,
-	} {
-		loc := kingLoc
-		for {
-			var inBounds bool
-			loc, inBounds = loc.AddRelative(dir)
-			if !inBounds {
-				break
-			}
-			data := b.getPieceData(loc)
-			if data == 0 {
-				continue
-			}
-			if data&0x1 == opp {
-				t := (data & 0xE) >> 1
-				if t == piece.RookType || t == piece.QueenType {
-					return true
+	// Rook/queen along ranks and files; bishop/queen along diagonals.
+	// dirs[0:4] are orthogonal, dirs[4:8] diagonal.
+	dirs := [8][2]int{{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, 1}, {1, 1}, {-1, -1}, {1, -1}}
+	for i, d := range dirs {
+		r, cc := kr+d[0], kc+d[1]
+		for r >= 0 && r < Height && cc >= 0 && cc < Width {
+			data := b.pieceDataRC(r, cc)
+			if data != 0 {
+				if data&0x1 == opp {
+					t := (data & 0xE) >> 1
+					if t == piece.QueenType ||
+						(i < 4 && t == piece.RookType) ||
+						(i >= 4 && t == piece.BishopType) {
+						return true
+					}
 				}
+				break // any piece blocks the ray
 			}
-			break // any piece blocks the ray
+			r += d[0]
+			cc += d[1]
 		}
 	}
 
-	// Bishop/queen: check along diagonals
-	for _, dir := range [4]location.RelativeLocation{
-		location.RightUpMove, location.RightDownMove, location.LeftUpMove, location.LeftDownMove,
-	} {
-		loc := kingLoc
-		for {
-			var inBounds bool
-			loc, inBounds = loc.AddRelative(dir)
-			if !inBounds {
-				break
-			}
-			data := b.getPieceData(loc)
-			if data == 0 {
-				continue
-			}
-			if data&0x1 == opp {
-				t := (data & 0xE) >> 1
-				if t == piece.BishopType || t == piece.QueenType {
-					return true
-				}
-			}
-			break
-		}
-	}
-
-	// Knight: 8 fixed jump offsets (reusing possibleMoves from knight.go)
-	for _, delta := range possibleMoves {
-		loc, inBounds := kingLoc.AddRelative(delta)
-		if !inBounds {
+	// Knight: 8 fixed jump offsets.
+	knightJumps := [8][2]int{{-2, -1}, {-2, 1}, {-1, -2}, {-1, 2}, {1, -2}, {1, 2}, {2, -1}, {2, 1}}
+	for _, d := range knightJumps {
+		r, cc := kr+d[0], kc+d[1]
+		if r < 0 || r >= Height || cc < 0 || cc >= Width {
 			continue
 		}
-		data := b.getPieceData(loc)
+		data := b.pieceDataRC(r, cc)
 		if data != 0 && data&0x1 == opp && (data&0xE)>>1 == piece.KnightType {
 			return true
 		}
@@ -304,28 +249,27 @@ func (b *Board) isKingInCheckFast(kingLoc location.Location, c byte) bool {
 	// From the king's perspective: check the row where an attacking pawn would sit.
 	//   opp=Black(1): pawn attacks (pawnRow-1, …) → pawn sits at kingRow+1
 	//   opp=White(0): pawn attacks (pawnRow+1, …) → pawn sits at kingRow-1
-	pawnRowDelta := int8(2*int(opp) - 1) // opp=0 → -1, opp=1 → +1
-	for _, colDelta := range [2]int8{-1, 1} {
-		loc, inBounds := kingLoc.AddRelative(location.RelativeLocation{Row: pawnRowDelta, Col: colDelta})
-		if !inBounds {
-			continue
-		}
-		data := b.getPieceData(loc)
-		if data != 0 && data&0x1 == opp && (data&0xE)>>1 == piece.PawnType {
-			return true
+	pr := kr + 2*int(opp) - 1 // opp=0 → kr-1, opp=1 → kr+1
+	if pr >= 0 && pr < Height {
+		for _, dc := range [2]int{-1, 1} {
+			cc := kc + dc
+			if cc < 0 || cc >= Width {
+				continue
+			}
+			data := b.pieceDataRC(pr, cc)
+			if data != 0 && data&0x1 == opp && (data&0xE)>>1 == piece.PawnType {
+				return true
+			}
 		}
 	}
 
 	// Opponent king: adjacent squares (prevents moving into adjacency)
-	for _, dir := range [8]location.RelativeLocation{
-		location.UpMove, location.RightUpMove, location.RightMove, location.RightDownMove,
-		location.DownMove, location.LeftDownMove, location.LeftMove, location.LeftUpMove,
-	} {
-		loc, inBounds := kingLoc.AddRelative(dir)
-		if !inBounds {
+	for _, d := range dirs {
+		r, cc := kr+d[0], kc+d[1]
+		if r < 0 || r >= Height || cc < 0 || cc >= Width {
 			continue
 		}
-		data := b.getPieceData(loc)
+		data := b.pieceDataRC(r, cc)
 		if data != 0 && data&0x1 == opp && (data&0xE)>>1 == piece.KingType {
 			return true
 		}

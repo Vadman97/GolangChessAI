@@ -40,37 +40,7 @@ func (r *Rook) GetPosition() location.Location {
  */
 func (r *Rook) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
 	var moves []location.Move
-	for i := 0; i < 4; i++ {
-		l := r.GetPosition()
-		var inBounds bool
-		for true {
-			if i == 0 {
-				l, inBounds = l.AddRelative(location.UpMove)
-			} else if i == 1 {
-				l, inBounds = l.AddRelative(location.RightMove)
-			} else if i == 2 {
-				l, inBounds = l.AddRelative(location.DownMove)
-			} else if i == 3 {
-				l, inBounds = l.AddRelative(location.LeftMove)
-			}
-			if !inBounds {
-				break
-			}
-			validMove, checkNext := CheckLocationForPiece(r.Color, l, board)
-			if validMove {
-				possibleMove := location.Move{Start: r.GetPosition(), End: l}
-				if !board.willMoveLeaveKingInCheck(r.Color, possibleMove) {
-					moves = append(moves, possibleMove)
-					if onlyFirstMove {
-						return &moves
-					}
-				}
-			}
-			if !checkNext {
-				break
-			}
-		}
-	}
+	board.appendSlidingMoves(r.Color, r.Location, &orthoDirs, &moves, onlyFirstMove)
 	return &moves
 }
 
@@ -78,30 +48,8 @@ func (r *Rook) GetMoves(board *Board, onlyFirstMove bool) *[]location.Move {
  * Retrieves all locations that this rook can attack.
  */
 func (r *Rook) GetAttackableMoves(board *Board) BitBoard {
-	attackableBoard := BitBoard(0)
-	for i := 0; i < 4; i++ {
-		loc := r.GetPosition()
-		var inBounds bool
-		for true {
-			if i == 0 {
-				loc, inBounds = loc.AddRelative(location.UpMove)
-			} else if i == 1 {
-				loc, inBounds = loc.AddRelative(location.RightMove)
-			} else if i == 2 {
-				loc, inBounds = loc.AddRelative(location.DownMove)
-			} else if i == 3 {
-				loc, inBounds = loc.AddRelative(location.LeftMove)
-			}
-			if !inBounds {
-				break
-			}
-			attackableBoard.SetLocation(loc)
-			if !CheckLocationForAttackability(loc, board) {
-				break
-			}
-		}
-	}
-	return attackableBoard
+	row, col := r.Location.Get()
+	return board.slidingAttackBits(int(row), int(col), &orthoDirs)
 }
 
 func (r *Rook) Move(m *location.Move, b *Board) {

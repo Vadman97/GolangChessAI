@@ -224,9 +224,17 @@ func (b *Board) GetPieceTypeColor(l location.Location) (pieceType byte, c color.
 }
 
 func (b *Board) getPieceData(l location.Location) byte {
-	pos := getBitOffset(l)
-	row, _ := l.Get()
-	return byte((b.board[row] & (PieceMask << pos)) >> pos)
+	// Single decode of the location byte and shift-then-mask (one op fewer
+	// than mask-then-shift): this is the hottest function in search profiles.
+	row, col := l.Get()
+	return byte((b.board[row] >> (28 - (col << 2))) & PieceMask)
+}
+
+// pieceDataRC reads the 4-bit piece data at (row, col) given as plain ints,
+// letting hot ray-walking loops skip the Location encode/decode round-trip.
+// Callers must guarantee 0 <= row,col < 8.
+func (b *Board) pieceDataRC(row, col int) byte {
+	return byte((b.board[row] >> uint(28-(col<<2))) & PieceMask)
 }
 
 func (b *Board) SetFlag(flag byte, color color.Color, value bool) {
