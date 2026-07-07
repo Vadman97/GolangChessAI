@@ -63,3 +63,20 @@ r7/2p5/4N2R/3kp3/8/2K5/5PPP/8 b - - 2 37 | lichess-gAacjwE9-ply74 | a8a7 | a8a3 
 6k1/p4p2/Q1ppn3/8/N5pP/6q1/8/7K w - - 0 50 | lichess-4HkIRFy9-ply99 | a6c6 | a6e2 | 50.Qxc6; current SF depth=12 also prefers the logged move, keep as a TT/no-TT stability row
 5k2/3R3p/8/1P1p1pp1/3Bn3/1P1r4/7K/8 w - - 6 50 | selfplay-2026-07-06-g1m50 | d7d5 | d4g1 | selfplay game1 move50: Rxd5 exchange sequence holds (SF -25); passive Bg1 lost; engine picks b6 (198cp loss) at depth 7, Rxd5 at depth 8
 3R4/5k1p/8/1Pnp1p2/6pK/1P1r4/8/8 w - - 2 55 | selfplay-2026-07-06-g1m55 | b5b6 | d8h8 | quiet mate net: after Rh8 black mates in 4 starting with quiet Ne6; b6 is longest resistance; engine must at least see the mate score
+r2q1rk1/pppnppb1/5npp/3p4/3P1B2/2NBPP1P/PPP4P/R2Q1RK1 w - - 1 12 | lichess-9OVaO5TG-ply23 | f4e5 | c3b5 | blunder loss=142cp sf-depth=12
+2r2rk1/pp1np1b1/1q2pnBp/2pp4/3P1B2/3QPP1P/PPP4P/R4RK1 w - - 0 17 | lichess-9OVaO5TG-ply33 | g1h1 | f1e1 | blunder loss=144cp sf-depth=12
+2r1nrk1/pp1np1b1/1q2p1Bp/2pp4/3P1B2/3QPP1P/PPP4P/R3R1K1 w - - 2 18 | lichess-9OVaO5TG-ply35 | g1h1 | d4c5 | blunder loss=277cp sf-depth=12
+2r1n1k1/pp2p1b1/4prBp/2np3P/8/2q1PP2/2P3QP/R3R1K1 w - - 1 25 | lichess-9OVaO5TG-ply49 | g1h1 | f3f4 | blunder loss=118cp sf-depth=12
+6k1/1p2p3/3np2p/8/4n3/5K2/2Bp4/b6r w - - 2 44 | lichess-9OVaO5TG-ply87 | f3g2 | c2a4 | blunder loss=106cp sf-depth=12
+r1b1kb1r/ppp4p/6p1/3pP2P/3Q2n1/2N1P3/PPPKBq1P/R5NR b kq - 4 13 | lichess-o6lAdkjC-ply26 | c7c5 | f8b4 | blunder loss=394cp sf-depth=12
+r1b1k2r/ppp4p/6p1/3pP2P/1Q4n1/2N1q3/PPP1B2P/R3K1NR b kq - 1 15 | lichess-o6lAdkjC-ply30 | a7a5 | c8f5 | blunder loss=316cp sf-depth=12
+r4rk1/p6p/2Q3p1/3pPb1P/8/2N1n3/PPP1Bq1P/R1K3NR b - - 4 20 | lichess-o6lAdkjC-ply40 | a8c8 | f5c2 | blunder loss=314cp sf-depth=12
+1r4k1/p4r1p/3Q2p1/3pP2P/8/2N1n3/PPb4P/R1KBq1NR b - - 7 24 | lichess-o6lAdkjC-ply48 | c2d1 | b8b7 | blunder loss=526cp sf-depth=12
+6k1/pr3r1p/3QP1p1/3p3P/8/2N1n3/PPb4P/R1KBq1NR b - - 0 25 | lichess-o6lAdkjC-ply50 | c2d1 | f7f1 | blunder loss=366cp sf-depth=12
+rnbq1bnr/3pk1pp/2p1pp2/1p4B1/p2PP3/P1NB1N2/1PP2PPP/R2QR1K1 w - - 0 10 | lichess-33e5jNAp-ply19 | g5h4 | f3e5 | blunder loss=371cp sf-depth=12
+2Q2b1r/3rk1pp/n3p2n/4P1p1/p2P1q2/P6P/1P3PP1/2R3K1 w - - 0 30 | lichess-33e5jNAp-ply59 | c1c4 | g2g3 | blunder loss=183cp sf-depth=12
+1RQ2b1r/4k1pp/4p2n/4q1p1/p7/P5PP/1P1r1PK1/8 w - - 2 35 | lichess-33e5jNAp-ply69 | c8b7 | b8b6 | blunder loss=2000cp sf-depth=12
+r1b2b1r/ppNk1ppp/1qn1pn2/3p4/3p1B1P/4PN2/PPP2PP1/R2QKB1R w KQ - 2 9 | lichess-mI9lFZZd-ply17 | e3d4 | f1b5 | blunder loss=324cp sf-depth=12
+r1b4r/ppNk1ppp/1qn1pn2/1B1p4/1b3B1P/4pN2/PPP2PP1/R2Q1K1R w - - 0 11 | lichess-mI9lFZZd-ply21 | c2c4 | c2c3 | blunder loss=568cp sf-depth=12
+8/1p6/6p1/5b2/1p3Kn1/8/P2kp2p/4R3 w - - 2 53 | lichess-mI9lFZZd-ply105 | f4f3 | e1h1 | blunder loss=160cp sf-depth=12
+8/1p6/6p1/5b2/1p3Kn1/8/P6p/4k3 w - - 0 55 | lichess-mI9lFZZd-ply109 | f4g5 | a2a3 | blunder loss=165cp sf-depth=12

@@ -227,7 +227,13 @@ func searchUnstable(previous, current ScoredMove) bool {
 // nullMoveOk: false immediately after a null move (prevents consecutive null moves).
 // ply: distance from the root (0 at root), used for killer indexing.
 // extensions: remaining check-extension budget (starts at maxExtensions at root).
-func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove, nullMoveOk bool, ply int, extensions int) ScoredMove {
+// parentInCheck: whether the parent node's side to move was in check — the
+// current position was reached by a check evasion. Together with the local
+// in-check state this marks nodes inside a checking sequence, where TT score
+// cutoffs are unsafe: a cached score from a repetition-free path can mask a
+// perpetual on THIS path (graph history interaction), which is how the engine
+// once played Qc7 into a forced perpetual from a winning position (NskVQaIw).
+func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusiveProbe bool, currentPlayer color.Color, previousMove *board.LastMove, nullMoveOk bool, ply int, extensions int, parentInCheck bool) ScoredMove {
 	// Repetition draw: a position recurring for the first time (against the game
 	// history or earlier in this search path) is scored as a draw. A side that can
 	// force one repetition can force three, so treating the first recurrence as a
@@ -258,8 +264,18 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	var best ScoredMove
 	best.Score = NegInf
 
+	// Inside a checking sequence, use the TT for move ordering only (see
+	// parentInCheck in the function comment). Tried 2026-07-06 to fix
+	// perpetual masking (graph history interaction) but it regressed the
+	// 74cp bench baseline to 121cp — check sequences are where tactics
+	// resolve, and losing TT cutoffs there costs more depth than the GHI
+	// class costs games. Keep the plumbing for a future refined attempt
+	// (e.g., guard only when a repetition candidate exists on the path).
+	const ghiGuardEnabled = false
+	allowTTCutoffs := !ghiGuardEnabled || (!inCheck && !parentInCheck)
+
 	searchAlpha, searchBeta := alpha, beta
-	ttAnswer := ab.ttRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe)
+	ttAnswer := ab.ttRead(root, currentPlayer, uint16(depth), alpha, beta, exclusiveProbe, allowTTCutoffs)
 	movesArr := root.GetAllMoves(currentPlayer, previousMove)
 	if !ttAnswer.bestMove.Start.Equals(ttAnswer.bestMove.End) && !isMoveInList(ttAnswer.bestMove, movesArr) {
 		ttAnswer.bestMove = location.Move{}
@@ -307,7 +323,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 		if depth >= 7 {
 			R = 3
 		}
-		nullVal := ab.ABDADA(root, depth-1-R, -beta, -beta+1, false, currentPlayer^1, nil, false, ply+1, extensions)
+		nullVal := ab.ABDADA(root, depth-1-R, -beta, -beta+1, false, currentPlayer^1, nil, false, ply+1, extensions, false)
 		nullVal.Score = -nullVal.Score
 		if nullVal.Score >= beta {
 			atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, 1)
@@ -426,12 +442,12 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 					if reduction > depth-2 {
 						reduction = depth - 2
 					}
-					lmr := ab.ABDADA(child, depth-1-reduction, -(util.MaxScore(alpha, best.Score) + 1), -util.MaxScore(alpha, best.Score), false, currentPlayer^1, pm, true, ply+1, extensions)
+					lmr := ab.ABDADA(child, depth-1-reduction, -(util.MaxScore(alpha, best.Score)+1), -util.MaxScore(alpha, best.Score), false, currentPlayer^1, pm, true, ply+1, extensions, inCheck)
 					lmr.Score = -lmr.Score
 					lmr.Move = move
 					if lmr.Score == -OnEvaluation || lmr.Score > util.MaxScore(alpha, best.Score) {
 						// LMR failed high or deferred — do full-depth re-search.
-						value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1, extensions)
+						value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1, extensions, inCheck)
 						value.Score = -value.Score
 						value.Move = move
 					} else {
@@ -439,7 +455,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 						value = lmr
 					}
 				} else {
-					value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1, extensions)
+					value = ab.ABDADA(child, depth-1, -beta, -util.MaxScore(alpha, best.Score), exclusiveProbe, currentPlayer^1, pm, true, ply+1, extensions, inCheck)
 					value.Score = -value.Score
 					value.Move = move
 				}
@@ -493,7 +509,7 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	if len(*movesArr) == 0 {
 		return ScoredMove{Score: ab.player.EvaluateBoard(b, ab.player.PlayerColor).TotalScore}
 	}
-	ttAnswer := ab.ttRead(b, ab.player.PlayerColor, uint16(depth), alpha, beta, false)
+	ttAnswer := ab.ttRead(b, ab.player.PlayerColor, uint16(depth), alpha, beta, false, true)
 	orderedMoves := orderMoves(*movesArr, ttAnswer.bestMove, [2]location.Move{}, ab, b, previousMove)
 
 	// rootAlpha is the best exact root score found so far this depth, raised
@@ -866,7 +882,7 @@ func isQuietRootMove(b *board.Board, move location.Move) bool {
 
 func (ab *ABDADA) searchRootMove(b *board.Board, move location.Move, depth, alpha, beta int) ScoredMove {
 	child, pm := ab.player.applyMove(b, &move)
-	value := ab.ABDADA(child, depth-1, -beta, -alpha, false, ab.player.PlayerColor^1, pm, true, 1, maxExtensions)
+	value := ab.ABDADA(child, depth-1, -beta, -alpha, false, ab.player.PlayerColor^1, pm, true, 1, maxExtensions, b.IsKingInCheck(ab.player.PlayerColor))
 	value.Score = -value.Score
 	value.Move = move
 	return value
@@ -967,7 +983,7 @@ func (ab *ABDADA) ScoreRootMoves(p *AIPlayer, b *board.Board, previousMove *boar
 	scores := make([]RootMoveScore, 0, len(orderedMoves))
 	for _, move := range orderedMoves {
 		child, pm := p.applyMove(b, &move)
-		value := ab.ABDADA(child, depth-1, NegInf, PosInf, false, p.PlayerColor^1, pm, true, 1, maxExtensions)
+		value := ab.ABDADA(child, depth-1, NegInf, PosInf, false, p.PlayerColor^1, pm, true, 1, maxExtensions, b.IsKingInCheck(p.PlayerColor))
 		value.Score = -value.Score
 		if value.Score == OnEvaluation || value.Score == -OnEvaluation {
 			continue
@@ -1362,7 +1378,10 @@ func (ab *ABDADA) syncTTWrite(root *board.Board, currentPlayer color.Color, dept
 	}
 }
 
-func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, exclusiveProbe bool) TTAnswer {
+// allowScoreCutoffs=false demotes the entry to move-ordering-only, exactly
+// like a stale entry: used inside checking sequences where a cached score
+// from a repetition-free path can mask a perpetual on the current path.
+func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uint16, alpha, beta int, exclusiveProbe bool, allowScoreCutoffs bool) TTAnswer {
 	answer := TTAnswer{
 		alpha: alpha,
 		beta:  beta,
@@ -1379,7 +1398,7 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 			// are demoted to move-ordering-only: we keep the best move hint so the
 			// search is guided well, but skip score-based cutoffs to avoid acting on
 			// results from a subtree that was never actually reached.
-			stale := entry.Generation < currentGen
+			stale := entry.Generation < currentGen || !allowScoreCutoffs
 
 			if entry.Depth == depth && exclusiveProbe && entry.NumProcessors > 0 {
 				answer.score = OnEvaluation

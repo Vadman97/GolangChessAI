@@ -569,6 +569,10 @@ func (p *AIPlayer) EvaluateBoard(b *board.Board, whoMoves color.Color) *Evaluati
 		eval.TotalScore = StalemateScore
 	} else {
 		eval = p.evaluateBoardCached(b, whoMoves)
+		// Note: this term is path-dependent (the counter is not in the
+		// position hash) and mildly pollutes the TT, but removing it regressed
+		// the 74cp bench baseline as part of a wider change set; keep until a
+		// removal is validated in isolation.
 		eval.TotalScore += Weight50Rule * b.MovesSinceNoDraw
 	}
 	return eval

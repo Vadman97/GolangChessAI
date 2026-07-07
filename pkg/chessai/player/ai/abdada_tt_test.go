@@ -173,7 +173,7 @@ func TestABDADAIgnoresIllegalTTBestMoveCutoff(t *testing.T) {
 		Depth:     3,
 	})
 
-	got := ab.ABDADA(b, 1, -100, 100, false, color.White, nil, true, 0, maxExtensions)
+	got := ab.ABDADA(b, 1, -100, 100, false, color.White, nil, true, 0, maxExtensions, false)
 
 	if got.Move.Equals(&illegalMove) {
 		t.Fatalf("expected ABDADA to ignore illegal TT best move cutoff, got %s", got.Move)
@@ -343,7 +343,7 @@ func TestABDADATTUpperBoundCutoffReturnsBoundScore(t *testing.T) {
 		Depth:     3,
 	})
 
-	got := ab.ABDADA(b, 3, 50, 100, false, color.White, nil, true, 0, maxExtensions)
+	got := ab.ABDADA(b, 3, 50, 100, false, color.White, nil, true, 0, maxExtensions, false)
 
 	if got.Score == NegInf || got.Score == PosInf {
 		t.Fatalf("expected upper-bound cutoff to return a finite bound score, got %d", got.Score)

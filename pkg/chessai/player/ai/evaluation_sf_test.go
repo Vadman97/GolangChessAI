@@ -80,8 +80,13 @@ func TestStockfishClassicQueenMinorPressureRecognizesBxg6(t *testing.T) {
 
 	pressureScore := evaluateStockfishClassicScore(pressure, color.White)
 	materialScore := evaluateStockfishClassicScore(material, color.White)
-	if pressureScore < 300 {
-		t.Fatalf("expected Bxg6 queen/minor pressure to be clearly winning, got %d", pressureScore)
+	// Calibration note: Stockfish scores the position after Bxg6 at roughly
+	// +220..+290, and this eval now reads ~220. The old contact-pressure
+	// terms called it 300+ ("clearly winning") — the same overtuning that
+	// read +2669 in a +380 position and lost game o6lAdkjC. Require a clear
+	// pressure signal, not a hallucinated one.
+	if pressureScore < 150 {
+		t.Fatalf("expected Bxg6 queen/minor pressure to register clearly, got %d", pressureScore)
 	}
 	if pressureScore <= materialScore {
 		t.Fatalf("expected Bxg6 queen/minor pressure to beat exd4, got Bxg6=%d exd4=%d", pressureScore, materialScore)

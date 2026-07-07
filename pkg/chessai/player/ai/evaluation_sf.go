@@ -757,6 +757,20 @@ func (e *sfEval) kingDanger(us color.Color) sfScore {
 	if attackersCount == 0 {
 		return sfScore{}
 	}
+	// The bespoke contact-pressure terms approximate SF's safe-check
+	// enumeration but are additive per piece: queen + two minors camping next
+	// to an exposed king can add ~3000 raw units, which the quadratic mg term
+	// below turns into a >2000cp swing (engine +2669 vs SF +380 in game
+	// o6lAdkjC — the eval overconfidence made every attacking move look
+	// winning and lost a won game). A lower cap (600-1100) was tried and
+	// regressed the bench badly (74→121cp: the terms are load-bearing for
+	// finding real attacks), so only clip the pathological multi-piece pileup.
+	const maxContactPressure = 1800
+	if closeQueenPressure+closeQueenMinorPressure > maxContactPressure {
+		total := closeQueenPressure + closeQueenMinorPressure
+		closeQueenPressure = closeQueenPressure * maxContactPressure / total
+		closeQueenMinorPressure = closeQueenMinorPressure * maxContactPressure / total
+	}
 	// Undefended attacked ring squares.
 	undefended := kingRing.IntersectBitBoards(e.attackedByAll[them]).IntersectBitBoards(^e.attackedByAll[us])
 
