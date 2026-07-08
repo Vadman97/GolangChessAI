@@ -66,6 +66,7 @@ type Challenge struct {
 	ID         string         `json:"id"`
 	Direction  string         `json:"direction"`  // present in API responses, absent in event stream
 	Challenger *ChallengeUser `json:"challenger"` // the user who sent the challenge
+	Rated      bool           `json:"rated"`
 }
 
 type Event struct {
@@ -314,14 +315,29 @@ func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Du
 	if turnCount < 4 && think > openingCap {
 		think = openingCap
 	}
-	maxThink := 8 * time.Second
-	if game_config.Get().AIMaxThinkTimeMs > 0 {
-		maxThink = game_config.Get().AIMaxThinkTimeMs * time.Millisecond
-	}
+	maxThink := maxThinkTimeForClock(timeLeft)
 	if think > maxThink {
 		think = maxThink
 	}
 	return think
+}
+
+// maxThinkTimeForClock caps a single move's think time. The configured
+// AIMaxThinkTimeMs is tuned for 3+0 blitz (where it binds through most of the
+// game); at longer time controls that fixed cap made the bot think it had far
+// less time than it actually did, since it never scaled up with a bigger
+// clock. Scale the cap with the clock itself (1/60th of remaining time, so a
+// 3-minute clock reproduces the old 3s cap exactly) and take whichever cap is
+// larger.
+func maxThinkTimeForClock(timeLeft time.Duration) time.Duration {
+	maxThink := 8 * time.Second
+	if game_config.Get().AIMaxThinkTimeMs > 0 {
+		maxThink = game_config.Get().AIMaxThinkTimeMs * time.Millisecond
+	}
+	if dynamicCap := timeLeft / 60; dynamicCap > maxThink {
+		maxThink = dynamicCap
+	}
+	return maxThink
 }
 
 func thinkTimeForPosition(timeLeft, increment time.Duration, turnCount int, b *board.Board, side color.Color) time.Duration {
@@ -333,10 +349,7 @@ func thinkTimeForPosition(timeLeft, increment time.Duration, turnCount int, b *b
 	if think < minThink {
 		think = minThink
 	}
-	maxThink := 8 * time.Second
-	if game_config.Get().AIMaxThinkTimeMs > 0 {
-		maxThink = game_config.Get().AIMaxThinkTimeMs * time.Millisecond
-	}
+	maxThink := maxThinkTimeForClock(timeLeft)
 	if think > maxThink {
 		think = maxThink
 	}
@@ -523,6 +536,13 @@ func (l *Lichess) handleEvent(event *Event) error {
 		}
 		if l.Game != nil {
 			log.Infof("ignoring challenge %s: game %s already active", event.Challenge.ID, l.GameID)
+			break
+		}
+		if !event.Challenge.Rated {
+			log.Infof("declining casual challenge %s from %s: only rated games accepted", event.Challenge.ID, challengerID)
+			if err := l.DeclineChallenge(event.Challenge.ID, "casual"); err != nil {
+				log.Errorf("failed to decline casual challenge %s: %s", event.Challenge.ID, err)
+			}
 			break
 		}
 		if err := l.AcceptChallenge(event.Challenge.ID); err != nil {
@@ -906,6 +926,33 @@ func (l *Lichess) Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (l *Lichess) DeclineChallenge(challengeID, reason string) error {
+	u := fmt.Sprintf("/api/challenge/%s/decline", challengeID)
+	params := url.Values{}
+	params.Set("reason", reason)
+
+	rel := &url.URL{Path: u}
+	fullURL := l.Client.BaseURL.ResolveReference(rel)
+	req, err := http.NewRequest("POST", fullURL.String(), strings.NewReader(params.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", l.Client.APIKey))
+	req.Header.Set("User-Agent", l.Client.UserAgent)
+
+	resp, err := l.Client.HttpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Infof("decline challenge %s status %s %s", challengeID, resp.Status, string(bodyBytes))
+	return nil
 }
 
 func (l *Lichess) AcceptChallenge(challengeID string) error {

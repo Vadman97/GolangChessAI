@@ -38,6 +38,19 @@ func TestThinkTimeForClockHonorsConfiguredCap(t *testing.T) {
 	assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, 15))
 }
 
+// TestThinkTimeForClockScalesCapForLongerTimeControls reproduces the 10+5
+// complaint: the AIMaxThinkTimeMs cap (3s) is tuned for 3+0 blitz, so in a
+// longer time control the bot never spent more than 3s/move even with a
+// 10-minute clock banked. The cap should scale up when there's plenty of time.
+func TestThinkTimeForClockScalesCapForLongerTimeControls(t *testing.T) {
+	blitz := thinkTimeForClock(180*time.Second, 0, 15)
+	assert.Equal(t, 3*time.Second, blitz, "3+0 baseline should keep the old 3s cap")
+
+	longFormat := thinkTimeForClock(10*time.Minute, 5*time.Second, 15)
+	assert.True(t, longFormat > blitz, "10+5 with the same move number should think longer than 3+0, got %s vs %s", longFormat, blitz)
+	assert.True(t, longFormat >= 10*time.Second, "10+5 should scale the cap up toward the clock size, got %s", longFormat)
+}
+
 func TestThinkTimeForClockCapsOpeningMoves(t *testing.T) {
 	assert.Equal(t, 500*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 0))
 	assert.Equal(t, 500*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 3))
@@ -243,4 +256,66 @@ func TestMakeMoveOffersDrawForClaimableStatuses(t *testing.T) {
 		assert.Equalf(t, tc.wantOffer, offered, "status %s: offeringDraw mismatch", tc.statusName)
 		l.Game.Stop()
 	}
+}
+
+// TestDeclinesCasualChallenge verifies the bot only plays rated games: a
+// casual incoming challenge should be declined (not accepted, not silently
+// ignored) so the challenger gets clear feedback, and no game should start.
+func TestDeclinesCasualChallenge(t *testing.T) {
+	rec := &recordingClient{}
+	base, _ := url.Parse("http://test.local")
+	l := &Lichess{
+		Client: &Client{BaseURL: base, APIKey: "x", HttpClient: rec},
+	}
+
+	err := l.handleEvent(&Event{
+		Type: EventTypeChallenge,
+		Challenge: &Challenge{
+			ID:         "casualID",
+			Challenger: &ChallengeUser{ID: "someHuman"},
+			Rated:      false,
+		},
+	})
+	assert.NoError(t, err)
+
+	assert.Nil(t, l.Game, "casual challenge must not start a game")
+	var acceptURL, declineURL string
+	for _, u := range rec.urls {
+		if strings.Contains(u, "/accept") {
+			acceptURL = u
+		}
+		if strings.Contains(u, "/decline") {
+			declineURL = u
+		}
+	}
+	assert.Empty(t, acceptURL, "casual challenge must not be accepted")
+	assert.Contains(t, declineURL, "casualID/decline", "casual challenge should be explicitly declined")
+}
+
+// TestAcceptsRatedChallenge is the counterpart to TestDeclinesCasualChallenge:
+// a rated incoming challenge should still be accepted as before.
+func TestAcceptsRatedChallenge(t *testing.T) {
+	rec := &recordingClient{}
+	base, _ := url.Parse("http://test.local")
+	l := &Lichess{
+		Client: &Client{BaseURL: base, APIKey: "x", HttpClient: rec},
+	}
+
+	err := l.handleEvent(&Event{
+		Type: EventTypeChallenge,
+		Challenge: &Challenge{
+			ID:         "ratedID",
+			Challenger: &ChallengeUser{ID: "someHuman"},
+			Rated:      true,
+		},
+	})
+	assert.NoError(t, err)
+
+	var acceptURL string
+	for _, u := range rec.urls {
+		if strings.Contains(u, "/accept") {
+			acceptURL = u
+		}
+	}
+	assert.Contains(t, acceptURL, "ratedID/accept", "rated challenge should be accepted")
 }
