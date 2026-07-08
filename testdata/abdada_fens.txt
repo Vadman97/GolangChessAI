@@ -80,3 +80,11 @@ r1b2b1r/ppNk1ppp/1qn1pn2/3p4/3p1B1P/4PN2/PPP2PP1/R2QKB1R w KQ - 2 9 | lichess-mI
 r1b4r/ppNk1ppp/1qn1pn2/1B1p4/1b3B1P/4pN2/PPP2PP1/R2Q1K1R w - - 0 11 | lichess-mI9lFZZd-ply21 | c2c4 | c2c3 | blunder loss=568cp sf-depth=12
 8/1p6/6p1/5b2/1p3Kn1/8/P2kp2p/4R3 w - - 2 53 | lichess-mI9lFZZd-ply105 | f4f3 | e1h1 | blunder loss=160cp sf-depth=12
 8/1p6/6p1/5b2/1p3Kn1/8/P6p/4k3 w - - 0 55 | lichess-mI9lFZZd-ply109 | f4g5 | a2a3 | blunder loss=165cp sf-depth=12
+1nbq1b1r/r3kp1p/2p1pN1p/4N3/ppBP4/5Q2/PPP2PPP/R4RK1 w - - 4 15 | lichess-hzqrcLk5-ply29 | f6g8 | g2g4 | blunder loss=167cp sf-depth=12
+1nb4r/r3kpbp/2p1pN2/4N1p1/ppB5/5Q2/PqP1RP1P/5RK1 w - - 0 19 | lichess-hzqrcLk5-ply37 | f6g4 | f3e3 | blunder loss=265cp sf-depth=12
+1nb4r/4kpbp/2p1pN2/r3N1p1/ppB5/4Q3/PqP1RP1P/5RK1 w - - 2 20 | lichess-hzqrcLk5-ply39 | f6g4 | c2c3 | blunder loss=327cp sf-depth=12
+1nb4r/4kNbp/2p1pN2/r5p1/ppq5/4Q3/P3RP1P/5RK1 w - - 0 22 | lichess-hzqrcLk5-ply43 | f6e4 | f1c1 | blunder loss=189cp sf-depth=12
+1n5b/4k3/2p1b3/3rp2p/pR2Kp2/5P2/P3R2P/8 w - - 1 31 | lichess-hzqrcLk5-ply61 | e2d2 | e2c2 | blunder loss=2000cp sf-depth=12
+r4rk1/pp2ppbp/2qp2p1/n4b2/1RP3n1/P2PP2N/2KN1PPP/2BQ1B1R b - - 0 15 | lichess-vVm9J7Ja-ply30 | b7b5 | g7c3 | blunder loss=652cp sf-depth=12
+6k1/4pp2/6P1/4n3/r1P1PN2/P1KP1P2/4B2P/1qB3QR b - - 0 36 | lichess-vVm9J7Ja-ply72 | b1b8 | g8f8 | blunder loss=185cp sf-depth=12
+5k2/4pP2/8/4n3/r1P1PN2/P1KP1P2/4B2P/1qB3QR b - - 0 37 | lichess-vVm9J7Ja-ply74 | b1a1 | f8f7 | blunder loss=164cp sf-depth=12
