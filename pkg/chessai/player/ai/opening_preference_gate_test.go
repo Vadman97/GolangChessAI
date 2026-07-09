@@ -2,6 +2,7 @@ package ai
 
 import (
 	"testing"
+	"time"
 
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
@@ -74,4 +75,44 @@ func TestEarlyOpeningPreferenceAllowsEvenExchange(t *testing.T) {
 	require.NotNil(t, got)
 	assert.Equal(t, gateSquare(t, "d7"), got.Start)
 	assert.Equal(t, gateSquare(t, "d5"), got.End)
+}
+
+// Reproduces game DW9hIjlh: after 1.d4 Nf6 2.Nf3 g6 3.Bf4 d6 4.e3 Nh5 5.Bd3 Nxf4, the
+// London System book's next move (6.O-O) is legal and its own destination (g1) is safe,
+// so the destination-safety gate doesn't catch it. But the book has no way to notice that
+// the opponent's last move (Nxf4) just captured our bishop on f4: exf4 recaptures the
+// knight for an even trade, while O-O abandons the piece for nothing. The bot played O-O
+// live and lost a clean bishop.
+func TestOpeningBookDefersWhenBetterCaptureAvailable(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+	var prev *board.LastMove
+	prev = gateApply(t, b, prev, color.White, "d2d4")
+	prev = gateApply(t, b, prev, color.Black, "g8f6")
+	prev = gateApply(t, b, prev, color.White, "g1f3")
+	prev = gateApply(t, b, prev, color.Black, "g7g6")
+	prev = gateApply(t, b, prev, color.White, "c1f4")
+	prev = gateApply(t, b, prev, color.Black, "d7d6")
+	prev = gateApply(t, b, prev, color.White, "e2e3")
+	prev = gateApply(t, b, prev, color.Black, "f6h5")
+	prev = gateApply(t, b, prev, color.White, "f1d3")
+	prev = gateApply(t, b, prev, color.Black, "h5f4")
+
+	p := NewAIPlayer(color.White, &ABDADA{NumThreads: 1})
+	p.MaxSearchDepth = 100
+	p.MaxThinkTime = 500 * time.Millisecond
+	p.Opening = 1
+	p.TurnCount = 5
+
+	bookMove := OpeningMoves[color.White][1][5]
+	require.Equal(t, gateSquare(t, "e1"), bookMove.Start, "guard: book move 5 should be O-O")
+	require.Equal(t, gateSquare(t, "g1"), bookMove.End, "guard: book move 5 should be O-O")
+
+	assert.True(t, p.bookMoveMissesFreeCapture(b, prev, *bookMove),
+		"exf4 recaptures the knight for free; the book must recognize O-O leaves it hanging")
+
+	move := p.GetBestMove(b, prev, nil)
+	assert.False(t, move.Start.Equals(bookMove.Start) && move.End.Equals(bookMove.End),
+		"bot castled instead of recapturing on f4, giving away the bishop for nothing (game DW9hIjlh)")
+	assert.Equal(t, OpeningNone, p.Opening, "book must be abandoned once a better capture is found")
 }

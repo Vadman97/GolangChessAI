@@ -280,6 +280,9 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 				bookOK = false
 			}
 		}
+		if bookOK && p.bookMoveMissesFreeCapture(b, previousMove, *bookMove) {
+			bookOK = false
+		}
 		if bookOK {
 			return bookMove
 		}
@@ -323,6 +326,35 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 			panic("invalid ai algorithm")
 		}
 	}
+}
+
+// bookMoveMissedCaptureThreshold is the SEE gain (centipawns) a legal capture must beat
+// the scripted book move by before the book is abandoned in favor of search. 100 = a
+// clean pawn or more left on the table.
+const bookMoveMissedCaptureThreshold = 100
+
+// bookMoveMissesFreeCapture reports whether some other legal move captures material
+// more profitably (by SEE) than the scripted book move. The book is a fixed move list
+// indexed by turn count — it does not react to the opponent's actual move, so it has no
+// way to notice that the opponent just captured one of our pieces and a recapture is now
+// the correct move. It only checks the booked move's OWN destination for safety (the gate
+// above), which lets it walk straight past a hanging piece: game DW9hIjlh played O-O
+// (book) instead of exf4 after the opponent captured our bishop with ...Nxf4, leaving the
+// bishop lost for nothing.
+func (p *AIPlayer) bookMoveMissesFreeCapture(b *board.Board, previousMove *board.LastMove, bookMove location.Move) bool {
+	bookMoveSEE := 0
+	if b.GetPiece(bookMove.End) != nil {
+		bookMoveSEE = b.SEE(bookMove, p.PlayerColor)
+	}
+	for _, move := range *b.GetAllMoves(p.PlayerColor, previousMove) {
+		if b.GetPiece(move.End) == nil {
+			continue // not a capture
+		}
+		if b.SEE(move, p.PlayerColor)-bookMoveSEE >= bookMoveMissedCaptureThreshold {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *AIPlayer) earlyOpeningPreference(b *board.Board, previousMove *board.LastMove) *location.Move {
