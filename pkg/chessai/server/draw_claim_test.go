@@ -35,7 +35,12 @@ func randomAI(c color.Color) *ai.AIPlayer {
 }
 
 func TestThinkTimeForClockHonorsConfiguredCap(t *testing.T) {
-	assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, 15))
+	assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, 4))
+}
+
+func TestThinkTimeForClockBoostsHealthyMidgame(t *testing.T) {
+	think := thinkTimeForClock(180*time.Second, 0, 15)
+	assert.Equal(t, 3750*time.Millisecond, think, "healthy 3+0 midgame should get a modest cap boost")
 }
 
 // TestThinkTimeForClockScalesCapForLongerTimeControls reproduces the 10+5
@@ -44,7 +49,7 @@ func TestThinkTimeForClockHonorsConfiguredCap(t *testing.T) {
 // 10-minute clock banked. The cap should scale up when there's plenty of time.
 func TestThinkTimeForClockScalesCapForLongerTimeControls(t *testing.T) {
 	blitz := thinkTimeForClock(180*time.Second, 0, 15)
-	assert.Equal(t, 3*time.Second, blitz, "3+0 baseline should keep the old 3s cap")
+	assert.Equal(t, 3750*time.Millisecond, blitz, "3+0 midgame baseline should include the midgame cap boost")
 
 	longFormat := thinkTimeForClock(10*time.Minute, 5*time.Second, 15)
 	assert.True(t, longFormat > blitz, "10+5 with the same move number should think longer than 3+0, got %s vs %s", longFormat, blitz)

@@ -246,10 +246,9 @@ func (l *Lichess) resetGame() {
 // thinkTimeForClock allocates think time from the remaining clock.
 // Uses the standard time-management formula: think = usableTime/movesLeft + increment.
 //
-// Tuned for 3+0: spend the clock in the opening/midgame (where the position is
-// rich and the per-move cap binds anyway) and shrink aggressively in the
-// endgame, holding back a growing safety buffer so we don't flag in long
-// K+P / R endgames.
+// Tuned for 3+0: spend the clock in the midgame (where the position is rich and
+// move quality matters most) and shrink aggressively in the endgame, holding
+// back a growing safety buffer so we don't flag in long K+P / R endgames.
 //
 //   - endgameStart (turnCount 17 ≈ ply 35): both the per-move divisor and the
 //     reserve begin to ramp up, so each endgame move costs less and we keep more
@@ -257,12 +256,14 @@ func (l *Lichess) resetGame() {
 //   - The reserve grows from 3s up to 18s (i.e. ~15s more buffer than before)
 //     as the endgame deepens.
 //   - The first few moves are capped to 500ms so opening play stays responsive.
-//   - Capped by game_conf.json AIMaxThinkTimeMs (or 8s if unset) so we never
-//     burn the clock on a single move.
+//   - Capped by game_conf.json AIMaxThinkTimeMs (or 8s if unset), with a modest
+//     healthy-clock midgame boost so the configured 3+0 cap does not flatten
+//     every rich position to the same budget.
 func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Duration {
 	const baseReserve = 3 * time.Second
 	const maxExtraReserve = 15 * time.Second // larger buffer once we reach the endgame
 	const openingCap = 500 * time.Millisecond
+	const midgameStart = 10
 
 	// Endgame begins ~35 ply, i.e. this side's ~17th move (TurnCount counts our
 	// own moves). reserveRamp is the number of our moves over which the reserve
@@ -285,10 +286,10 @@ func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Du
 	// time shrinks aggressively and the growing reserve survives.
 	var movesLeft time.Duration
 	switch {
-	case turnCount < 10:
+	case turnCount < midgameStart:
 		movesLeft = 45
 	case turnCount < endgameStart:
-		movesLeft = 22
+		movesLeft = 18
 	case turnCount < 25:
 		movesLeft = 28
 	case turnCount < 35:
@@ -316,6 +317,9 @@ func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Du
 		think = openingCap
 	}
 	maxThink := maxThinkTimeForClock(timeLeft)
+	if turnCount >= midgameStart && turnCount < endgameStart && timeLeft > 60*time.Second {
+		maxThink += maxThink / 4
+	}
 	if think > maxThink {
 		think = maxThink
 	}
