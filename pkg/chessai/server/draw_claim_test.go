@@ -101,6 +101,18 @@ func TestThinkTimeForPositionExtendsCriticalQueenPasserEndgame(t *testing.T) {
 	assert.True(t, critical >= 2500*time.Millisecond, "critical queen/passer endgame should get search floor, got %s", critical)
 }
 
+func TestThinkTimeForPositionBoostsHealthyCriticalQueenPasserEndgame(t *testing.T) {
+	parsed, err := analysis.ParseFEN("3r2Q1/2k4P/1p1p4/p7/4b3/8/PP3Q1K/8 b - - 0 42")
+	assert.NoError(t, err)
+
+	base := thinkTimeForClock(71*time.Second, 0, 42)
+	critical := thinkTimeForPosition(71*time.Second, 0, 42, parsed.Board, color.Black)
+
+	assert.True(t, base <= 3*time.Second, "test setup expected ordinary endgame cap near 3s, got %s", base)
+	assert.True(t, critical >= 5*time.Second, "healthy critical queen/passer endgame should get enough time to deepen, got %s", critical)
+	assert.True(t, critical <= 6*time.Second, "critical boost should remain bounded, got %s", critical)
+}
+
 func TestThinkTimeForPositionExtendsLowMaterialRookEndgame(t *testing.T) {
 	parsed, err := analysis.ParseFEN("8/7k/4r3/1K4RP/4N1P1/5P2/8/8 b - g3 0 65")
 	assert.NoError(t, err)

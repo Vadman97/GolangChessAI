@@ -350,12 +350,16 @@ func thinkTimeForPosition(timeLeft, increment time.Duration, turnCount int, b *b
 		return think
 	}
 	minThink := 2500*time.Millisecond + increment
+	criticalMax := maxThinkTimeForClock(timeLeft)
+	if timeLeft > 60*time.Second {
+		minThink = 5*time.Second + increment
+		criticalMax *= 2
+	}
 	if think < minThink {
 		think = minThink
 	}
-	maxThink := maxThinkTimeForClock(timeLeft)
-	if think > maxThink {
-		think = maxThink
+	if think > criticalMax {
+		think = criticalMax
 	}
 	return think
 }

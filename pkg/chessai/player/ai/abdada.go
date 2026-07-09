@@ -223,6 +223,22 @@ func searchUnstable(previous, current ScoredMove) bool {
 	return current.Score < previous.Score-dropThreshold
 }
 
+const severeDisadvantageSoftExtend = -600
+
+func searchNeedsExtraTime(best ScoredMove) bool {
+	return best.Score <= severeDisadvantageSoftExtend
+}
+
+func softSearchLimit(hardLimit time.Duration, unstable bool, best ScoredMove) time.Duration {
+	if hardLimit <= 0 {
+		return 0
+	}
+	if unstable || searchNeedsExtraTime(best) {
+		return hardLimit * 9 / 10
+	}
+	return hardLimit * 3 / 4
+}
+
 // ABDADA is the core parallel alpha-beta search function.
 // nullMoveOk: false immediately after a null move (prevents consecutive null moves).
 // ply: distance from the root (0 at root), used for killer indexing.
@@ -442,7 +458,7 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 					if reduction > depth-2 {
 						reduction = depth - 2
 					}
-					lmr := ab.ABDADA(child, depth-1-reduction, -(util.MaxScore(alpha, best.Score)+1), -util.MaxScore(alpha, best.Score), false, currentPlayer^1, pm, true, ply+1, extensions, inCheck)
+					lmr := ab.ABDADA(child, depth-1-reduction, -(util.MaxScore(alpha, best.Score) + 1), -util.MaxScore(alpha, best.Score), false, currentPlayer^1, pm, true, ply+1, extensions, inCheck)
 					lmr.Score = -lmr.Score
 					lmr.Move = move
 					if lmr.Score == -OnEvaluation || lmr.Score > util.MaxScore(alpha, best.Score) {
@@ -1054,31 +1070,22 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 
 	// Soft/hard time bounds. MaxThinkTime is the HARD ceiling enforced mid-search
 	// by trackThinkTime. The SOFT target decides whether to START a new
-	// iterative-deepening iteration: each iteration roughly doubles search time,
-	// so once we've spent ~half the budget the next iteration almost certainly
-	// won't finish before the hard abort and we'd just throw away the partial.
-	// We only push past the soft target — up to the hard ceiling — when the
-	// position is unstable (best move changing or score dropping), where the
-	// extra depth is most likely to change the move we play.
+	// iterative-deepening iteration. Quiet positions still stop before the hard
+	// ceiling to avoid throwing away a partial next depth, but tactical warning
+	// signs (best move changed, score dropped, or we are already badly worse)
+	// push toward the hard limit where extra depth is most likely to save the
+	// move choice.
 	hardLimit := ab.player.MaxThinkTime
-	var softStable, softUnstable time.Duration
-	if hardLimit > 0 {
-		softStable = hardLimit / 2        // 50% rule: quiet, settled positions
-		softUnstable = hardLimit * 9 / 10 // extend toward the hard ceiling when unstable
-	}
 	unstable := false
 
 	for ab.currentSearchDepth = iterativeIncrement; ab.currentSearchDepth <= ab.player.MaxSearchDepth; ab.currentSearchDepth += iterativeIncrement {
 		// Soft-bound check: decide whether to begin THIS iteration. Always run at
 		// least the first iteration so we never return a zero-move.
 		if hardLimit > 0 && ab.currentSearchDepth > iterativeIncrement {
-			limit := softStable
-			if unstable {
-				limit = softUnstable
-			}
+			limit := softSearchLimit(hardLimit, unstable, best)
 			if elapsed := time.Since(start); elapsed >= limit {
-				ab.player.printer <- fmt.Sprintf("%s soft stop after depth %d (elapsed %s >= %s, unstable=%v)\n",
-					ab.GetName(), ab.player.LastSearchDepth, elapsed, limit, unstable)
+				ab.player.printer <- fmt.Sprintf("%s soft stop after depth %d (elapsed %s >= %s, unstable=%v, extra=%v)\n",
+					ab.GetName(), ab.player.LastSearchDepth, elapsed, limit, unstable, searchNeedsExtraTime(best))
 				break
 			}
 		}

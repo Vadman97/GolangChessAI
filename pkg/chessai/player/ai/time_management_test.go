@@ -2,6 +2,7 @@ package ai
 
 import (
 	"testing"
+	"time"
 
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
@@ -44,6 +45,19 @@ func TestSearchUnstable(t *testing.T) {
 	// Same move but score dropped past the threshold → unstable.
 	if !searchUnstable(ScoredMove{Move: a, Score: 100}, ScoredMove{Move: a, Score: 40}) {
 		t.Error("a >50cp score drop should be unstable")
+	}
+}
+
+func TestSoftSearchLimit(t *testing.T) {
+	hard := 4 * time.Second
+	if got := softSearchLimit(hard, false, ScoredMove{Score: 0}); got != 3*time.Second {
+		t.Fatalf("quiet stable search limit = %s, want 3s", got)
+	}
+	if got := softSearchLimit(hard, true, ScoredMove{Score: 0}); got != 3600*time.Millisecond {
+		t.Fatalf("unstable search limit = %s, want 3.6s", got)
+	}
+	if got := softSearchLimit(hard, false, ScoredMove{Score: -700}); got != 3600*time.Millisecond {
+		t.Fatalf("losing stable search limit = %s, want 3.6s", got)
 	}
 }
 
