@@ -11,6 +11,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type fixedOpeningRegressionAlgorithm struct {
+	move location.Move
+}
+
+func (a *fixedOpeningRegressionAlgorithm) GetName() string {
+	return "fixed opening regression"
+}
+
+func (a *fixedOpeningRegressionAlgorithm) GetBestMove(_ *AIPlayer, _ *board.Board, _ *board.LastMove) *ScoredMove {
+	return &ScoredMove{Move: a.move}
+}
+
 // gateSquare converts an algebraic square (e.g. "e6") to the engine's mirrored location.
 func gateSquare(t *testing.T, sq string) location.Location {
 	t.Helper()
@@ -115,4 +127,35 @@ func TestOpeningBookDefersWhenBetterCaptureAvailable(t *testing.T) {
 	assert.False(t, move.Start.Equals(bookMove.Start) && move.End.Equals(bookMove.End),
 		"bot castled instead of recapturing on f4, giving away the bishop for nothing (game DW9hIjlh)")
 	assert.Equal(t, OpeningNone, p.Opening, "book must be abandoned once a better capture is found")
+}
+
+// Game rtA24XeS reached this position after 1.e4 c5 2.Nf3 Nc6 3.Bc4 e6
+// 4.c3 d5. The fixed Italian script then forced 5.d3, ignoring Black's central
+// break; 5...dxc4 left White roughly five pawns worse. Normal search finds exd5.
+func TestPositionBlindBookStopsBeforeOpponentCentralBreak(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+	var prev *board.LastMove
+	prev = gateApply(t, b, prev, color.White, "e2e4")
+	prev = gateApply(t, b, prev, color.Black, "c7c5")
+	prev = gateApply(t, b, prev, color.White, "g1f3")
+	prev = gateApply(t, b, prev, color.Black, "b8c6")
+	prev = gateApply(t, b, prev, color.White, "f1c4")
+	prev = gateApply(t, b, prev, color.Black, "e7e6")
+	prev = gateApply(t, b, prev, color.White, "c2c3")
+	prev = gateApply(t, b, prev, color.Black, "d7d5")
+
+	exd5 := location.Move{Start: gateSquare(t, "e4"), End: gateSquare(t, "d5")}
+	p := NewAIPlayer(color.White, &fixedOpeningRegressionAlgorithm{move: exd5})
+	p.Opening = 0
+	p.TurnCount = 4
+
+	bookMove := OpeningMoves[color.White][0][4]
+	require.Equal(t, gateSquare(t, "d2"), bookMove.Start, "guard: scripted move should be d3")
+	require.Equal(t, gateSquare(t, "d3"), bookMove.End, "guard: scripted move should be d3")
+
+	got := p.GetBestMove(b, prev, nil)
+	assert.Equal(t, exd5.Start, got.Start)
+	assert.Equal(t, exd5.End, got.End)
+	assert.Equal(t, OpeningNone, p.Opening, "position-blind script must stop before move three")
 }

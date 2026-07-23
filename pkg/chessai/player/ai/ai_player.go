@@ -27,6 +27,11 @@ const (
 
 const (
 	OpeningNone = -1
+	// OpeningMoves is a position-blind script, not a response tree. The first two
+	// moves are useful for reaching ordinary openings quickly, but continuing the
+	// script lets an opponent's central break or forcing move invalidate the plan.
+	// Search from move three onward, when opening branches start to matter.
+	positionBlindBookMaxTurns = 2
 )
 
 // color -> list of openings: { list of moves }
@@ -253,6 +258,9 @@ func betterMove(maximizingP bool, currentBest *ScoredMove, candidate *ScoredMove
 }
 
 func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, logger *PerformanceLogger) *location.Move {
+	if p.Opening != OpeningNone && p.TurnCount >= positionBlindBookMaxTurns {
+		p.Opening = OpeningNone
+	}
 	if p.Opening != OpeningNone && p.TurnCount < len(OpeningMoves[p.PlayerColor][p.Opening]) {
 		bookMove := OpeningMoves[p.PlayerColor][p.Opening][p.TurnCount]
 		// The book is a fixed move list indexed by turn count — it does NOT react to
