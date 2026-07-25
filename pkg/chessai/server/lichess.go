@@ -346,7 +346,8 @@ func maxThinkTimeForClock(timeLeft time.Duration) time.Duration {
 
 func thinkTimeForPosition(timeLeft, increment time.Duration, turnCount int, b *board.Board, side color.Color) time.Duration {
 	think := thinkTimeForClock(timeLeft, increment, turnCount)
-	if b == nil || !isCriticalSearchPosition(b, side) || timeLeft <= 20*time.Second {
+	const criticalScrambleCutoff = 8 * time.Second
+	if b == nil || !isCriticalSearchPosition(b, side) || timeLeft <= criticalScrambleCutoff {
 		return think
 	}
 	minThink := 2500*time.Millisecond + increment
@@ -354,6 +355,11 @@ func thinkTimeForPosition(timeLeft, increment time.Duration, turnCount int, b *b
 	if timeLeft > 60*time.Second {
 		minThink = 5*time.Second + increment
 		criticalMax *= 2
+	} else if timeLeft < 20*time.Second {
+		// Avoid a hard quality cliff when the clock crosses 20 seconds. Spend a
+		// bounded tenth of the remaining clock on a critical position, preserving
+		// enough time for the scramble while still allowing a real search.
+		minThink = timeLeft/10 + increment
 	}
 	if think < minThink {
 		think = minThink

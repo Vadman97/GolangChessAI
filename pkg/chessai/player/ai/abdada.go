@@ -195,15 +195,13 @@ func (ab *ABDADA) setKilled(v bool) {
 }
 
 func stableDepthMove(previous, current ScoredMove) ScoredMove {
-	const scoreRegressionThreshold = 200
-	if current.ReturnThisMove {
-		return current
-	}
-	if previous.Score != NegInf &&
-		!previous.Move.Start.Equals(previous.Move.End) &&
-		current.Score < previous.Score-scoreRegressionThreshold {
-		current.Move = previous.Move
-		current.MoveSequence = previous.MoveSequence
+	// A completed deeper iteration is a coherent move/score result. Keeping the
+	// shallower move after a large score drop while retaining the deeper score
+	// creates an invalid pair and can play a move the deeper search rejected.
+	// Only fall back when the new iteration produced no legal root move.
+	if current.Move.Start.Equals(current.Move.End) &&
+		!previous.Move.Start.Equals(previous.Move.End) {
+		return previous
 	}
 	return current
 }
@@ -627,26 +625,33 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 		workerCount = len(remainingMoves)
 	}
 	ab.ensureRootWorkers(workerCount)
-	jobs := make(chan location.Move, len(remainingMoves))
+	jobs := make([]chan location.Move, workerCount)
 	results := make(chan ScoredMove, len(remainingMoves))
 	var wg sync.WaitGroup
 	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
 		w := ab.rootWorkerABs[i]
-		go func() {
+		jobs[i] = make(chan location.Move, (len(remainingMoves)+workerCount-1)/workerCount)
+		go func(workerJobs <-chan location.Move) {
 			defer wg.Done()
-			for move := range jobs {
+			for move := range workerJobs {
 				if ab.player.isAborted() {
 					continue
 				}
 				results <- scoutedRootSearch(w, move)
 			}
-		}()
+		}(jobs[i])
 	}
-	for _, move := range remainingMoves {
-		jobs <- move
+	// Keep each root move on the same worker at every iterative-deepening
+	// depth. A shared work queue let scheduler timing assign a move to an
+	// arbitrary worker TT, making root scores and the final move vary between
+	// identical searches.
+	for i, move := range remainingMoves {
+		jobs[i%workerCount] <- move
 	}
-	close(jobs)
+	for _, workerJobs := range jobs {
+		close(workerJobs)
+	}
 
 	// Workers keep running (and touching b via applyMove) until they drain
 	// jobs, even after an abort short-circuits collection below. b is the
@@ -705,15 +710,11 @@ func sameRootMove(a, b ScoredMove) bool {
 }
 
 func (ab *ABDADA) verifyCloseRootMoves(b *board.Board, depth int, best, second ScoredMove, candidates []ScoredMove) ScoredMove {
-	const verifyMargin = 150
 	if ab.player.isAborted() ||
-		best.Move.Start.Equals(best.Move.End) ||
-		(second.Move.Start.Equals(second.Move.End) && !shouldDeepVerifyRoot(b, ab.player.PlayerColor, depth, best, candidates)) ||
-		(!second.Move.Start.Equals(second.Move.End) && best.Score-second.Score > verifyMargin &&
-			!shouldDeepVerifyRoot(b, ab.player.PlayerColor, depth, best, candidates)) {
+		best.Move.Start.Equals(best.Move.End) {
 		return best
 	}
-	verifyDepth := depth
+
 	if depth < 4 {
 		margin, quietOnly, verifyDepth, ok := deepRootVerifyParams(b, ab.player.PlayerColor, depth, best, candidates)
 		if !ok {
@@ -721,8 +722,45 @@ func (ab *ABDADA) verifyCloseRootMoves(b *board.Board, depth int, best, second S
 		}
 		return ab.verifyRootCandidates(b, verifyDepth, best, candidates, margin, quietOnly)
 	}
-	verifiedBest := ab.searchRootMoveForSelection(b, best.Move, verifyDepth, NegInf, PosInf)
-	verifiedSecond := ab.searchRootMoveForSelection(b, second.Move, verifyDepth, NegInf, PosInf)
+
+	if ab.NumThreads <= 1 {
+		const verifyMargin = 150
+		if second.Move.Start.Equals(second.Move.End) || best.Score-second.Score > verifyMargin {
+			return best
+		}
+		verifiedBest := ab.searchRootMoveForSelection(b, best.Move, depth, NegInf, PosInf)
+		verifiedSecond := ab.searchRootMoveForSelection(b, second.Move, depth, NegInf, PosInf)
+		if verifiedBest.Score == OnEvaluation || verifiedBest.Score == -OnEvaluation {
+			return best
+		}
+		if verifiedSecond.Score != OnEvaluation && verifiedSecond.Score != -OnEvaluation && verifiedSecond.Score > verifiedBest.Score {
+			verifiedSecond.ReturnThisMove = true
+			return verifiedSecond
+		}
+		return verifiedBest
+	}
+
+	// Root moves were already searched exactly (full window, or a scout followed
+	// by full-window re-search on fail-high). Re-searching the same two moves at
+	// the same depth with selectAB's different TT state can make a sound move's
+	// score swing enough to reverse the result. Game IhEft8P1 did exactly that:
+	// depth 5 ranked ...Rxf4 first (-73), then same-depth verification changed it
+	// to -219 and selected ...b6 (-166), a 100+ cp loss.
+	//
+	// Only spend verification work on a genuine near-tie, and search two plies
+	// deeper so the result adds information instead of sampling the same horizon
+	// again. A wider gap keeps the original exact root result.
+	const deepVerifyMargin = 30
+	if second.Move.Start.Equals(second.Move.End) || best.Score-second.Score > deepVerifyMargin {
+		return best
+	}
+	const minDeepRootVerifyTime = 2 * time.Second
+	if ab.player.MaxThinkTime > 0 && ab.player.MaxThinkTime < minDeepRootVerifyTime {
+		return best
+	}
+	verifyDepth := depth + 2
+	verifiedBest := ab.searchRootMoveFresh(b, best.Move, verifyDepth)
+	verifiedSecond := ab.searchRootMoveFresh(b, second.Move, verifyDepth)
 	if verifiedBest.Score == OnEvaluation || verifiedBest.Score == -OnEvaluation {
 		return best
 	}
@@ -731,6 +769,11 @@ func (ab *ABDADA) verifyCloseRootMoves(b *board.Board, depth int, best, second S
 		return verifiedSecond
 	}
 	return verifiedBest
+}
+
+func (ab *ABDADA) searchRootMoveFresh(b *board.Board, move location.Move, depth int) ScoredMove {
+	worker := ab.newWorkerAB()
+	return worker.searchRootMove(b, move, depth, NegInf, PosInf)
 }
 
 func shouldDeepVerifyRoot(b *board.Board, side color.Color, depth int, best ScoredMove, candidates []ScoredMove) bool {

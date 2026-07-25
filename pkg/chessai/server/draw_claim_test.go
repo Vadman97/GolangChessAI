@@ -124,6 +124,19 @@ func TestThinkTimeForPositionExtendsLowMaterialRookEndgame(t *testing.T) {
 	assert.True(t, critical >= 2500*time.Millisecond, "low-material rook endgame should get search floor, got %s", critical)
 }
 
+func TestThinkTimeForPositionAvoidsTwentySecondCliff(t *testing.T) {
+	parsed, err := analysis.ParseFEN("8/6QP/p3b3/2p2k2/2P5/8/PP4P1/5K2 b - - 0 56")
+	assert.NoError(t, err)
+
+	const clock = 19940 * time.Millisecond
+	base := thinkTimeForClock(clock, 0, 56)
+	critical := thinkTimeForPosition(clock, 0, 56, parsed.Board, color.Black)
+
+	assert.Equal(t, 50*time.Millisecond, base, "test setup should reproduce the live 50ms budget cliff")
+	assert.True(t, critical >= 1900*time.Millisecond, "critical position should retain a useful search budget, got %s", critical)
+	assert.True(t, critical <= 2*time.Second, "low-clock critical budget should remain bounded, got %s", critical)
+}
+
 func TestThinkTimeForPositionDoesNotExtendQuietOpening(t *testing.T) {
 	b := &board.Board{}
 	b.ResetDefault()

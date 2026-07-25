@@ -204,8 +204,8 @@ func TestABDADAResetRootSearchHeuristics(t *testing.T) {
 	}
 }
 
-func TestABDADAStableDepthMoveKeepsPreviousMoveOnLargeRegression(t *testing.T) {
-	safeMove := location.Move{
+func TestABDADAStableDepthMoveAcceptsCompletedMoveOnLargeRegression(t *testing.T) {
+	previousMove := location.Move{
 		Start: location.NewLocation(5, 3),
 		End:   location.NewLocation(6, 2),
 	}
@@ -215,15 +215,34 @@ func TestABDADAStableDepthMoveKeepsPreviousMoveOnLargeRegression(t *testing.T) {
 	}
 
 	got := stableDepthMove(
-		ScoredMove{Move: safeMove, Score: -138},
+		ScoredMove{Move: previousMove, Score: -138},
 		ScoredMove{Move: regressedMove, Score: -540},
 	)
 
-	if !got.Move.Equals(&safeMove) {
-		t.Fatalf("expected stable move %s, got %s", safeMove, got.Move)
+	if !got.Move.Equals(&regressedMove) {
+		t.Fatalf("expected completed deeper move %s, got %s", regressedMove, got.Move)
 	}
 	if got.Score != -540 {
 		t.Fatalf("expected regressed score to be preserved, got %d", got.Score)
+	}
+}
+
+func TestABDADAStableDepthMoveFallsBackFromInvalidMove(t *testing.T) {
+	previousMove := location.Move{
+		Start: location.NewLocation(5, 3),
+		End:   location.NewLocation(6, 2),
+	}
+
+	got := stableDepthMove(
+		ScoredMove{Move: previousMove, Score: -138},
+		ScoredMove{Score: NegInf},
+	)
+
+	if !got.Move.Equals(&previousMove) {
+		t.Fatalf("expected previous legal move %s, got %s", previousMove, got.Move)
+	}
+	if got.Score != -138 {
+		t.Fatalf("expected previous score to be preserved, got %d", got.Score)
 	}
 }
 

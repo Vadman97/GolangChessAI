@@ -62,3 +62,41 @@ func TestABDADASeesQueenMinorAttackAfterBxg6(t *testing.T) {
 		t.Fatalf("expected c2g6 attack to at least match e3d4 material grab, got c2g6=%d e3d4=%d", attack, material)
 	}
 }
+
+func TestABDADARootVerificationKeepsRookAttack(t *testing.T) {
+	parsed, err := analysis.ParseFEN("4rrk1/1p1bn1b1/p1p3pp/q1B5/4NP2/3P1N2/PPP2QPP/R4RK1 b - - 0 18")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	algorithm := &ai.ABDADA{NumThreads: 8}
+	player := ai.NewAIPlayer(parsed.Active, algorithm)
+	player.MaxSearchDepth = 5
+	player.TranspositionTableEnabled = true
+	player.PrintInfo = false
+	player.Debug = false
+
+	best := algorithm.GetBestMove(player, parsed.Board, parsed.Previous)
+	if uci := analysis.MoveToUCI(best.Move); uci != "f8f4" {
+		t.Fatalf("expected active rook capture f8f4, got %s score=%d", uci, best.Score)
+	}
+}
+
+func TestABDADADeepRootTieBreakAvoidsKnightRetreat(t *testing.T) {
+	parsed, err := analysis.ParseFEN("4rrk1/3bn1b1/pBp3pp/7q/2P1NP2/3P1N2/PP3QPP/4RRK1 b - - 2 21")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	algorithm := &ai.ABDADA{NumThreads: 8}
+	player := ai.NewAIPlayer(parsed.Active, algorithm)
+	player.MaxSearchDepth = 5
+	player.TranspositionTableEnabled = true
+	player.PrintInfo = false
+	player.Debug = false
+
+	best := algorithm.GetBestMove(player, parsed.Board, parsed.Previous)
+	if uci := analysis.MoveToUCI(best.Move); uci != "e7f5" {
+		t.Fatalf("expected deeper tie-break to prefer e7f5, got %s score=%d", uci, best.Score)
+	}
+}
