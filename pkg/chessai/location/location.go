@@ -21,14 +21,15 @@ var LeftMove = RelativeLocation{0, -1}
 var LeftUpMove = RelativeLocation{-1, -1}
 
 type Location struct {
-	// row stored in 3 bits, col stored in 3 bits
-	// 2 bits store pawn promotion piece
-	data byte
+	// row and col use 3 bits each; the low 3 bits encode zero for an ordinary
+	// square or index+1 into PawnPromotionOptions. Chess has four legal
+	// promotion pieces, so the old 2-bit layout could not represent bishops.
+	data uint16
 }
 
 func NewLocation(row, col CoordinateType) (l Location) {
-	l.data |= (byte(row) & 0x7) << 5
-	l.data |= (byte(col) & 0x7) << 2
+	l.data |= (uint16(row) & 0x7) << 6
+	l.data |= (uint16(col) & 0x7) << 3
 	return
 }
 
@@ -40,7 +41,7 @@ func (l Location) CreatePawnPromotion(promotedType byte) Location {
 	// Encode as index+1 into PawnPromotionOptions (0 = no promotion).
 	for i, option := range piece.PawnPromotionOptions {
 		if promotedType == option {
-			l.data |= byte(i + 1)
+			l.data |= uint16(i + 1)
 			return l
 		}
 	}
@@ -48,17 +49,17 @@ func (l Location) CreatePawnPromotion(promotedType byte) Location {
 }
 
 func (l *Location) GetPawnPromotion() (isPromotion bool, promotedType byte) {
-	data := l.data & 0x3
+	data := l.data & 0x7
 	if data != 0 {
 		isPromotion = true
-		promotedType = piece.PawnPromotionOptions[data-1]
+		promotedType = piece.PawnPromotionOptions[int(data-1)]
 	}
 	return
 }
 
 func (l Location) Get() (row, col CoordinateType) {
-	row = CoordinateType((l.data & (byte(0x7) << 5)) >> 5)
-	col = CoordinateType((l.data & (byte(0x7) << 2)) >> 2)
+	row = CoordinateType((l.data & (uint16(0x7) << 6)) >> 6)
+	col = CoordinateType((l.data & (uint16(0x7) << 3)) >> 3)
 	return
 }
 
@@ -73,7 +74,7 @@ func (l Location) GetCol() (col CoordinateType) {
 }
 
 func (l Location) GetPromotionPiece() byte {
-	return l.data & (byte(0x3))
+	return byte(l.data & 0x7)
 }
 
 func (l Location) Add(v Location) Location {

@@ -100,3 +100,87 @@ func TestABDADADeepRootTieBreakAvoidsKnightRetreat(t *testing.T) {
 		t.Fatalf("expected deeper tie-break to prefer e7f5, got %s score=%d", uci, best.Score)
 	}
 }
+
+func TestABDADANullMoveGuardFindsBishopDefense(t *testing.T) {
+	positions := []struct {
+		fen      string
+		expected map[string]bool
+	}{
+		{
+			fen: "1rb3k1/pp4pp/1q6/3pP1Q1/3b1P2/P2B4/6PP/5R1K b - - 0 27",
+			expected: map[string]bool{
+				"c8d7": true,
+				"d4e3": true,
+			},
+		},
+		{
+			fen: "1rb3k1/pp5p/1q4p1/3pPPQ1/3b4/P2B4/6PP/5R1K b - - 0 28",
+			expected: map[string]bool{
+				"d4e3": true,
+			},
+		},
+	}
+
+	for _, position := range positions {
+		parsed, err := analysis.ParseFEN(position.fen)
+		if err != nil {
+			t.Fatal(err)
+		}
+		algorithm := &ai.ABDADA{NumThreads: 8}
+		player := ai.NewAIPlayer(parsed.Active, algorithm)
+		player.MaxSearchDepth = 6
+		player.TranspositionTableEnabled = true
+		player.PrintInfo = false
+		player.Debug = false
+
+		best := algorithm.GetBestMove(player, parsed.Board, parsed.Previous)
+		uci := analysis.MoveToUCI(best.Move)
+		if !position.expected[uci] {
+			t.Fatalf("expected a bishop defense in %s, got %s score=%d", position.fen, uci, best.Score)
+		}
+	}
+}
+
+func TestABDADADeepVerificationIncludesThirdCloseRootMove(t *testing.T) {
+	parsed, err := analysis.ParseFEN("5rk1/3qppb1/3p1np1/rp4Bp/1R2P3/p1N5/P1PQ1PPP/1R4K1 w - - 4 22")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	algorithm := &ai.ABDADA{NumThreads: 8}
+	player := ai.NewAIPlayer(parsed.Active, algorithm)
+	player.MaxSearchDepth = 5
+	player.TranspositionTableEnabled = true
+	player.PrintInfo = false
+	player.Debug = false
+
+	best := algorithm.GetBestMove(player, parsed.Board, parsed.Previous)
+	uci := analysis.MoveToUCI(best.Move)
+	if uci == "c3b5" {
+		t.Fatalf("deep verification excluded the quiet defense and kept the logged Nb5 blunder, score=%d", best.Score)
+	}
+	switch uci {
+	case "f2f3", "d2d3":
+	default:
+		t.Fatalf("expected a quiet defensive move, got %s score=%d", uci, best.Score)
+	}
+}
+
+func TestABDADAWideRootVerificationFindsQueenCentralization(t *testing.T) {
+	parsed, err := analysis.ParseFEN("2krr3/p4ppp/Pp6/n1p2b2/2PP4/2R1qN2/1B2B1PP/3QK2R b K - 3 19")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	algorithm := &ai.ABDADA{NumThreads: 8}
+	player := ai.NewAIPlayer(parsed.Active, algorithm)
+	player.MaxSearchDepth = 5
+	player.TranspositionTableEnabled = true
+	player.PrintInfo = false
+	player.Debug = false
+
+	best := algorithm.GetBestMove(player, parsed.Board, parsed.Previous)
+	if uci := analysis.MoveToUCI(best.Move); uci != "e3e4" {
+		t.Fatalf("expected fresh root verification to find e3e4, got %s score=%d", uci, best.Score)
+	}
+}

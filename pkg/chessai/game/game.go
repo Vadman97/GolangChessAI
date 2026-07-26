@@ -16,6 +16,7 @@ import (
 	"log"
 	"math"
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
@@ -40,6 +41,7 @@ type Game struct {
 	SocketBroadcast    chan api.ChessMessage
 	GamePrinter        chan string
 	quit               chan bool
+	backgroundStopped  uint32
 }
 
 type Outcome struct {
@@ -117,6 +119,7 @@ func (g *Game) PlayTurn() bool {
 		if g.GameStatus == Active {
 			g.GamePrinter <- fmt.Sprintf("Move #%d by %s\n", g.MovesPlayed, color.Names[g.CurrentTurnColor^1])
 		} else {
+			atomic.StoreUint32(&g.backgroundStopped, 1)
 			g.GamePrinter <- fmt.Sprintf("Game Over! Result is: %s\n", StatusStrings[g.GameStatus])
 		}
 	}
@@ -141,14 +144,14 @@ func (g *Game) PlayTurn() bool {
 	return g.GameStatus == Active
 }
 
-// Stop marks the game as no longer active so its background goroutines
-// (memoryThread, printThread) fall out of their `for g.GameStatus == Active`
-// loops and exit. Without this, abandoning a game (e.g. between Lichess games,
+// Stop marks the game as no longer active and atomically stops its background
+// goroutines. Without this, abandoning a game (e.g. between Lichess games,
 // where the game often ends server-side before we detect a terminal status
 // locally) leaks both goroutines — and each keeps a reference to the Game, its
 // players, and their transposition/evaluation caches, so memory is never freed
 // across back-to-back games. Safe to call multiple times.
 func (g *Game) Stop() {
+	atomic.StoreUint32(&g.backgroundStopped, 1)
 	if g.GameStatus == Active {
 		g.GameStatus = Aborted
 	}
@@ -178,6 +181,9 @@ func (g *Game) PlayTurnMove(move *location.Move) {
 		g.GameStatus = RepeatedActionThreeTimeDraw
 	} else if g.CurrentBoard.IsInsufficientMaterial() {
 		g.GameStatus = InsufficientMaterialDraw
+	}
+	if g.GameStatus != Active {
+		atomic.StoreUint32(&g.backgroundStopped, 1)
 	}
 }
 
@@ -363,7 +369,7 @@ func (g *Game) GetStatusJSON() *api.GameStatusJSON {
 }
 
 func (g *Game) memoryThread() {
-	for g.GameStatus == Active {
+	for atomic.LoadUint32(&g.backgroundStopped) == 0 {
 		if util.GetMemoryUsed() > g.CacheMemoryLimit {
 			g.GamePrinter <- fmt.Sprintf("Clearing caches\n")
 			g.ClearCaches(false)
@@ -376,7 +382,7 @@ func (g *Game) memoryThread() {
 }
 
 func (g *Game) printThread() {
-	for g.GameStatus == Active {
+	for atomic.LoadUint32(&g.backgroundStopped) == 0 {
 		util.PrintPrinter(g.GamePrinter, g.PrintInfo)
 	}
 	util.PrintPrinter(g.GamePrinter, g.PrintInfo)

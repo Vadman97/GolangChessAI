@@ -13,6 +13,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/game"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
 	"github.com/stretchr/testify/assert"
@@ -57,9 +58,16 @@ func TestThinkTimeForClockScalesCapForLongerTimeControls(t *testing.T) {
 }
 
 func TestThinkTimeForClockCapsOpeningMoves(t *testing.T) {
-	assert.Equal(t, 500*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 0))
-	assert.Equal(t, 500*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 3))
+	assert.Equal(t, 1200*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 0))
+	assert.Equal(t, 1200*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 3))
 	assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, 4))
+}
+
+func TestParseUCIMovePreservesBishopUnderpromotion(t *testing.T) {
+	move := parseUCIMove("c2c1b")
+	promoted, promotedType := move.End.GetPawnPromotion()
+	assert.True(t, promoted)
+	assert.Equal(t, piece.BishopType, promotedType)
 }
 
 // TestThinkTimeForClockShrinksAndBuffersEndgame checks the 3+0 tuning: from the
@@ -137,6 +145,21 @@ func TestThinkTimeForPositionAvoidsTwentySecondCliff(t *testing.T) {
 	assert.True(t, critical <= 2*time.Second, "low-clock critical budget should remain bounded, got %s", critical)
 }
 
+func TestThinkTimeForPositionExtendsQueenKingRingAttack(t *testing.T) {
+	parsed, err := analysis.ParseFEN("1rb3k1/pp4pp/1q6/3pP1Q1/3b1P2/P2B4/6PP/5R1K b - - 0 27")
+	assert.NoError(t, err)
+
+	const clock = 29 * time.Second
+	base := thinkTimeForClock(clock, time.Second, 27)
+	critical := thinkTimeForPosition(clock, time.Second, 27, parsed.Board, color.Black)
+
+	assert.True(t, enemyQueenPressuresKingRing(parsed.Board, color.Black),
+		"white queen on g5 should register pressure against the black king ring")
+	assert.True(t, base < 2*time.Second, "test setup expected the short live-game budget, got %s", base)
+	assert.Equal(t, 3*time.Second, critical,
+		"queen attack should receive the configured tactical-search cap")
+}
+
 func TestThinkTimeForPositionDoesNotExtendQuietOpening(t *testing.T) {
 	b := &board.Board{}
 	b.ResetDefault()
@@ -145,6 +168,23 @@ func TestThinkTimeForPositionDoesNotExtendQuietOpening(t *testing.T) {
 		thinkTimeForClock(50*time.Second, 0, 6),
 		thinkTimeForPosition(50*time.Second, 0, 6, b, color.White),
 	)
+}
+
+func TestGameFullFinishedStatusClearsStaleGame(t *testing.T) {
+	l := &Lichess{
+		GameID: "STALE",
+		Player: randomAI(color.Black),
+		Game:   game.NewGame(player.NewHumanPlayer(color.White), randomAI(color.Black)),
+	}
+
+	l.Mutex.Lock()
+	err := l.handleGameFullLocked(&GameEvent{Status: "aborted", Moves: "a2a3"})
+	l.Mutex.Unlock()
+
+	assert.NoError(t, err)
+	assert.Nil(t, l.Game, "finished gameFull must not leave the bot stuck rejecting challenges")
+	assert.Nil(t, l.Player)
+	assert.Equal(t, 0, l.movesApplied)
 }
 
 // TestClaimsDrawOnOpponentRepetition reproduces the NskVQaIw failure: the opponent's

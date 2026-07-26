@@ -22,11 +22,14 @@ const (
 	aspirationDelta    = 50  // initial window half-width in centipawns
 	aspirationMaxDelta = 500 // full-window fallback after repeated failures
 	aspirationWiden    = 4   // multiply delta by this on each failure
-	nullMoveMinDepth   = 3   // minimum depth to attempt null move
-	nullMoveR          = 2   // null move depth reduction (increases to 3 at depth>=7)
-	lmrMinDepth        = 3   // minimum depth before LMR kicks in
-	lmrMinMoveIdx      = 3   // LMR applies after this many moves have been searched
-	maxExtensions      = 4   // total check-extension budget per branch
+	// At depth 3-4, R=2 leaves only qsearch after the null move. That was too
+	// shallow to refute threats and caused repeatable 250cp tactical misses in
+	// game Shv7DOi0. Keep NMP for deeper nodes where a real reply search remains.
+	nullMoveMinDepth = 5
+	nullMoveR        = 2 // null move depth reduction (increases to 3 at depth>=7)
+	lmrMinDepth      = 3 // minimum depth before LMR kicks in
+	lmrMinMoveIdx    = 3 // LMR applies after this many moves have been searched
+	maxExtensions    = 4 // total check-extension budget per branch
 
 	// Futility pruning: skip quiet moves at frontier/pre-frontier nodes when the
 	// static eval is far below alpha. Margins indexed by depth (1 or 2).
@@ -332,16 +335,27 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 	// Skip at ply=0 (root): pruning here returns ScoredMove{Score:beta, Move:zero}
 	// with no valid move, which propagates up and triggers a random-move fallback.
 	// Skip when in check, in zugzwang-prone endgames, or after a prior null move.
+	//
+	// The static-eval guard is important in tactical positions: a reduced null
+	// search can spuriously fail high even though the side to move is not
+	// statically good enough to reach beta. Without the guard, game Shv7DOi0
+	// repeatedly preferred ...g6/...h6 while its bishop was exposed; disabling
+	// null move found the defensive bishop move in both positions. Requiring
+	// eval >= beta is the standard NMP precondition and also naturally disables
+	// null move at full-window PV nodes where beta is PosInf.
 	if !ab.DisableNullMove && nullMoveOk && !inCheck && depth >= nullMoveMinDepth && !onlyKingAndPawns(root, currentPlayer) && ply > 0 {
-		R := nullMoveR
-		if depth >= 7 {
-			R = 3
-		}
-		nullVal := ab.ABDADA(root, depth-1-R, -beta, -beta+1, false, currentPlayer^1, nil, false, ply+1, extensions, false)
-		nullVal.Score = -nullVal.Score
-		if nullVal.Score >= beta {
-			atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, 1)
-			return ScoredMove{Score: beta, PathDependentDraw: nullVal.PathDependentDraw}
+		staticEval := ab.player.EvaluateBoard(root, currentPlayer).TotalScore
+		if staticEval >= beta {
+			R := nullMoveR
+			if depth >= 7 {
+				R = 3
+			}
+			nullVal := ab.ABDADA(root, depth-1-R, -beta, -beta+1, false, currentPlayer^1, nil, false, ply+1, extensions, false)
+			nullVal.Score = -nullVal.Score
+			if nullVal.Score >= beta {
+				atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, 1)
+				return ScoredMove{Score: beta, PathDependentDraw: nullVal.PathDependentDraw}
+			}
 		}
 	}
 
@@ -751,29 +765,79 @@ func (ab *ABDADA) verifyCloseRootMoves(b *board.Board, depth int, best, second S
 	// deeper so the result adds information instead of sampling the same horizon
 	// again. A wider gap keeps the original exact root result.
 	const deepVerifyMargin = 30
-	if second.Move.Start.Equals(second.Move.End) || best.Score-second.Score > deepVerifyMargin {
+	const wideDeepVerifyMargin = 80
+	const wideDeepVerifyMinTime = 4 * time.Second
+	verifyMargin := deepVerifyMargin
+	// With a healthy clock, admit a slightly wider set of parallel root
+	// candidates to the fresh-state verifier. In LIuIYRzg the workers put the
+	// only sound move 51cp behind their choice at depth 5, while a fresh serial
+	// score and every depth >= 6 preferred it. Keep short searches on the
+	// narrower window: the wider verification costs useful depth at 2-3s.
+	if ab.player.MaxThinkTime == 0 || ab.player.MaxThinkTime >= wideDeepVerifyMinTime {
+		verifyMargin = wideDeepVerifyMargin
+	}
+	if second.Move.Start.Equals(second.Move.End) || best.Score-second.Score > verifyMargin {
 		return best
 	}
 	const minDeepRootVerifyTime = 2 * time.Second
 	if ab.player.MaxThinkTime > 0 && ab.player.MaxThinkTime < minDeepRootVerifyTime {
 		return best
 	}
-	verifyDepth := depth + 2
-	verifiedBest := ab.searchRootMoveFresh(b, best.Move, verifyDepth)
-	verifiedSecond := ab.searchRootMoveFresh(b, second.Move, verifyDepth)
-	if verifiedBest.Score == OnEvaluation || verifiedBest.Score == -OnEvaluation {
-		return best
-	}
-	if verifiedSecond.Score != OnEvaluation && verifiedSecond.Score != -OnEvaluation && verifiedSecond.Score > verifiedBest.Score {
-		verifiedSecond.ReturnThisMove = true
-		return verifiedSecond
-	}
-	return verifiedBest
+	return ab.verifyParallelRootTie(b, depth, best, candidates, verifyMargin)
 }
 
 func (ab *ABDADA) searchRootMoveFresh(b *board.Board, move location.Move, depth int) ScoredMove {
 	worker := ab.newWorkerAB()
 	return worker.searchRootMove(b, move, depth, NegInf, PosInf)
+}
+
+func (ab *ABDADA) verifyParallelRootTie(b *board.Board, depth int, best ScoredMove, candidates []ScoredMove, margin int) ScoredMove {
+	// Worker-local TTs can disagree by a few centipawns at the root. First
+	// rescore every reported near-tie with fresh state at the SAME depth so the
+	// two moves sent to the deeper tie-break are genuinely the top two. This
+	// recovered f3 in game 9SUqYqfp without admitting the inferior ...Nc8 move
+	// caught by TestABDADADeepRootTieBreakAvoidsKnightRetreat.
+	freshBest := ScoredMove{Score: NegInf}
+	freshSecond := ScoredMove{Score: NegInf}
+	for _, candidate := range candidates {
+		if best.Score-candidate.Score > margin {
+			continue
+		}
+		fresh := ab.searchRootMoveFresh(b, candidate.Move, depth)
+		if ab.player.isAborted() {
+			return best
+		}
+		if fresh.Score == OnEvaluation || fresh.Score == -OnEvaluation {
+			continue
+		}
+		freshBest, freshSecond = updateRootTopTwo(freshBest, freshSecond, fresh)
+	}
+	if freshBest.Move.Start.Equals(freshBest.Move.End) {
+		return best
+	}
+	if freshSecond.Move.Start.Equals(freshSecond.Move.End) || freshBest.Score-freshSecond.Score > margin {
+		if !sameRootMove(freshBest, best) {
+			freshBest.ReturnThisMove = true
+		}
+		return freshBest
+	}
+
+	verifyDepth := depth + 2
+	deepBest := ab.searchRootMoveFresh(b, freshBest.Move, verifyDepth)
+	if ab.player.isAborted() || deepBest.Score == OnEvaluation || deepBest.Score == -OnEvaluation {
+		return best
+	}
+	deepSecond := ab.searchRootMoveFresh(b, freshSecond.Move, verifyDepth)
+	if ab.player.isAborted() || deepSecond.Score == OnEvaluation || deepSecond.Score == -OnEvaluation {
+		return best
+	}
+	if deepSecond.Score > deepBest.Score {
+		deepBest = deepSecond
+	}
+	if !sameRootMove(deepBest, best) {
+		deepBest.ReturnThisMove = true
+	}
+	return deepBest
 }
 
 func shouldDeepVerifyRoot(b *board.Board, side color.Color, depth int, best ScoredMove, candidates []ScoredMove) bool {

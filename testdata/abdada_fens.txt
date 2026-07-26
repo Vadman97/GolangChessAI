@@ -88,3 +88,8 @@ r1b4r/ppNk1ppp/1qn1pn2/1B1p4/1b3B1P/4pN2/PPP2PP1/R2Q1K1R w - - 0 11 | lichess-mI
 r4rk1/pp2ppbp/2qp2p1/n4b2/1RP3n1/P2PP2N/2KN1PPP/2BQ1B1R b - - 0 15 | lichess-vVm9J7Ja-ply30 | b7b5 | g7c3 | blunder loss=652cp sf-depth=12
 6k1/4pp2/6P1/4n3/r1P1PN2/P1KP1P2/4B2P/1qB3QR b - - 0 36 | lichess-vVm9J7Ja-ply72 | b1b8 | g8f8 | blunder loss=185cp sf-depth=12
 5k2/4pP2/8/4n3/r1P1PN2/P1KP1P2/4B2P/1qB3QR b - - 0 37 | lichess-vVm9J7Ja-ply74 | b1a1 | f8f7 | blunder loss=164cp sf-depth=12
+1rb3k1/pp4pp/1q6/3pP1Q1/3b1P2/P2B4/6PP/5R1K b - - 0 27 | lichess-Shv7DOi0-ply54 | c8d7 | g7g6 | null-move cutoff and short non-critical budget chose 27...g6; guarded NMP plus queen-ring time finds ...Bd7
+1rb3k1/pp5p/1q4p1/3pPPQ1/3b4/P2B4/6PP/5R1K b - - 0 28 | lichess-Shv7DOi0-ply56 | d4e3 | h7h6 | consecutive null-move miss; 28...h6 lost roughly 300cp while ...Be3 preserves the advantage
+5rk1/3qppb1/3p1np1/rp4Bp/1R2P3/p1N5/P1PQ1PPP/1R4K1 w - - 4 22 | lichess-9SUqYqfp-ply43 | f2f3,d2d3 | c3b5 | parallel root top-two verification excluded the quiet defense; fresh same-depth rescore plus deep tie-break finds f3
+2krr3/p4ppp/Pp6/n1p2b2/2PP4/2R1qN2/1B2B1PP/3QK2R b K - 3 19 | lichess-LIuIYRzg-ply38 | e3e4 | e3f4 | parallel depth-5 workers put Qe4 51cp outside the narrow verifier; healthy-clock wide verification recovers the only sound queen move
+r1bqkbnr/pp1ppppp/2n5/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq d3 0 3 | lichess-ZnHWdJRD-ply6 | c5d4 | g8f6 | 500ms opening cap stopped at unstable depth 4; a 1.2s first searched opening move finds cxd4 consistently

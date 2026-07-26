@@ -20,10 +20,9 @@ const (
 	PawnType   = byte(6)
 )
 
-// Queen first so the engine prefers it; Rook and Knight cover practical underpromotions.
-// BishopType is not included: 2-bit field holds only 3 values, and bishop underpromotion
-// is essentially never played (knight covers stalemate-avoidance cases).
-var PawnPromotionOptions = [...]byte{QueenType, RookType, KnightType}
+// Queen first so move ordering naturally prefers the usual promotion, followed
+// by every legal underpromotion choice.
+var PawnPromotionOptions = [...]byte{QueenType, RookType, BishopType, KnightType}
 
 var NameToType = map[rune]byte{
 	RookChar:   RookType,

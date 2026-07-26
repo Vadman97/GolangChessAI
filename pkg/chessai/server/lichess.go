@@ -255,14 +255,16 @@ func (l *Lichess) resetGame() {
 //     time in the bank.
 //   - The reserve grows from 3s up to 18s (i.e. ~15s more buffer than before)
 //     as the endgame deepens.
-//   - The first few moves are capped to 500ms so opening play stays responsive.
+//   - The first few moves are capped to 1.2s. The fixed opening consumes the
+//     first two turns almost instantly; the added time is for the first real
+//     search, where 500ms missed 3...cxd4 in game ZnHWdJRD.
 //   - Capped by game_conf.json AIMaxThinkTimeMs (or 8s if unset), with a modest
 //     healthy-clock midgame boost so the configured 3+0 cap does not flatten
 //     every rich position to the same budget.
 func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Duration {
 	const baseReserve = 3 * time.Second
 	const maxExtraReserve = 15 * time.Second // larger buffer once we reach the endgame
-	const openingCap = 500 * time.Millisecond
+	const openingCap = 1200 * time.Millisecond
 	const midgameStart = 10
 
 	// Endgame begins ~35 ply, i.e. this side's ~17th move (TurnCount counts our
@@ -374,6 +376,9 @@ func isCriticalSearchPosition(b *board.Board, side color.Color) bool {
 	if b.IsKingInCheck(side) {
 		return true
 	}
+	if enemyQueenPressuresKingRing(b, side) {
+		return true
+	}
 	hasQueen := false
 	hasRookOrMinor := false
 	pieceCount := 0
@@ -428,6 +433,42 @@ func isCriticalSearchPosition(b *board.Board, side color.Color) bool {
 	// critical-position floor when there is still enough clock to do so.
 	if pieceCount <= 10 && (hasRookOrMinor || dangerousPassedPawn) {
 		return true
+	}
+	return false
+}
+
+// enemyQueenPressuresKingRing catches forcing attacks one move before they
+// become check. The old critical-position detector only noticed an existing
+// check, passed pawns, or low material, so game Shv7DOi0 gave ABDADA ~1.4s in
+// two positions where a queen was already attacking squares beside our king.
+// A 3s search found the defensive bishop move consistently; the short search
+// played weakening pawn moves worth 250-300cp.
+func enemyQueenPressuresKingRing(b *board.Board, side color.Color) bool {
+	king := b.KingLocations[side]
+	kingRow, kingCol := int(king.GetRow()), int(king.GetCol())
+	enemy := side ^ 1
+	for row := location.CoordinateType(0); row < board.Height; row++ {
+		for col := location.CoordinateType(0); col < board.Width; col++ {
+			p := b.GetPiece(location.NewLocation(row, col))
+			if p == nil || p.GetColor() != enemy || p.GetPieceType() != piece.QueenType {
+				continue
+			}
+			attacks := p.GetAttackableMoves(b)
+			for dr := -1; dr <= 1; dr++ {
+				for dc := -1; dc <= 1; dc++ {
+					r, c := kingRow+dr, kingCol+dc
+					if r < 0 || r >= board.Height || c < 0 || c >= board.Width {
+						continue
+					}
+					if attacks.IsLocationSet(location.NewLocation(
+						location.CoordinateType(r),
+						location.CoordinateType(c),
+					)) {
+						return true
+					}
+				}
+			}
+		}
 	}
 	return false
 }
@@ -495,9 +536,23 @@ func (l *Lichess) handleEvent(event *Event) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		l.boardStreamCancel = cancel
 		go func() {
-			err := l.StreamBoardUpdate(ctx, event.Game.GameID, l.GameEvents)
-			if err != nil && ctx.Err() == nil {
-				log.Errorf("failed to stream board update %s", err)
+			backoff := 3 * time.Second
+			for ctx.Err() == nil {
+				err := l.StreamBoardUpdate(ctx, event.Game.GameID, l.GameEvents)
+				if ctx.Err() != nil {
+					return
+				}
+				if err != nil {
+					log.Errorf("failed to stream board update %s — reconnecting in %s", err, backoff)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(backoff):
+				}
+				if backoff < 30*time.Second {
+					backoff *= 2
+				}
 			}
 		}()
 
@@ -585,9 +640,7 @@ func parseUCIMove(uci string) *location.Move {
 		case 'r':
 			promoType = piece.RookType
 		case 'b':
-			// BishopType can't be encoded in the 2-bit promotion field (only Queen/Rook/Knight fit).
-			// Bishop underpromotion is essentially never played; treat as queen.
-			promoType = piece.QueenType
+			promoType = piece.BishopType
 		case 'n':
 			promoType = piece.KnightType
 		}
@@ -631,6 +684,18 @@ func (l *Lichess) handleBoardUpdate(event *GameEvent) error {
 func (l *Lichess) handleGameFullLocked(state *GameEvent) error {
 	if l.Player == nil || l.Game == nil {
 		log.Errorf("gameFull received but no active game")
+		return nil
+	}
+	if state.Status != "" && state.Status != "started" {
+		log.Infof("gameFull status %q — clearing finished game %s", state.Status, l.GameID)
+		l.resetGame()
+		if l.exitAfterGame != nil {
+			select {
+			case <-l.exitAfterGame:
+			default:
+				close(l.exitAfterGame)
+			}
+		}
 		return nil
 	}
 	if state.Moves == "" {
@@ -1039,9 +1104,9 @@ func (l *Lichess) Stream(s chan<- Event) error {
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 	if response.StatusCode == 429 {
 		// Rate-limited: back off for 5 minutes before the caller retries.
-		_ = response.Body.Close()
 		log.Warnf("event stream rate limited (HTTP 429) — backing off 5 minutes")
 		time.Sleep(5 * time.Minute)
 		return fmt.Errorf("rate limited (429)")
@@ -1084,8 +1149,8 @@ func (l *Lichess) StreamBoardUpdate(ctx context.Context, gameID string, s chan<-
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 	if response.StatusCode == 429 {
-		_ = response.Body.Close()
 		time.Sleep(60 * time.Second)
 		return fmt.Errorf("rate limited (429)")
 	}
