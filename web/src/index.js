@@ -250,8 +250,17 @@ function renderTournamentResult(leaderboard) {
 }
 
 function speak(text) {
-  if (!isSpectate) {
-    speak(text);
+  if (
+    isSpectate ||
+    !('speechSynthesis' in window) ||
+    typeof SpeechSynthesisUtterance === 'undefined'
+  ) return;
+
+  try {
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  } catch (err) {
+    // Speech is optional and must never interrupt a move/drop handler.
+    console.warn('Unable to play speech', err);
   }
 }
 
