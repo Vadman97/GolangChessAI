@@ -526,8 +526,8 @@ func (ab *ABDADA) getBestMove(b *board.Board, depth, alpha, beta int, previousMo
 	originalAlpha := alpha
 	originalBeta := beta
 	if ab.NumThreads == 0 {
-		ab.NumThreads = runtime.NumCPU()
-		log.Printf("ABDADA runs in parallel, defaulting to #%d threads (# cpu cores)\n", ab.NumThreads)
+		ab.NumThreads = defaultABDADAThreads(runtime.NumCPU(), ab.player.MaxThinkTime)
+		log.Printf("ABDADA runs in parallel, defaulting to #%d root workers (# cpu cores: %d)\n", ab.NumThreads, runtime.NumCPU())
 	}
 	if runtime.GOMAXPROCS(0) < ab.NumThreads {
 		runtime.GOMAXPROCS(ab.NumThreads)
@@ -700,6 +700,24 @@ collectResults:
 		ab.syncTTWrite(b, ab.player.PlayerColor, uint16(depth), originalAlpha, originalBeta, &best)
 	}
 	return best
+}
+
+// defaultABDADAThreads caps short searches at four workers. ABDADA's workers own
+// separate search state and therefore repeat part of the tree; on an 8-core host
+// the extra four workers produced more tactical regressions at 1.2-3s. At 10s+
+// they can convert the extra throughput into another completed depth, so long
+// controls retain up to eight cores. Explicit NumThreads values remain fixed.
+func defaultABDADAThreads(cpuCount int, thinkTime time.Duration) int {
+	if cpuCount < 1 {
+		return 1
+	}
+	if cpuCount > 8 {
+		cpuCount = 8
+	}
+	if thinkTime < 10*time.Second && cpuCount > 4 {
+		return 4
+	}
+	return cpuCount
 }
 
 func updateRootTopTwo(best, second, candidate ScoredMove) (ScoredMove, ScoredMove) {
@@ -1236,6 +1254,11 @@ func (ab *ABDADA) iterativeABDADA(b *board.Board, previousMove *board.LastMove) 
 
 func (ab *ABDADA) GetBestMove(p *AIPlayer, b *board.Board, previousMove *board.LastMove) *ScoredMove {
 	ab.player = p
+	autoThreads := ab.NumThreads == 0
+	if autoThreads {
+		ab.NumThreads = defaultABDADAThreads(runtime.NumCPU(), p.MaxThinkTime)
+		defer func() { ab.NumThreads = 0 }()
+	}
 	ab.resetRootSearchHeuristics()
 	ab.syncRootWorkersForMove()
 	if b.CacheGetAllMoves || b.CacheGetAllAttackableMoves {

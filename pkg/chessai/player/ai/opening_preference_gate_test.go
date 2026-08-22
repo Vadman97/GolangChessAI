@@ -89,6 +89,29 @@ func TestEarlyOpeningPreferenceAllowsEvenExchange(t *testing.T) {
 	assert.Equal(t, gateSquare(t, "d5"), got.End)
 }
 
+// Game B3cQwXvN: after the position-blind script played 1...e5 and 2...Nf6,
+// White entered the main Petroff forcing line with 3.Nxe5. The 1.2s search
+// completed depth 5 and chose 3...Nc6?!; 3...d6 avoids the structural concession.
+func TestPositionAwarePetroffResponsePlaysD6(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+	var prev *board.LastMove
+	prev = gateApply(t, b, prev, color.White, "e2e4")
+	prev = gateApply(t, b, prev, color.Black, "e7e5")
+	prev = gateApply(t, b, prev, color.White, "g1f3")
+	prev = gateApply(t, b, prev, color.Black, "g8f6")
+	prev = gateApply(t, b, prev, color.White, "f3e5")
+
+	nc6 := location.Move{Start: gateSquare(t, "b8"), End: gateSquare(t, "c6")}
+	p := NewAIPlayer(color.Black, &fixedOpeningRegressionAlgorithm{move: nc6})
+	p.Opening = OpeningNone
+	p.TurnCount = 2
+
+	got := p.GetBestMove(b, prev, nil)
+	assert.Equal(t, gateSquare(t, "d7"), got.Start)
+	assert.Equal(t, gateSquare(t, "d6"), got.End)
+}
+
 // Reproduces game DW9hIjlh: after 1.d4 Nf6 2.Nf3 g6 3.Bf4 d6 4.e3 Nh5 5.Bd3 Nxf4, the
 // London System book's next move (6.O-O) is legal and its own destination (g1) is safe,
 // so the destination-safety gate doesn't catch it. But the book has no way to notice that

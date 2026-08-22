@@ -6,6 +6,7 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
+	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"log"
 	"math/rand"
@@ -296,6 +297,9 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 		}
 		p.Opening = OpeningNone // book broken/illegal for this position; switch to search
 	}
+	if move := p.positionAwareOpeningResponse(b, previousMove); move != nil {
+		return move
+	}
 	if move := p.earlyOpeningPreference(b, previousMove); move != nil {
 		return move
 	}
@@ -340,6 +344,43 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 // the scripted book move by before the book is abandoned in favor of search. 100 = a
 // clean pawn or more left on the table.
 const bookMoveMissedCaptureThreshold = 100
+
+// positionAwareOpeningResponse handles small, fully identified opening branches
+// where the position-blind two-move script has ended but a standard forcing reply
+// is important. After 1.e4 e5 2.Nf3 Nf6 3.Nxe5, shallow odd-depth searches prefer
+// 3...Nc6?! and voluntarily accept doubled isolated c-pawns after Nxc6 dxc6.
+// 3...d6 is the normal Petroff response and was Stockfish's clear choice in game
+// B3cQwXvN. Match the actual board and last move, rather than extending the old
+// blind script, so deviations still fall through to search.
+func (p *AIPlayer) positionAwareOpeningResponse(b *board.Board, previousMove *board.LastMove) *location.Move {
+	if p.PlayerColor != color.Black || p.TurnCount != 2 || previousMove == nil {
+		return nil
+	}
+	f3 := location.NewLocation(2, 2)
+	e5 := location.NewLocation(4, 3)
+	f6 := location.NewLocation(5, 2)
+	d7 := location.NewLocation(6, 4)
+	d6 := location.NewLocation(5, 4)
+	if !previousMove.Move.Start.Equals(f3) || !previousMove.Move.End.Equals(e5) {
+		return nil
+	}
+	whiteKnight := b.GetPiece(e5)
+	blackKnight := b.GetPiece(f6)
+	blackPawn := b.GetPiece(d7)
+	if whiteKnight == nil || whiteKnight.GetColor() != color.White || whiteKnight.GetPieceType() != piece.KnightType ||
+		blackKnight == nil || blackKnight.GetColor() != color.Black || blackKnight.GetPieceType() != piece.KnightType ||
+		blackPawn == nil || blackPawn.GetColor() != color.Black || blackPawn.GetPieceType() != piece.PawnType {
+		return nil
+	}
+	for _, move := range *b.GetAllMoves(color.Black, previousMove) {
+		if move.Start.Equals(d7) && move.End.Equals(d6) {
+			m := move
+			p.printer <- fmt.Sprintf("position-aware opening response: %s\n", m)
+			return &m
+		}
+	}
+	return nil
+}
 
 // bookMoveMissesFreeCapture reports whether some other legal move captures material
 // more profitably (by SEE) than the scripted book move. The book is a fixed move list

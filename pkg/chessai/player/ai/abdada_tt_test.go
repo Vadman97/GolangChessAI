@@ -3,6 +3,7 @@ package ai
 import (
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
@@ -37,6 +38,28 @@ func TestABDADATTWriteUsesOriginalAlphaForExactScore(t *testing.T) {
 	entry := raw.(*transposition_table.TranspositionTableEntryABDADA)
 	if entry.EntryType != transposition_table.TrueScore {
 		t.Fatalf("expected exact TT score, got entry type %d", entry.EntryType)
+	}
+}
+
+func TestDefaultABDADAThreadsCapsRootParallelism(t *testing.T) {
+	tests := []struct {
+		cpus  int
+		think time.Duration
+		want  int
+	}{
+		{cpus: 0, think: time.Second, want: 1},
+		{cpus: 1, think: time.Second, want: 1},
+		{cpus: 2, think: 3 * time.Second, want: 2},
+		{cpus: 4, think: 3 * time.Second, want: 4},
+		{cpus: 8, think: 1200 * time.Millisecond, want: 4},
+		{cpus: 32, think: 3 * time.Second, want: 4},
+		{cpus: 8, think: 10 * time.Second, want: 8},
+		{cpus: 32, think: 15 * time.Second, want: 8},
+	}
+	for _, tc := range tests {
+		if got := defaultABDADAThreads(tc.cpus, tc.think); got != tc.want {
+			t.Fatalf("defaultABDADAThreads(%d, %s) = %d, want %d", tc.cpus, tc.think, got, tc.want)
+		}
 	}
 }
 
