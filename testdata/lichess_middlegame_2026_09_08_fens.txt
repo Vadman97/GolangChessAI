@@ -1,0 +1,24 @@
+# Positions extracted from /tmp/chess.lichess.log on September 8, 2026.
+# The temporary source log was no longer present on October 4; these FENs and
+# metadata were preserved from the original UCI replay, not reconstructed from grids.
+# Initial loss estimates used Stockfish depth 14; rerun Stockfish for comparisons.
+# fen | tag | expected-best-move-list | known-bad-move-list | notes
+r2qr3/5pkp/2ppbbpN/1p1n4/p2P4/P1PQ1B2/1P1B1PPP/R3R1K1 w - - 2 20 | lichess-qlDlv2bD-ply39 | h6g4,f3d5 | h2h4 | 20.h4; initial loss=213cp; depth-5 single-thread search improves with LMR disabled
+r3q3/5pkp/2pp1bpN/1p1b4/p2P4/P1PQ2P1/1P1B1P2/R5K1 w - - 1 24 | lichess-qlDlv2bD-ply47 | h6g4 | a1e1 | 24.Re1; initial loss=84cp
+4r3/3q1pkp/2pp1bpN/1p1b4/p2P2P1/P1PQ4/1P1B1P2/4R1K1 w - - 1 26 | lichess-qlDlv2bD-ply51 | e1e8 | e1c1 | 26.Rc1; initial loss=121cp
+rn1qkb1r/ppp2ppp/4bn2/8/3P4/5N2/PP2PPPP/RNBQKB1R b KQkq - 1 5 | lichess-RrxHqA6J-ply10 | c7c5 | b8c6 | 5...Nc6; initial loss=133cp
+r2q1rk1/ppp2ppp/2n1bn2/8/1b1P4/3BPN2/PP1N1PPP/R1BQK2R b KQ - 4 8 | lichess-RrxHqA6J-ply16 | c6a5 | b4d6 | 8...Bd6; initial loss=93cp
+r2q1rk1/ppp2ppp/3bb3/8/1n1PP1n1/5N2/PP1N1PPP/RBBQ1RK1 b - - 0 11 | lichess-RrxHqA6J-ply22 | f7f5 | d6f4 | 11...Bf4; initial loss=159cp
+r2q1rk1/ppp2ppp/n3b3/4P3/3P1bn1/P4N2/1P1N1PPP/RBBQ1RK1 b - - 0 13 | lichess-RrxHqA6J-ply26 | g4h6 | f7f6 | 13...f6; initial loss=91cp
+1r3rk1/Q1p3pp/n3q3/4Nb2/3P2P1/P4N1P/1P3P2/R1R3K1 b - g3 0 23 | lichess-RrxHqA6J-ply46 | b8b6 | f5d3 | 23...Bd3; initial loss=75cp
+1rq2rk1/Q1p3pp/n7/8/1N1P2P1/P4N1P/1P3P2/R1R3K1 b - - 2 25 | lichess-RrxHqA6J-ply50 | f8f3 | b8a8 | 25...Ra8; initial loss=87cp
+rnbqk2r/pp1p1ppp/4pn2/2b5/8/4PN2/PPP2PPP/RNBQKB1R w KQkq - 0 5 | lichess-Lmd5Up7B-ply9 | c2c4 | b2b4 | 5.b4; initial loss=182cp
+r1bq1rk1/pp3ppp/2n2n2/2bpp3/8/2PBPN2/PB1N1PPP/R2Q1RK1 w - - 0 11 | lichess-Lmd5Up7B-ply21 | c3c4 | d3c2 | 11.Bc2; initial loss=91cp
+r4rk1/p3qppp/3N1nb1/3p4/3N4/Q1PpPP2/P5PP/R4RK1 w - - 3 22 | lichess-Lmd5Up7B-ply43 | f1e1 | d4c6 | 22.Nc6; initial loss=105cp
+r4rk1/p4ppp/2NNqn2/3p4/8/Q1Pb1P2/P2p2PP/R4RK1 w - - 6 27 | lichess-Lmd5Up7B-ply53 | f1d1 | c6d4 | 27.Nd4; initial loss=370cp
+r1b2rk1/ppp2p2/2nq1n2/3p2B1/1b1P4/2NBP3/PP3PPP/R2Q1RK1 b - - 2 12 | lichess-KO5FXfxz-ply24 | b4c3 | f6e4 | 12...Ne4; initial loss=163cp
+r1b2rk1/p1p5/2pq4/5pBQ/1b1P4/4P3/PP3PPP/R4RK1 b - - 1 16 | lichess-KO5FXfxz-ply32 | d6e6 | c8a6 | 16...Ba6; initial loss=111cp
+3b1k2/Q7/2p2q2/3r1p2/1P1P4/P3P3/5PPP/3R2K1 b - b3 0 27 | lichess-KO5FXfxz-ply54 | f5f4 | f6e7 | 27...Qe7; initial loss=146cp
+r2qk2r/pp2bppp/4pn2/2pP4/1n6/2NPBQPP/PPP2PB1/R4RK1 b kq - 2 11 | lichess-Op67WYFO-ply22 | e6d5 | b4c2 | 11...Nxc2; initial loss=95cp
+r2q3r/pp2bkpp/5n2/2p5/8/2NPBQPP/PP3PB1/R5K1 b - - 0 14 | lichess-Op67WYFO-ply28 | d8d7 | f7g8 | 14...Kg8; initial loss=177cp
+3q2kr/7p/5np1/2QN4/8/3P2PP/Pr3PB1/R5K1 b - - 1 19 | lichess-Op67WYFO-ply38 | g8g7 | b2e2 | 19...Re2; initial loss=146cp

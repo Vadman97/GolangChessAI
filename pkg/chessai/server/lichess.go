@@ -255,16 +255,15 @@ func (l *Lichess) resetGame() {
 //     time in the bank.
 //   - The reserve grows from 3s up to 18s (i.e. ~15s more buffer than before)
 //     as the endgame deepens.
-//   - The first few moves are capped to 1.2s. The fixed opening consumes the
-//     first two turns almost instantly; the added time is for the first real
-//     search, where 500ms missed 3...cxd4 in game ZnHWdJRD.
+//   - Opening searches use the normal clock budget. Book moves already return
+//     almost instantly; capping searches after leaving the book can miss a
+//     necessary recapture even with a large clock (game 5JLfZAn3, 4...Nxe4).
 //   - Capped by game_conf.json AIMaxThinkTimeMs (or 8s if unset), with a modest
 //     healthy-clock midgame boost so the configured 3+0 cap does not flatten
 //     every rich position to the same budget.
 func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Duration {
 	const baseReserve = 3 * time.Second
 	const maxExtraReserve = 15 * time.Second // larger buffer once we reach the endgame
-	const openingCap = 1200 * time.Millisecond
 	const midgameStart = 10
 
 	// Endgame begins ~35 ply, i.e. this side's ~17th move (TurnCount counts our
@@ -314,9 +313,6 @@ func thinkTimeForClock(timeLeft, increment time.Duration, turnCount int) time.Du
 	}
 	if think < 50*time.Millisecond {
 		think = 50 * time.Millisecond
-	}
-	if turnCount < 4 && think > openingCap {
-		think = openingCap
 	}
 	maxThink := maxThinkTimeForClock(timeLeft)
 	if turnCount >= midgameStart && turnCount < endgameStart && timeLeft > 60*time.Second {

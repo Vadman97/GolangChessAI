@@ -1,0 +1,14 @@
+# Early search positions from six September 8, 2026 Lichess losses.
+# fen | tag | expected-best-move-list | known-bad-move-list | notes
+# The 5JLfZAn3 ply-6 position is omitted: positionAwareOpeningResponse plays ...d6 without search.
+rnbqkb1r/ppp1pppp/3p1n2/8/3P4/5N2/PPP1PPPP/RNBQKB1R w KQkq - 2 3 | lichess-qlDlv2bD-ply5 | | | 10+10 rapid; initial clock search cap 10s
+rnbqkb1r/pp2pppp/2pp1n2/8/3P4/4PN2/PPP2PPP/RNBQKB1R w KQkq - 0 4 | lichess-qlDlv2bD-ply7 | | | 10+10 rapid; initial clock search cap 10s
+rnbqkb1r/ppp1pppp/5n2/3P4/3P4/8/PP2PPPP/RNBQKBNR b KQkq - 0 3 | lichess-RrxHqA6J-ply6 | | | 3+2 blitz; initial clock search cap 3s
+rnbqkb1r/ppp2ppp/4Pn2/8/3P4/8/PP2PPPP/RNBQKBNR b KQkq - 0 4 | lichess-RrxHqA6J-ply8 | | | 3+2 blitz; initial clock search cap 3s
+rnbqkb1r/pppp1ppp/4pn2/8/3P4/5N2/PPP1PPPP/RNBQKB1R w KQkq - 0 3 | lichess-Lmd5Up7B-ply5 | | | 5+2 blitz; initial clock search cap 5s
+rnbqkb1r/pp1p1ppp/4pn2/2p5/3P4/4PN2/PPP2PPP/RNBQKB1R w KQkq c6 0 4 | lichess-Lmd5Up7B-ply7 | | | 5+2 blitz; initial clock search cap 5s
+rnbqkb1r/ppp1pppp/5n2/3p4/2PP4/5N2/PP2PPPP/RNBQKB1R b KQkq c3 0 3 | lichess-KO5FXfxz-ply6 | | | 15+5 rapid; initial clock search cap 15s
+rnbqkb1r/ppp2ppp/4pn2/3P4/3P4/5N2/PP2PPPP/RNBQKB1R b KQkq - 0 4 | lichess-KO5FXfxz-ply8 | | | 15+5 rapid; initial clock search cap 15s
+r1bqkbnr/pp1ppppp/2n5/2p5/4P3/5NP1/PPPP1P1P/RNBQKB1R b KQkq e3 0 3 | lichess-Op67WYFO-ply6 | | | 1+2 bullet; initial clock search cap 3s
+r1bqkbnr/pp2pppp/2np4/2p5/4P3/5NP1/PPPP1PBP/RNBQK2R b KQkq - 1 4 | lichess-Op67WYFO-ply8 | | | 1+2 bullet; initial clock search cap 3s
+rnbqkb1r/ppp2ppp/3p1n2/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 4 | lichess-5JLfZAn3-ply8 | f6e4 | b8d7,b8c6 | 15+1 rapid; 1.2s search missed pawn recapture; depth 6 and 15s find it

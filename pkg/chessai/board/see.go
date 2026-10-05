@@ -25,7 +25,17 @@ func SEEPieceValue(pt byte) int {
 	return 0
 }
 
-// smallestAttackerFor finds the from-square and piece type of the cheapest attacker
+// seeCaptureLegal rejects pinned recapturers and king captures onto attacked
+// squares using the current exchange occupancy, including newly opened rays.
+func (b *Board) seeCaptureLegal(from, to location.Location, stm byte) bool {
+	move := location.Move{Start: from, End: to}
+	undo := b.makeFastMove(&move)
+	legal := !b.isKingInCheckFast(b.KingLocations[stm], stm)
+	b.unmakeFastMove(undo)
+	return legal
+}
+
+// smallestAttackerFor finds the from-square and piece type of the cheapest legal attacker
 // of color stm on square 'to'. Checks piece types in ascending value order so the
 // first match is guaranteed to be the cheapest attacker.
 // Since it is called after each makeFastMove, X-ray attackers are revealed automatically.
@@ -40,7 +50,7 @@ func (b *Board) smallestAttackerFor(to location.Location, stm byte) (from locati
 	for _, colDelta := range [2]int8{-1, 1} {
 		if loc, ok := to.AddRelative(location.RelativeLocation{Row: pawnRowDelta, Col: colDelta}); ok {
 			data := b.getPieceData(loc)
-			if data != 0 && data&0x1 == stm && (data&0xE)>>1 == piece.PawnType {
+			if data != 0 && data&0x1 == stm && (data&0xE)>>1 == piece.PawnType && b.seeCaptureLegal(loc, to, stm) {
 				return loc, piece.PawnType, true
 			}
 		}
@@ -50,7 +60,7 @@ func (b *Board) smallestAttackerFor(to location.Location, stm byte) (from locati
 	for _, delta := range possibleMoves {
 		if loc, ok := to.AddRelative(delta); ok {
 			data := b.getPieceData(loc)
-			if data != 0 && data&0x1 == stm && (data&0xE)>>1 == piece.KnightType {
+			if data != 0 && data&0x1 == stm && (data&0xE)>>1 == piece.KnightType && b.seeCaptureLegal(loc, to, stm) {
 				return loc, piece.KnightType, true
 			}
 		}
@@ -70,7 +80,7 @@ func (b *Board) smallestAttackerFor(to location.Location, stm byte) (from locati
 			if data == 0 {
 				continue
 			}
-			if data&0x1 == stm && (data&0xE)>>1 == piece.BishopType {
+			if data&0x1 == stm && (data&0xE)>>1 == piece.BishopType && b.seeCaptureLegal(loc, to, stm) {
 				return loc, piece.BishopType, true
 			}
 			break // any non-empty square blocks the diagonal
@@ -91,7 +101,7 @@ func (b *Board) smallestAttackerFor(to location.Location, stm byte) (from locati
 			if data == 0 {
 				continue
 			}
-			if data&0x1 == stm && (data&0xE)>>1 == piece.RookType {
+			if data&0x1 == stm && (data&0xE)>>1 == piece.RookType && b.seeCaptureLegal(loc, to, stm) {
 				return loc, piece.RookType, true
 			}
 			break
@@ -113,7 +123,7 @@ func (b *Board) smallestAttackerFor(to location.Location, stm byte) (from locati
 			if data == 0 {
 				continue
 			}
-			if data&0x1 == stm && (data&0xE)>>1 == piece.QueenType {
+			if data&0x1 == stm && (data&0xE)>>1 == piece.QueenType && b.seeCaptureLegal(loc, to, stm) {
 				return loc, piece.QueenType, true
 			}
 			break
@@ -127,7 +137,7 @@ func (b *Board) smallestAttackerFor(to location.Location, stm byte) (from locati
 	} {
 		if loc, ok := to.AddRelative(dir); ok {
 			data := b.getPieceData(loc)
-			if data != 0 && data&0x1 == stm && (data&0xE)>>1 == piece.KingType {
+			if data != 0 && data&0x1 == stm && (data&0xE)>>1 == piece.KingType && b.seeCaptureLegal(loc, to, stm) {
 				return loc, piece.KingType, true
 			}
 		}

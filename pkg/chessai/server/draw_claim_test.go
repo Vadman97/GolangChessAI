@@ -57,10 +57,25 @@ func TestThinkTimeForClockScalesCapForLongerTimeControls(t *testing.T) {
 	assert.True(t, longFormat >= 10*time.Second, "10+5 should scale the cap up toward the clock size, got %s", longFormat)
 }
 
-func TestThinkTimeForClockCapsOpeningMoves(t *testing.T) {
-	assert.Equal(t, 1200*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 0))
-	assert.Equal(t, 1200*time.Millisecond, thinkTimeForClock(180*time.Second, 0, 3))
-	assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, 4))
+func TestThinkTimeForClockBudgetsSearchAfterLeavingBook(t *testing.T) {
+	// Scripted moves return immediately. If the book ends or a deviation
+	// requires search, use the available clock instead of a fixed 1.2s cap.
+	for _, turn := range []int{0, 2, 3, 4} {
+		assert.Equal(t, 3*time.Second, thinkTimeForClock(180*time.Second, 0, turn))
+		assert.Equal(t, 15*time.Second, thinkTimeForClock(15*time.Minute, time.Second, turn))
+		assert.Equal(t, 600*time.Millisecond, thinkTimeForClock(30*time.Second, 0, turn))
+	}
+}
+
+func TestThinkTimeForPositionAllowsPetroffRecaptureSearch(t *testing.T) {
+	// 5JLfZAn3: after 1.e4 e5 2.Nf3 Nf6 3.Nxe5 d6 4.Nf3, Black
+	// had 901.68s but got only 1.2s. Depth 5 missed ...Nxe4; depth 6
+	// found it. This position does not trigger the critical-position boost.
+	parsed, err := analysis.ParseFEN("rnbqkb1r/ppp2ppp/3p1n2/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 4")
+	assert.NoError(t, err)
+	assert.False(t, isCriticalSearchPosition(parsed.Board, color.Black))
+	clock := 901680 * time.Millisecond
+	assert.Equal(t, clock/60, thinkTimeForPosition(clock, time.Second, 3, parsed.Board, color.Black))
 }
 
 func TestParseUCIMovePreservesBishopUnderpromotion(t *testing.T) {
