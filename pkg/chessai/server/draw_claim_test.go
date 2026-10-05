@@ -359,6 +359,7 @@ func TestDeclinesCasualChallenge(t *testing.T) {
 			ID:         "casualID",
 			Challenger: &ChallengeUser{ID: "someHuman"},
 			Rated:      false,
+			Variant:    &ChallengeVariant{Key: "standard"},
 		},
 	})
 	assert.NoError(t, err)
@@ -392,6 +393,7 @@ func TestAcceptsRatedChallenge(t *testing.T) {
 			ID:         "ratedID",
 			Challenger: &ChallengeUser{ID: "someHuman"},
 			Rated:      true,
+			Variant:    &ChallengeVariant{Key: "standard"},
 		},
 	})
 	assert.NoError(t, err)
@@ -403,4 +405,46 @@ func TestAcceptsRatedChallenge(t *testing.T) {
 		}
 	}
 	assert.Contains(t, acceptURL, "ratedID/accept", "rated challenge should be accepted")
+}
+
+// TestDeclinesNonStandardVariantChallenge verifies that rated challenges for any
+// variant other than standard chess (antichess, chess960, custom start position,
+// or a missing variant) are declined and never accepted.
+func TestDeclinesNonStandardVariantChallenge(t *testing.T) {
+	for _, variant := range []*ChallengeVariant{
+		{Key: "antichess"},
+		{Key: "chess960"},
+		{Key: "atomic"},
+		{Key: "fromPosition"},
+		nil,
+	} {
+		rec := &recordingClient{}
+		base, _ := url.Parse("http://test.local")
+		l := &Lichess{
+			Client: &Client{BaseURL: base, APIKey: "x", HttpClient: rec},
+		}
+
+		err := l.handleEvent(&Event{
+			Type: EventTypeChallenge,
+			Challenge: &Challenge{
+				ID:         "variantID",
+				Challenger: &ChallengeUser{ID: "someHuman"},
+				Rated:      true,
+				Variant:    variant,
+			},
+		})
+		assert.NoError(t, err)
+
+		var acceptURL, declineURL string
+		for _, u := range rec.urls {
+			if strings.Contains(u, "/accept") {
+				acceptURL = u
+			}
+			if strings.Contains(u, "/decline") {
+				declineURL = u
+			}
+		}
+		assert.Emptyf(t, acceptURL, "variant %+v must not be accepted", variant)
+		assert.Containsf(t, declineURL, "variantID/decline", "variant %+v should be declined", variant)
+	}
 }

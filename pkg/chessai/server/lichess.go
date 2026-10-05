@@ -62,11 +62,16 @@ type ChallengeUser struct {
 	ID string `json:"id"`
 }
 
+type ChallengeVariant struct {
+	Key string `json:"key"` // "standard", "chess960", "antichess", "fromPosition", ...
+}
+
 type Challenge struct {
-	ID         string         `json:"id"`
-	Direction  string         `json:"direction"`  // present in API responses, absent in event stream
-	Challenger *ChallengeUser `json:"challenger"` // the user who sent the challenge
-	Rated      bool           `json:"rated"`
+	ID         string            `json:"id"`
+	Variant    *ChallengeVariant `json:"variant"`
+	Direction  string            `json:"direction"`  // present in API responses, absent in event stream
+	Challenger *ChallengeUser    `json:"challenger"` // the user who sent the challenge
+	Rated      bool              `json:"rated"`
 }
 
 type Event struct {
@@ -601,6 +606,21 @@ func (l *Lichess) handleEvent(event *Event) error {
 		}
 		if l.Game != nil {
 			log.Infof("ignoring challenge %s: game %s already active", event.Challenge.ID, l.GameID)
+			break
+		}
+		// The engine only plays standard chess from the standard start position.
+		// Decline every variant (antichess, chess960, atomic, crazyhouse, ...) and
+		// custom start positions ("fromPosition"); a missing variant is treated as
+		// non-standard rather than assumed safe.
+		if event.Challenge.Variant == nil || event.Challenge.Variant.Key != "standard" {
+			variantKey := "<missing>"
+			if event.Challenge.Variant != nil {
+				variantKey = event.Challenge.Variant.Key
+			}
+			log.Infof("declining %s challenge %s from %s: only standard chess accepted", variantKey, event.Challenge.ID, challengerID)
+			if err := l.DeclineChallenge(event.Challenge.ID, "standard"); err != nil {
+				log.Errorf("failed to decline variant challenge %s: %s", event.Challenge.ID, err)
+			}
 			break
 		}
 		if !event.Challenge.Rated {
