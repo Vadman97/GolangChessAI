@@ -91,7 +91,7 @@ func (r *King) GetCastleMoves(board *Board, onlyFirstMove bool) *[]location.Move
 		}
 		rightM, leftM := location.Move{Start: r.GetPosition(), End: right},
 			location.Move{Start: r.GetPosition(), End: left}
-		if rightIn && r.canCastle(&rightM, board) && !board.GetFlag(FlagRightRookMoved, r.GetColor()) {
+		if rightIn && !board.GetFlag(FlagRightRookMoved, r.GetColor()) && r.canCastle(&rightM, board) {
 			if !board.willMoveLeaveKingInCheck(r.Color, rightM) {
 				moves = append(moves, rightM)
 				if onlyFirstMove {
@@ -99,7 +99,7 @@ func (r *King) GetCastleMoves(board *Board, onlyFirstMove bool) *[]location.Move
 				}
 			}
 		}
-		if leftIn && r.canCastle(&leftM, board) && !board.GetFlag(FlagLeftRookMoved, r.GetColor()) {
+		if leftIn && !board.GetFlag(FlagLeftRookMoved, r.GetColor()) && r.canCastle(&leftM, board) {
 			if !board.willMoveLeaveKingInCheck(r.Color, leftM) {
 				moves = append(moves, leftM)
 				if onlyFirstMove {
@@ -167,24 +167,23 @@ func (r *King) canCastle(m *location.Move, b *Board) bool {
 		rightLocation = m.End
 		rightLocation, _ = rightLocation.AddRelative(location.RightMove)
 	}
-	// The board doesn't change across these squares, so the enemy attack map is
-	// computed once here rather than once per square inside underAttack — that
-	// used to recompute the full enemy GetAllAttackableMoves scan (allocating a
-	// Piece per occupied square) 3-4x per canCastle call, and canCastle runs on
-	// every king move generation until a side castles or its king/rooks move.
-	enemyAttacks := b.GetAllAttackableMoves(r.Color ^ 1)
+	// A blocked path cannot be used regardless of enemy attacks. Check the
+	// cheap occupancy condition before constructing the full attack map.
 	llRow, llCol := leftLocation.Get()
 	for c := llCol; c <= rightLocation.GetCol(); c++ {
 		loc := location.NewLocation(llRow, c)
-		if enemyAttacks.IsLocationSet(loc) {
-			return false
-		}
 		data := b.getPieceData(loc)
 		if data != 0 {
 			t := (data & 0xE) >> 1
 			if t != piece.KingType && t != piece.RookType {
 				return false
 			}
+		}
+	}
+	enemyAttacks := b.GetAllAttackableMoves(r.Color ^ 1)
+	for c := llCol; c <= rightLocation.GetCol(); c++ {
+		if enemyAttacks.IsLocationSet(location.NewLocation(llRow, c)) {
+			return false
 		}
 	}
 	return true

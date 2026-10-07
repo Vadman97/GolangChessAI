@@ -1,0 +1,96 @@
+{
+  "refereeDepth": 16,
+  "scope": "Black moves in VgvKuO4X and Eqe2Dghi; only losses >=65cp where best evaluation >-600cp; other moves excluded",
+  "positions": [
+    {
+      "game": "VgvKuO4X",
+      "ply": 12,
+      "played": "b8c6",
+      "best": "b4e7",
+      "evalCp": -141,
+      "lossCp": 94,
+      "fen": "rn1qk2r/ppp2ppp/4bn2/8/1b1P4/5N2/PP1BPPPP/RN1QKB1R b KQkq - 3 6"
+    },
+    {
+      "game": "VgvKuO4X",
+      "ply": 34,
+      "played": "c7c5",
+      "best": "b4d6",
+      "evalCp": -329,
+      "lossCp": 68,
+      "fen": "1r3rk1/p1pq2pp/5p2/3P4/1b1NP1b1/8/PPQN1PPP/R4RK1 b - - 2 17"
+    },
+    {
+      "game": "VgvKuO4X",
+      "ply": 42,
+      "played": "b8c8",
+      "best": "f6f5",
+      "evalCp": -462,
+      "lossCp": 241,
+      "fen": "1r4k1/p5pp/5p2/2pP4/1b2P1q1/8/PPQ1bPPP/R1R2NK1 b - - 3 21"
+    },
+    {
+      "game": "Eqe2Dghi",
+      "ply": 24,
+      "played": "c8e6",
+      "best": "a7a5",
+      "evalCp": 0,
+      "lossCp": 94,
+      "fen": "r1b4r/pp2k3/2p2p1p/2b1p3/4P3/1BN5/PPP2PPP/R3K2R b KQ - 4 12"
+    },
+    {
+      "game": "Eqe2Dghi",
+      "ply": 44,
+      "played": "d8f8",
+      "best": "b4c5",
+      "evalCp": -67,
+      "lossCp": 75,
+      "fen": "3r4/1p6/2p1k2p/p3p3/1b6/3P2N1/PP3PPP/3R2K1 b - - 1 22"
+    },
+    {
+      "game": "Eqe2Dghi",
+      "ply": 54,
+      "played": "e7g5",
+      "best": "a5a4",
+      "evalCp": -107,
+      "lossCp": 100,
+      "fen": "6r1/1p2b3/2p4p/p3p3/3kN3/3PR3/PP3PPP/6K1 b - - 11 27"
+    },
+    {
+      "game": "Eqe2Dghi",
+      "ply": 74,
+      "played": "f8f6",
+      "best": "c5c4",
+      "evalCp": -11,
+      "lossCp": 141,
+      "fen": "5r2/1R6/8/2p5/p3p3/3k3P/PP3PP1/6K1 b - - 2 37"
+    },
+    {
+      "game": "Eqe2Dghi",
+      "ply": 76,
+      "played": "f6f7",
+      "best": "c5c4",
+      "evalCp": -11,
+      "lossCp": 127,
+      "fen": "1R6/8/5r2/2p5/p3p3/3k3P/PP3PP1/6K1 b - - 4 38"
+    },
+    {
+      "game": "Eqe2Dghi",
+      "ply": 80,
+      "played": "d3d4",
+      "best": "d3c2",
+      "evalCp": -94,
+      "lossCp": 239,
+      "fen": "8/5r2/8/2p5/4p2P/pR1k4/PP3PP1/6K1 b - - 1 40"
+    },
+    {
+      "game": "Eqe2Dghi",
+      "ply": 120,
+      "played": "d2e3",
+      "best": "d2e2",
+      "evalCp": -412,
+      "lossCp": 96,
+      "fen": "8/8/8/7P/4P1P1/P7/3k3r/K4R2 b - - 2 60"
+    }
+  ]
+}

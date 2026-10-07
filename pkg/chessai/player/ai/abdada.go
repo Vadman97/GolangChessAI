@@ -350,7 +350,8 @@ func (ab *ABDADA) ABDADA(root *board.Board, depth, alpha, beta int, exclusivePro
 			if depth >= 7 {
 				R = 3
 			}
-			nullVal := ab.ABDADA(root, depth-1-R, -beta, -beta+1, false, currentPlayer^1, nil, false, ply+1, extensions, false)
+			nullRoot := boardAfterNullMove(root)
+			nullVal := ab.ABDADA(nullRoot, depth-1-R, -beta, -beta+1, false, currentPlayer^1, nil, false, ply+1, extensions, false)
 			nullVal.Score = -nullVal.Score
 			if nullVal.Score >= beta {
 				atomic.AddUint64(&ab.player.Metrics.MovesPrunedAB, 1)
@@ -1596,4 +1597,15 @@ func (ab *ABDADA) ttRead(root *board.Board, currentPlayer color.Color, depth uin
 		}
 	}
 	return answer
+}
+
+// boardAfterNullMove starts a fresh repetition history after an artificial pass.
+// Position hashes omit side to move; passing without advancing history would
+// invert its parity and make opposite-turn positions look like repetitions.
+func boardAfterNullMove(root *board.Board) *board.Board {
+	child := root.Copy()
+	child.PreviousPositions = nil
+	child.PreviousPositionsSeen = 0
+	child.CurrentPositionRepeats = 0
+	return child
 }

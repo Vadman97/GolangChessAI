@@ -6,7 +6,6 @@ import (
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/color"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
-	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
 	"github.com/Vadman97/GolangChessAI/pkg/chessai/util"
 	"log"
 	"math/rand"
@@ -292,6 +291,12 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 		if bookOK && p.bookMoveMissesFreeCapture(b, previousMove, *bookMove) {
 			bookOK = false
 		}
+		// A safe destination does not make the position-blind move safe:
+		// 1.e4 d5 2.Nf3 leaves e4 hanging (p4uoHImi). Apply the same
+		// whole-position material gate used by fallback opening preferences.
+		if bookOK && p.preferenceMoveHangsMaterial(b, *bookMove) {
+			bookOK = false
+		}
 		if bookOK {
 			return bookMove
 		}
@@ -345,35 +350,59 @@ func (p *AIPlayer) GetBestMove(b *board.Board, previousMove *board.LastMove, log
 // clean pawn or more left on the table.
 const bookMoveMissedCaptureThreshold = 100
 
-// positionAwareOpeningResponse handles small, fully identified opening branches
-// where the position-blind two-move script has ended but a standard forcing reply
-// is important. After 1.e4 e5 2.Nf3 Nf6 3.Nxe5, shallow odd-depth searches prefer
-// 3...Nc6?! and voluntarily accept doubled isolated c-pawns after Nxc6 dxc6.
-// 3...d6 is the normal Petroff response and was Stockfish's clear choice in game
-// B3cQwXvN. Match the actual board and last move, rather than extending the old
-// blind script, so deviations still fall through to search.
+// positionAwareOpeningResponse covers known central responses.
+// Odd-depth searches can prefer ...Nc6 or ...d5 after 4.Nf3, leaving Black a
+// pawn down (XdvTuEuU). Match the complete position, castling rights, and last
+// move so a deviation cannot inherit a reply intended for the main line.
 func (p *AIPlayer) positionAwareOpeningResponse(b *board.Board, previousMove *board.LastMove) *location.Move {
-	if p.PlayerColor != color.Black || p.TurnCount != 2 || previousMove == nil {
+	if p.PlayerColor == color.White && p.TurnCount == 1 && previousMove != nil {
+		// 1.e4 d5: recover the pawn with 2.exd5. Even after the hanging-
+		// material gate rejects the scripted Nf3, shallow search can prefer
+		// Nc3, conceding the center (p4uoHImi).
+		line := []location.Move{
+			{Start: location.NewLocation(1, 3), End: location.NewLocation(3, 3)}, // e4
+			{Start: location.NewLocation(6, 4), End: location.NewLocation(4, 4)}, // d5
+		}
+		reply := location.Move{Start: location.NewLocation(3, 3), End: location.NewLocation(4, 4)} // exd5
+		return p.openingLineResponse(b, previousMove, line, reply)
+	}
+	if p.PlayerColor != color.Black || p.TurnCount < 1 || p.TurnCount > 3 || previousMove == nil {
 		return nil
 	}
-	f3 := location.NewLocation(2, 2)
-	e5 := location.NewLocation(4, 3)
-	f6 := location.NewLocation(5, 2)
-	d7 := location.NewLocation(6, 4)
-	d6 := location.NewLocation(5, 4)
-	if !previousMove.Move.Start.Equals(f3) || !previousMove.Move.End.Equals(e5) {
+	line := []location.Move{
+		{Start: location.NewLocation(1, 3), End: location.NewLocation(3, 3)}, // e4
+		{Start: location.NewLocation(6, 3), End: location.NewLocation(4, 3)}, // e5
+		{Start: location.NewLocation(0, 1), End: location.NewLocation(2, 2)}, // Nf3
+		{Start: location.NewLocation(7, 1), End: location.NewLocation(5, 2)}, // Nf6
+		{Start: location.NewLocation(2, 2), End: location.NewLocation(4, 3)}, // Nxe5
+		{Start: location.NewLocation(6, 4), End: location.NewLocation(5, 4)}, // d6
+		{Start: location.NewLocation(4, 3), End: location.NewLocation(2, 2)}, // Nf3
+	}
+	plies := 2*p.TurnCount + 1
+	reply := line[5] // 3...d6
+	if p.TurnCount == 1 {
+		// SEE treats Nxe5 as a free pawn, but the Petroff has central
+		// counterplay. Preserve the original book move in this exact position.
+		reply = line[3] // 2...Nf6
+	}
+	if p.TurnCount == 3 {
+		reply = location.Move{Start: location.NewLocation(5, 2), End: location.NewLocation(3, 3)} // 4...Nxe4
+	}
+	return p.openingLineResponse(b, previousMove, line[:plies], reply)
+}
+
+func (p *AIPlayer) openingLineResponse(b *board.Board, previousMove *board.LastMove, line []location.Move, reply location.Move) *location.Move {
+	expected := &board.Board{}
+	expected.ResetDefault()
+	for i := range line {
+		board.MakeMove(&line[i], expected)
+	}
+	last := line[len(line)-1]
+	if b.Hash() != expected.Hash() || !previousMove.Move.Start.Equals(last.Start) || !previousMove.Move.End.Equals(last.End) {
 		return nil
 	}
-	whiteKnight := b.GetPiece(e5)
-	blackKnight := b.GetPiece(f6)
-	blackPawn := b.GetPiece(d7)
-	if whiteKnight == nil || whiteKnight.GetColor() != color.White || whiteKnight.GetPieceType() != piece.KnightType ||
-		blackKnight == nil || blackKnight.GetColor() != color.Black || blackKnight.GetPieceType() != piece.KnightType ||
-		blackPawn == nil || blackPawn.GetColor() != color.Black || blackPawn.GetPieceType() != piece.PawnType {
-		return nil
-	}
-	for _, move := range *b.GetAllMoves(color.Black, previousMove) {
-		if move.Start.Equals(d7) && move.End.Equals(d6) {
+	for _, move := range *b.GetAllMoves(p.PlayerColor, previousMove) {
+		if move.Start.Equals(reply.Start) && move.End.Equals(reply.End) {
 			m := move
 			p.printer <- fmt.Sprintf("position-aware opening response: %s\n", m)
 			return &m
@@ -444,8 +473,8 @@ func (p *AIPlayer) earlyOpeningPreference(b *board.Board, previousMove *board.La
 const openingPreferenceHangThreshold = 100
 
 // preferenceMoveHangsMaterial reports whether playing move lets the opponent win material
-// on the immediate reply, per static exchange evaluation. Used only to gate the opening
-// preference list (first couple of plies), so the extra move generation is negligible.
+// on the immediate reply, per static exchange evaluation. Used for both scripted
+// and fallback opening moves in the first two turns.
 func (p *AIPlayer) preferenceMoveHangsMaterial(b *board.Board, move location.Move) bool {
 	enemy := p.PlayerColor ^ 1
 	child := b.Copy()

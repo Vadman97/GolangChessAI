@@ -1,0 +1,342 @@
+{
+  "disposition": "rejected",
+  "candidateSHA256": "ba1079ed8455d8b79b9a93a26430d11aeb2532f5cc0d2436fe5b8cfc1fe5c2e5",
+  "mate": {
+    "fenPath": "/tmp/chess-ordering-mate-regression-fen.txt",
+    "thinkTimeMs": 1200,
+    "runs": 10,
+    "positions": [
+      {
+        "fen": "3R4/5k1p/8/1Pnp1p2/6pK/1P1r4/8/8 w - - 2 55",
+        "tag": "ordering-mate-regression",
+        "expected": [
+          "h4g5"
+        ],
+        "bad": [
+          "d8c8"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h4h5",
+              "score": -1123,
+              "count": 10,
+              "depth": 7,
+              "avgElapsedMs": 1192,
+              "nodesPerSecond": 175597,
+              "prunedAb": 668560,
+              "prunedTt": 113024,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "h4h5",
+                "score": -1141,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 216008,
+                "prunedAb": 697364,
+                "prunedTt": 123095,
+                "ttImproved": 8695,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": -1141,
+                "depth": 7,
+                "elapsedMs": 1203,
+                "considered": 209802,
+                "prunedAb": 661808,
+                "prunedTt": 108526,
+                "ttImproved": 7545,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": -1141,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 217761,
+                "prunedAb": 697200,
+                "prunedTt": 114215,
+                "ttImproved": 7920,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": -1141,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 212729,
+                "prunedAb": 679943,
+                "prunedTt": 119162,
+                "ttImproved": 8364,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": -1141,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 201680,
+                "prunedAb": 645690,
+                "prunedTt": 104312,
+                "ttImproved": 7398,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": -1141,
+                "depth": 7,
+                "elapsedMs": 1203,
+                "considered": 222194,
+                "prunedAb": 721959,
+                "prunedTt": 127150,
+                "ttImproved": 8841,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": -1141,
+                "depth": 7,
+                "elapsedMs": 1204,
+                "considered": 209789,
+                "prunedAb": 674532,
+                "prunedTt": 117973,
+                "ttImproved": 8302,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": -1141,
+                "depth": 7,
+                "elapsedMs": 1102,
+                "considered": 192070,
+                "prunedAb": 617725,
+                "prunedTt": 104225,
+                "ttImproved": 7338,
+                "timedOut": false
+              },
+              {
+                "move": "h4h5",
+                "score": -1141,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 208756,
+                "prunedAb": 658610,
+                "prunedTt": 108958,
+                "ttImproved": 7646,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": -1123,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 203539,
+                "prunedAb": 630769,
+                "prunedTt": 102633,
+                "ttImproved": 7217,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 1,
+      "runs": 10,
+      "missedExpected": 1,
+      "knownBad": 0,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 1,
+        "missedExpected": 1,
+        "knownBad": 0,
+        "avgElapsedMs": 1192
+      }
+    ]
+  },
+  "d6": {
+    "fenPath": "/tmp/chess-castling-regression-fen.txt",
+    "thinkTimeMs": 1200,
+    "runs": 10,
+    "positions": [
+      {
+        "fen": "r1b1k2r/p2p1ppp/1qp1p3/n3P1B1/1QnP4/2P2N2/P3BPPP/R4RK1 b kq - 3 13",
+        "tag": "local400-game12-ply26",
+        "expected": [
+          "d7d6"
+        ],
+        "bad": [
+          "c6c5"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d7d6",
+              "score": -167,
+              "count": 10,
+              "depth": 7,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 160470,
+              "prunedAb": 1651493,
+              "prunedTt": 268675,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 203958,
+                "prunedAb": 1779079,
+                "prunedTt": 289158,
+                "ttImproved": 8968,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 212031,
+                "prunedAb": 1857554,
+                "prunedTt": 305304,
+                "ttImproved": 9471,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 181623,
+                "prunedAb": 1536167,
+                "prunedTt": 243279,
+                "ttImproved": 7510,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 188783,
+                "prunedAb": 1614321,
+                "prunedTt": 264869,
+                "ttImproved": 8174,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 195256,
+                "prunedAb": 1686178,
+                "prunedTt": 273623,
+                "ttImproved": 8438,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 178883,
+                "prunedAb": 1501635,
+                "prunedTt": 241798,
+                "ttImproved": 7523,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 202873,
+                "prunedAb": 1748985,
+                "prunedTt": 286328,
+                "ttImproved": 8845,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 186759,
+                "prunedAb": 1589540,
+                "prunedTt": 261540,
+                "ttImproved": 8088,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 190241,
+                "prunedAb": 1608381,
+                "prunedTt": 265553,
+                "ttImproved": 8216,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 188072,
+                "prunedAb": 1593090,
+                "prunedTt": 255300,
+                "ttImproved": 7891,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 1,
+      "runs": 10,
+      "missedExpected": 0,
+      "knownBad": 0,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 1,
+        "missedExpected": 0,
+        "knownBad": 0,
+        "avgElapsedMs": 1201
+      }
+    ]
+  },
+  "mateReferee": [
+    {
+      "fen": "3R4/5k1p/8/1Pnp1p2/6pK/1P1r4/8/8 w - - 2 55",
+      "tag": "ordering-mate-regression",
+      "before": "h4g5",
+      "after": "h4h5",
+      "beforeLoss": 69,
+      "afterLoss": 99265,
+      "beforeDepth": 7,
+      "afterDepth": 7
+    }
+  ],
+  "principalVariations": "h4g5 info depth 18 seldepth 37 multipv 1 score cp -804 nodes 136308 nps 2310305 hashfull 31 tbhits 0 time 59 pv h4g5 c5e6 g5f5 e6d8 f5g4 f7f6 b3b4 d3d4 g4f3 f6g5 b5b6 d4b4 b6b7 b4b7 f3e3 b7f7 e3d4 f7f5 d4c5 g5g4 c5d6 h7h5 d6e7 f5f7 e7d6\nh4h5 info depth 18 seldepth 9 multipv 1 score mate -4 nodes 19459 nps 1945900 hashfull 6 tbhits 0 time 10 pv h4h5 c5e6 d8d7 f7f6 d7f7 f6f7 h5h4 d3h3\nd8c8 info depth 18 seldepth 9 multipv 1 score mate -4 nodes 10056 nps 1676000 hashfull 4 tbhits 0 time 6 pv d8c8 c5e6 c8c7 f7f6 c7f7 f6f7 b5b6 d3h3\n"
+}

@@ -1,0 +1,1969 @@
+{
+  "control": {
+    "fenPath": "/tmp/chess-null-history-repeat-fens.txt",
+    "thinkTimeMs": 1200,
+    "runs": 10,
+    "positions": [
+      {
+        "fen": "8/5k2/2Q4P/1P6/8/3KPP2/6q1/8 b - - 2 61",
+        "tag": "zJwDU0vk-before-61Qb2",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "g2b2",
+              "score": -414,
+              "count": 7,
+              "depth": 3,
+              "avgElapsedMs": 1030,
+              "nodesPerSecond": 142392,
+              "prunedAb": 383392,
+              "prunedTt": 63503,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 943,
+                "considered": 114560,
+                "prunedAb": 304088,
+                "prunedTt": 47190,
+                "ttImproved": 3574,
+                "timedOut": false
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 980,
+                "considered": 121545,
+                "prunedAb": 313968,
+                "prunedTt": 51724,
+                "ttImproved": 4037,
+                "timedOut": false
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 946,
+                "considered": 123332,
+                "prunedAb": 321793,
+                "prunedTt": 54850,
+                "ttImproved": 4219,
+                "timedOut": false
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 990,
+                "considered": 125107,
+                "prunedAb": 323587,
+                "prunedTt": 55351,
+                "ttImproved": 4307,
+                "timedOut": false
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 946,
+                "considered": 121299,
+                "prunedAb": 313917,
+                "prunedTt": 53784,
+                "ttImproved": 4191,
+                "timedOut": false
+              },
+              {
+                "move": "g2f1",
+                "score": -413,
+                "depth": 5,
+                "elapsedMs": 1185,
+                "considered": 204135,
+                "prunedAb": 537810,
+                "prunedTt": 87007,
+                "ttImproved": 6262,
+                "timedOut": false
+              },
+              {
+                "move": "g2f2",
+                "score": -413,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 209588,
+                "prunedAb": 552425,
+                "prunedTt": 95874,
+                "ttImproved": 6636,
+                "timedOut": true
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 993,
+                "considered": 126390,
+                "prunedAb": 329021,
+                "prunedTt": 55624,
+                "ttImproved": 4375,
+                "timedOut": false
+              },
+              {
+                "move": "g2f1",
+                "score": -413,
+                "depth": 5,
+                "elapsedMs": 1128,
+                "considered": 197378,
+                "prunedAb": 523033,
+                "prunedTt": 82320,
+                "ttImproved": 5800,
+                "timedOut": false
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 988,
+                "considered": 123851,
+                "prunedAb": 314285,
+                "prunedTt": 51307,
+                "ttImproved": 4011,
+                "timedOut": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "2b2rk1/rpqn2bp/p3p2p/2ppP3/8/1PNBQN2/P1P2PPP/2K1R1R1 w - - 3 15",
+        "tag": "lichess-cdTsyKE6-ply29",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "e3d2",
+              "score": -49,
+              "count": 9,
+              "depth": 4,
+              "avgElapsedMs": 1200,
+              "nodesPerSecond": 152071,
+              "prunedAb": 544248,
+              "prunedTt": 79551,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 188534,
+                "prunedAb": 557052,
+                "prunedTt": 86213,
+                "ttImproved": 2324,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 177898,
+                "prunedAb": 527441,
+                "prunedTt": 75973,
+                "ttImproved": 2034,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 184841,
+                "prunedAb": 558174,
+                "prunedTt": 79919,
+                "ttImproved": 2162,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 182701,
+                "prunedAb": 550905,
+                "prunedTt": 74623,
+                "ttImproved": 1999,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 176342,
+                "prunedAb": 518399,
+                "prunedTt": 77949,
+                "ttImproved": 2092,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 182095,
+                "prunedAb": 549167,
+                "prunedTt": 82412,
+                "ttImproved": 2212,
+                "timedOut": true
+              },
+              {
+                "move": "c1b1",
+                "score": -54,
+                "depth": 5,
+                "elapsedMs": 1185,
+                "considered": 187073,
+                "prunedAb": 551339,
+                "prunedTt": 76810,
+                "ttImproved": 2061,
+                "timedOut": false
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1203,
+                "considered": 178425,
+                "prunedAb": 531484,
+                "prunedTt": 78159,
+                "ttImproved": 2089,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 180129,
+                "prunedAb": 542369,
+                "prunedTt": 80033,
+                "ttImproved": 2136,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 187238,
+                "prunedAb": 556152,
+                "prunedTt": 83423,
+                "ttImproved": 2248,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "8/8/1n1np3/4Kp1p/1P6/P1P5/6k1/5R2 w - - 4 50",
+        "tag": "lichess-gdKA8SFK-ply99",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f1d1",
+              "score": -41,
+              "count": 6,
+              "depth": 8,
+              "avgElapsedMs": 1172,
+              "nodesPerSecond": 201580,
+              "prunedAb": 926429,
+              "prunedTt": 181852,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f1f4",
+                "score": -52,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 229740,
+                "prunedAb": 908169,
+                "prunedTt": 181799,
+                "ttImproved": 11250,
+                "timedOut": true
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1095,
+                "considered": 235660,
+                "prunedAb": 923688,
+                "prunedTt": 187861,
+                "ttImproved": 11678,
+                "timedOut": false
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1144,
+                "considered": 234831,
+                "prunedAb": 914671,
+                "prunedTt": 176526,
+                "ttImproved": 11047,
+                "timedOut": false
+              },
+              {
+                "move": "f1f4",
+                "score": -52,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 240815,
+                "prunedAb": 940899,
+                "prunedTt": 186588,
+                "ttImproved": 11558,
+                "timedOut": true
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1174,
+                "considered": 238216,
+                "prunedAb": 937816,
+                "prunedTt": 188765,
+                "ttImproved": 11730,
+                "timedOut": false
+              },
+              {
+                "move": "f1f4",
+                "score": -28,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 237555,
+                "prunedAb": 930564,
+                "prunedTt": 177857,
+                "ttImproved": 11159,
+                "timedOut": true
+              },
+              {
+                "move": "f1f4",
+                "score": -28,
+                "depth": 7,
+                "elapsedMs": 1203,
+                "considered": 219663,
+                "prunedAb": 862567,
+                "prunedTt": 161607,
+                "ttImproved": 10204,
+                "timedOut": true
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1189,
+                "considered": 242406,
+                "prunedAb": 951353,
+                "prunedTt": 187973,
+                "ttImproved": 11643,
+                "timedOut": false
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1126,
+                "considered": 240633,
+                "prunedAb": 940540,
+                "prunedTt": 187247,
+                "ttImproved": 11575,
+                "timedOut": false
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1183,
+                "considered": 243818,
+                "prunedAb": 954023,
+                "prunedTt": 182301,
+                "ttImproved": 11300,
+                "timedOut": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "2b2rk1/1pp1qp1p/r1n1pnp1/3p2N1/p2PP2P/P2Q2P1/1PPB1PB1/2KR3R w - - 0 17",
+        "tag": "lichess-IN3a4FSp-ply33",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h4h5",
+              "score": 123,
+              "count": 10,
+              "depth": 4,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 150996,
+              "prunedAb": 490591,
+              "prunedTt": 93854,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 184890,
+                "prunedAb": 503597,
+                "prunedTt": 99576,
+                "ttImproved": 2652,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 193523,
+                "prunedAb": 535500,
+                "prunedTt": 102602,
+                "ttImproved": 2734,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 178744,
+                "prunedAb": 485449,
+                "prunedTt": 95037,
+                "ttImproved": 2528,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 176944,
+                "prunedAb": 476158,
+                "prunedTt": 87992,
+                "ttImproved": 2339,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 196797,
+                "prunedAb": 540691,
+                "prunedTt": 105160,
+                "ttImproved": 2808,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 167785,
+                "prunedAb": 444521,
+                "prunedTt": 80465,
+                "ttImproved": 2135,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1209,
+                "considered": 182119,
+                "prunedAb": 490114,
+                "prunedTt": 90550,
+                "ttImproved": 2410,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 188404,
+                "prunedAb": 511059,
+                "prunedTt": 98272,
+                "ttImproved": 2615,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 189871,
+                "prunedAb": 511602,
+                "prunedTt": 100699,
+                "ttImproved": 2686,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 157009,
+                "prunedAb": 407228,
+                "prunedTt": 78192,
+                "ttImproved": 2079,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "8/1pp2pk1/4p1p1/2P1P3/pP1Pb3/Pr6/7R/K1B5 w - - 14 50",
+        "tag": "lichess-IN3a4FSp-ply99",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h2h4",
+              "score": -249,
+              "count": 10,
+              "depth": 6,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 180548,
+              "prunedAb": 991178,
+              "prunedTt": 122560,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 216647,
+                "prunedAb": 992815,
+                "prunedTt": 120774,
+                "ttImproved": 7167,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 222024,
+                "prunedAb": 1020406,
+                "prunedTt": 127635,
+                "ttImproved": 7580,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 215258,
+                "prunedAb": 988254,
+                "prunedTt": 122100,
+                "ttImproved": 7337,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 217014,
+                "prunedAb": 990188,
+                "prunedTt": 121485,
+                "ttImproved": 7206,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 219158,
+                "prunedAb": 1000513,
+                "prunedTt": 125243,
+                "ttImproved": 7500,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 210179,
+                "prunedAb": 962633,
+                "prunedTt": 119709,
+                "ttImproved": 7139,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 216134,
+                "prunedAb": 985435,
+                "prunedTt": 122173,
+                "ttImproved": 7118,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 222198,
+                "prunedAb": 1002942,
+                "prunedTt": 129718,
+                "ttImproved": 7713,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 215743,
+                "prunedAb": 985209,
+                "prunedTt": 118374,
+                "ttImproved": 7067,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 214945,
+                "prunedAb": 983387,
+                "prunedTt": 118397,
+                "ttImproved": 7066,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "7r/6k1/2R5/2K4P/4N1P1/5P2/8/8 b - - 10 70",
+        "tag": "lichess-gAacjwE9-ply140",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h8a8",
+              "score": -928,
+              "count": 10,
+              "depth": 6,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 230504,
+              "prunedAb": 923749,
+              "prunedTt": 168849,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 241242,
+                "prunedAb": 824171,
+                "prunedTt": 147780,
+                "ttImproved": 11291,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1207,
+                "considered": 223581,
+                "prunedAb": 718506,
+                "prunedTt": 124246,
+                "ttImproved": 9581,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 226880,
+                "prunedAb": 743192,
+                "prunedTt": 143420,
+                "ttImproved": 11059,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -928,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 290681,
+                "prunedAb": 974709,
+                "prunedTt": 176521,
+                "ttImproved": 13297,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -928,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 306562,
+                "prunedAb": 1024678,
+                "prunedTt": 186336,
+                "ttImproved": 13892,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 295468,
+                "prunedAb": 995071,
+                "prunedTt": 181510,
+                "ttImproved": 13604,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1203,
+                "considered": 305345,
+                "prunedAb": 1026738,
+                "prunedTt": 190761,
+                "ttImproved": 14215,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 300628,
+                "prunedAb": 995058,
+                "prunedTt": 183740,
+                "ttImproved": 13692,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -928,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 282948,
+                "prunedAb": 931549,
+                "prunedTt": 170245,
+                "ttImproved": 12765,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 298922,
+                "prunedAb": 1003822,
+                "prunedTt": 183931,
+                "ttImproved": 13645,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "6k1/1p2p3/3np2p/8/4n3/5K2/2Bp4/b6r w - - 2 44",
+        "tag": "lichess-9OVaO5TG-ply87",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "c2a4",
+              "score": -2302,
+              "count": 9,
+              "depth": 6,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 192692,
+              "prunedAb": 540418,
+              "prunedTt": 78596,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 236220,
+                "prunedAb": 551109,
+                "prunedTt": 79446,
+                "ttImproved": 7831,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1203,
+                "considered": 222248,
+                "prunedAb": 538043,
+                "prunedTt": 79801,
+                "ttImproved": 7862,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 236593,
+                "prunedAb": 541093,
+                "prunedTt": 79559,
+                "ttImproved": 7937,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 238425,
+                "prunedAb": 545175,
+                "prunedTt": 79904,
+                "ttImproved": 8221,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 222466,
+                "prunedAb": 526776,
+                "prunedTt": 78361,
+                "ttImproved": 7777,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 239209,
+                "prunedAb": 547944,
+                "prunedTt": 79104,
+                "ttImproved": 8144,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 235353,
+                "prunedAb": 540459,
+                "prunedTt": 77115,
+                "ttImproved": 7855,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 230934,
+                "prunedAb": 533928,
+                "prunedTt": 72633,
+                "ttImproved": 7306,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 226111,
+                "prunedAb": 530354,
+                "prunedTt": 78876,
+                "ttImproved": 7869,
+                "timedOut": true
+              },
+              {
+                "move": "f3g4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 228526,
+                "prunedAb": 549308,
+                "prunedTt": 81169,
+                "ttImproved": 7963,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 7,
+      "runs": 70,
+      "missedExpected": 0,
+      "knownBad": 0,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 7,
+        "missedExpected": 0,
+        "knownBad": 0,
+        "avgElapsedMs": 1173
+      }
+    ]
+  },
+  "candidate": {
+    "fenPath": "/tmp/chess-null-history-repeat-fens.txt",
+    "thinkTimeMs": 1200,
+    "runs": 10,
+    "positions": [
+      {
+        "fen": "8/5k2/2Q4P/1P6/8/3KPP2/6q1/8 b - - 2 61",
+        "tag": "zJwDU0vk-before-61Qb2",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "g2b2",
+              "score": -414,
+              "count": 7,
+              "depth": 3,
+              "avgElapsedMs": 1006,
+              "nodesPerSecond": 141393,
+              "prunedAb": 373774,
+              "prunedTt": 59965,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 925,
+                "considered": 115911,
+                "prunedAb": 298222,
+                "prunedTt": 49796,
+                "ttImproved": 3783,
+                "timedOut": false
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 937,
+                "considered": 113264,
+                "prunedAb": 297065,
+                "prunedTt": 50369,
+                "ttImproved": 3715,
+                "timedOut": false
+              },
+              {
+                "move": "g2f2",
+                "score": -413,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 200913,
+                "prunedAb": 531733,
+                "prunedTt": 86415,
+                "ttImproved": 6209,
+                "timedOut": true
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 936,
+                "considered": 118886,
+                "prunedAb": 310627,
+                "prunedTt": 48000,
+                "ttImproved": 3634,
+                "timedOut": false
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 902,
+                "considered": 115291,
+                "prunedAb": 305056,
+                "prunedTt": 46750,
+                "ttImproved": 3511,
+                "timedOut": false
+              },
+              {
+                "move": "g2f2",
+                "score": -413,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 207607,
+                "prunedAb": 540747,
+                "prunedTt": 88154,
+                "ttImproved": 6335,
+                "timedOut": true
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 905,
+                "considered": 115053,
+                "prunedAb": 301692,
+                "prunedTt": 46620,
+                "ttImproved": 3567,
+                "timedOut": false
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 913,
+                "considered": 116542,
+                "prunedAb": 301358,
+                "prunedTt": 47911,
+                "ttImproved": 3622,
+                "timedOut": false
+              },
+              {
+                "move": "g2b2",
+                "score": -414,
+                "depth": 3,
+                "elapsedMs": 941,
+                "considered": 114560,
+                "prunedAb": 304088,
+                "prunedTt": 47190,
+                "ttImproved": 3574,
+                "timedOut": false
+              },
+              {
+                "move": "g2f2",
+                "score": -413,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 205618,
+                "prunedAb": 547155,
+                "prunedTt": 88452,
+                "ttImproved": 6422,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "2b2rk1/rpqn2bp/p3p2p/2ppP3/8/1PNBQN2/P1P2PPP/2K1R1R1 w - - 3 15",
+        "tag": "lichess-cdTsyKE6-ply29",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "e3d2",
+              "score": -49,
+              "count": 7,
+              "depth": 4,
+              "avgElapsedMs": 1194,
+              "nodesPerSecond": 155366,
+              "prunedAb": 555200,
+              "prunedTt": 81112,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 184178,
+                "prunedAb": 553326,
+                "prunedTt": 82942,
+                "ttImproved": 2232,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 181976,
+                "prunedAb": 543531,
+                "prunedTt": 78662,
+                "ttImproved": 2104,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 182745,
+                "prunedAb": 549698,
+                "prunedTt": 80889,
+                "ttImproved": 2172,
+                "timedOut": true
+              },
+              {
+                "move": "c1b1",
+                "score": -54,
+                "depth": 5,
+                "elapsedMs": 1192,
+                "considered": 186049,
+                "prunedAb": 562228,
+                "prunedTt": 81053,
+                "ttImproved": 2173,
+                "timedOut": false
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 188849,
+                "prunedAb": 560650,
+                "prunedTt": 83687,
+                "ttImproved": 2255,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 187015,
+                "prunedAb": 559868,
+                "prunedTt": 82153,
+                "ttImproved": 2218,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 186661,
+                "prunedAb": 556362,
+                "prunedTt": 75202,
+                "ttImproved": 2020,
+                "timedOut": true
+              },
+              {
+                "move": "e3d2",
+                "score": -49,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 180187,
+                "prunedAb": 545587,
+                "prunedTt": 80734,
+                "ttImproved": 2160,
+                "timedOut": true
+              },
+              {
+                "move": "c1b1",
+                "score": -54,
+                "depth": 5,
+                "elapsedMs": 1198,
+                "considered": 189761,
+                "prunedAb": 557710,
+                "prunedTt": 80579,
+                "ttImproved": 2156,
+                "timedOut": false
+              },
+              {
+                "move": "c1b1",
+                "score": -54,
+                "depth": 5,
+                "elapsedMs": 1138,
+                "considered": 187967,
+                "prunedAb": 563040,
+                "prunedTt": 85219,
+                "ttImproved": 2287,
+                "timedOut": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "8/8/1n1np3/4Kp1p/1P6/P1P5/6k1/5R2 w - - 4 50",
+        "tag": "lichess-gdKA8SFK-ply99",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f1d1",
+              "score": -41,
+              "count": 6,
+              "depth": 8,
+              "avgElapsedMs": 1154,
+              "nodesPerSecond": 203070,
+              "prunedAb": 914139,
+              "prunedTt": 179661,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1082,
+                "considered": 243799,
+                "prunedAb": 948547,
+                "prunedTt": 181371,
+                "ttImproved": 11251,
+                "timedOut": false
+              },
+              {
+                "move": "f1f4",
+                "score": -52,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 234258,
+                "prunedAb": 907427,
+                "prunedTt": 183281,
+                "ttImproved": 11443,
+                "timedOut": true
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1157,
+                "considered": 221370,
+                "prunedAb": 873731,
+                "prunedTt": 167127,
+                "ttImproved": 10556,
+                "timedOut": false
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1095,
+                "considered": 225653,
+                "prunedAb": 878535,
+                "prunedTt": 168402,
+                "ttImproved": 10672,
+                "timedOut": false
+              },
+              {
+                "move": "f1f4",
+                "score": -52,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 236974,
+                "prunedAb": 919113,
+                "prunedTt": 179002,
+                "ttImproved": 11078,
+                "timedOut": true
+              },
+              {
+                "move": "f1f4",
+                "score": -35,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 228154,
+                "prunedAb": 892893,
+                "prunedTt": 177945,
+                "ttImproved": 11217,
+                "timedOut": true
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1086,
+                "considered": 241145,
+                "prunedAb": 942009,
+                "prunedTt": 187174,
+                "ttImproved": 11557,
+                "timedOut": false
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1117,
+                "considered": 232763,
+                "prunedAb": 917353,
+                "prunedTt": 183161,
+                "ttImproved": 11376,
+                "timedOut": false
+              },
+              {
+                "move": "f1f4",
+                "score": -52,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 231383,
+                "prunedAb": 905209,
+                "prunedTt": 176144,
+                "ttImproved": 10948,
+                "timedOut": true
+              },
+              {
+                "move": "f1d1",
+                "score": -41,
+                "depth": 8,
+                "elapsedMs": 1201,
+                "considered": 249809,
+                "prunedAb": 956576,
+                "prunedTt": 193009,
+                "ttImproved": 12635,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "2b2rk1/1pp1qp1p/r1n1pnp1/3p2N1/p2PP2P/P2Q2P1/1PPB1PB1/2KR3R w - - 0 17",
+        "tag": "lichess-IN3a4FSp-ply33",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h4h5",
+              "score": 123,
+              "count": 9,
+              "depth": 4,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 150070,
+              "prunedAb": 489184,
+              "prunedTt": 93576,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 174284,
+                "prunedAb": 468708,
+                "prunedTt": 91546,
+                "ttImproved": 2431,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 172310,
+                "prunedAb": 461047,
+                "prunedTt": 83661,
+                "ttImproved": 2219,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 183105,
+                "prunedAb": 495848,
+                "prunedTt": 96287,
+                "ttImproved": 2565,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 191029,
+                "prunedAb": 522139,
+                "prunedTt": 100950,
+                "ttImproved": 2690,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1203,
+                "considered": 168870,
+                "prunedAb": 449620,
+                "prunedTt": 81475,
+                "ttImproved": 2163,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 184176,
+                "prunedAb": 499592,
+                "prunedTt": 96633,
+                "ttImproved": 2572,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 193791,
+                "prunedAb": 529945,
+                "prunedTt": 104070,
+                "ttImproved": 2772,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 166825,
+                "prunedAb": 443143,
+                "prunedTt": 83035,
+                "ttImproved": 2200,
+                "timedOut": true
+              },
+              {
+                "move": "h4h5",
+                "score": 123,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 183714,
+                "prunedAb": 501048,
+                "prunedTt": 95569,
+                "ttImproved": 2541,
+                "timedOut": true
+              },
+              {
+                "move": "e4e5",
+                "score": 125,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 185943,
+                "prunedAb": 520757,
+                "prunedTt": 102540,
+                "ttImproved": 2726,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "8/1pp2pk1/4p1p1/2P1P3/pP1Pb3/Pr6/7R/K1B5 w - - 14 50",
+        "tag": "lichess-IN3a4FSp-ply99",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h2h4",
+              "score": -249,
+              "count": 9,
+              "depth": 6,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 179094,
+              "prunedAb": 980653,
+              "prunedTt": 122140,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 217304,
+                "prunedAb": 988429,
+                "prunedTt": 121828,
+                "ttImproved": 7211,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 208623,
+                "prunedAb": 955399,
+                "prunedTt": 119957,
+                "ttImproved": 6988,
+                "timedOut": true
+              },
+              {
+                "move": "c1g5",
+                "score": -199,
+                "depth": 7,
+                "elapsedMs": 1197,
+                "considered": 207397,
+                "prunedAb": 942915,
+                "prunedTt": 118032,
+                "ttImproved": 6894,
+                "timedOut": false
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 214113,
+                "prunedAb": 977036,
+                "prunedTt": 117964,
+                "ttImproved": 7041,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 218603,
+                "prunedAb": 1002261,
+                "prunedTt": 123580,
+                "ttImproved": 7416,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 211570,
+                "prunedAb": 964005,
+                "prunedTt": 117339,
+                "ttImproved": 7001,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 218221,
+                "prunedAb": 985969,
+                "prunedTt": 127447,
+                "ttImproved": 7611,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 216989,
+                "prunedAb": 990903,
+                "prunedTt": 123880,
+                "ttImproved": 7425,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 215158,
+                "prunedAb": 981111,
+                "prunedTt": 124022,
+                "ttImproved": 7419,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -249,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 223761,
+                "prunedAb": 1018511,
+                "prunedTt": 127356,
+                "ttImproved": 7464,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "7r/6k1/2R5/2K4P/4N1P1/5P2/8/8 b - - 10 70",
+        "tag": "lichess-gAacjwE9-ply140",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h8a8",
+              "score": -928,
+              "count": 10,
+              "depth": 6,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 260324,
+              "prunedAb": 1054559,
+              "prunedTt": 195484,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "h8a8",
+                "score": -928,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 312729,
+                "prunedAb": 1059612,
+                "prunedTt": 194584,
+                "ttImproved": 14402,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -928,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 316356,
+                "prunedAb": 1046057,
+                "prunedTt": 192922,
+                "ttImproved": 14356,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 328848,
+                "prunedAb": 1104360,
+                "prunedTt": 201203,
+                "ttImproved": 14829,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 301507,
+                "prunedAb": 1021688,
+                "prunedTt": 196014,
+                "ttImproved": 14696,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -928,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 320418,
+                "prunedAb": 1094179,
+                "prunedTt": 201410,
+                "ttImproved": 14915,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -928,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 323259,
+                "prunedAb": 1087445,
+                "prunedTt": 206426,
+                "ttImproved": 15227,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 303926,
+                "prunedAb": 1042007,
+                "prunedTt": 184045,
+                "ttImproved": 13320,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -928,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 316095,
+                "prunedAb": 1064189,
+                "prunedTt": 193450,
+                "ttImproved": 14571,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -928,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 316866,
+                "prunedAb": 1073610,
+                "prunedTt": 206250,
+                "ttImproved": 15523,
+                "timedOut": true
+              },
+              {
+                "move": "h8a8",
+                "score": -932,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 288507,
+                "prunedAb": 952447,
+                "prunedTt": 178536,
+                "ttImproved": 13339,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "6k1/1p2p3/3np2p/8/4n3/5K2/2Bp4/b6r w - - 2 44",
+        "tag": "lichess-9OVaO5TG-ply87",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "c2a4",
+              "score": -2302,
+              "count": 6,
+              "depth": 6,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 197052,
+              "prunedAb": 549643,
+              "prunedTt": 79400,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f3g4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 243661,
+                "prunedAb": 552433,
+                "prunedTt": 79554,
+                "ttImproved": 8193,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 239102,
+                "prunedAb": 547938,
+                "prunedTt": 79113,
+                "ttImproved": 8145,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 224287,
+                "prunedAb": 561904,
+                "prunedTt": 80798,
+                "ttImproved": 7836,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 242937,
+                "prunedAb": 548819,
+                "prunedTt": 79303,
+                "ttImproved": 8219,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 231244,
+                "prunedAb": 546717,
+                "prunedTt": 81143,
+                "ttImproved": 8085,
+                "timedOut": true
+              },
+              {
+                "move": "f3g4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 231557,
+                "prunedAb": 557942,
+                "prunedTt": 79825,
+                "ttImproved": 7798,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 246105,
+                "prunedAb": 550068,
+                "prunedTt": 79436,
+                "ttImproved": 8293,
+                "timedOut": true
+              },
+              {
+                "move": "c2a4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 235608,
+                "prunedAb": 544969,
+                "prunedTt": 81051,
+                "ttImproved": 8201,
+                "timedOut": true
+              },
+              {
+                "move": "f3g4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 230694,
+                "prunedAb": 536794,
+                "prunedTt": 74473,
+                "ttImproved": 7661,
+                "timedOut": true
+              },
+              {
+                "move": "f3g4",
+                "score": -2302,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 243198,
+                "prunedAb": 548847,
+                "prunedTt": 79307,
+                "ttImproved": 8223,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 7,
+      "runs": 70,
+      "missedExpected": 0,
+      "knownBad": 0,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 7,
+        "missedExpected": 0,
+        "knownBad": 0,
+        "avgElapsedMs": 1166
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "fen": "8/5k2/2Q4P/1P6/8/3KPP2/6q1/8 b - - 2 61",
+      "tag": "zJwDU0vk-before-61Qb2",
+      "before": "g2b2",
+      "after": "g2b2",
+      "beforeLoss": 870,
+      "afterLoss": 870,
+      "beforeDepth": 3,
+      "afterDepth": 3
+    },
+    {
+      "fen": "2b2rk1/rpqn2bp/p3p2p/2ppP3/8/1PNBQN2/P1P2PPP/2K1R1R1 w - - 3 15",
+      "tag": "lichess-cdTsyKE6-ply29",
+      "before": "e3d2",
+      "after": "e3d2",
+      "beforeLoss": 140,
+      "afterLoss": 140,
+      "beforeDepth": 4,
+      "afterDepth": 4
+    },
+    {
+      "fen": "8/8/1n1np3/4Kp1p/1P6/P1P5/6k1/5R2 w - - 4 50",
+      "tag": "lichess-gdKA8SFK-ply99",
+      "before": "f1d1",
+      "after": "f1d1",
+      "beforeLoss": 230,
+      "afterLoss": 230,
+      "beforeDepth": 8,
+      "afterDepth": 8
+    },
+    {
+      "fen": "2b2rk1/1pp1qp1p/r1n1pnp1/3p2N1/p2PP2P/P2Q2P1/1PPB1PB1/2KR3R w - - 0 17",
+      "tag": "lichess-IN3a4FSp-ply33",
+      "before": "h4h5",
+      "after": "h4h5",
+      "beforeLoss": 17,
+      "afterLoss": 17,
+      "beforeDepth": 4,
+      "afterDepth": 4
+    },
+    {
+      "fen": "8/1pp2pk1/4p1p1/2P1P3/pP1Pb3/Pr6/7R/K1B5 w - - 14 50",
+      "tag": "lichess-IN3a4FSp-ply99",
+      "before": "h2h4",
+      "after": "h2h4",
+      "beforeLoss": 127,
+      "afterLoss": 127,
+      "beforeDepth": 6,
+      "afterDepth": 6
+    },
+    {
+      "fen": "7r/6k1/2R5/2K4P/4N1P1/5P2/8/8 b - - 10 70",
+      "tag": "lichess-gAacjwE9-ply140",
+      "before": "h8a8",
+      "after": "h8a8",
+      "beforeLoss": 0,
+      "afterLoss": 0,
+      "beforeDepth": 6,
+      "afterDepth": 6
+    },
+    {
+      "fen": "6k1/1p2p3/3np2p/8/4n3/5K2/2Bp4/b6r w - - 2 44",
+      "tag": "lichess-9OVaO5TG-ply87",
+      "before": "c2a4",
+      "after": "c2a4",
+      "beforeLoss": 98652,
+      "afterLoss": 98652,
+      "beforeDepth": 6,
+      "afterDepth": 6
+    }
+  ],
+  "disposition": "Focused repetitions show initial full-corpus regressions also occur in control; majority moves unchanged on all seven positions. Fix remains undeployed pending fresh-loss investigation and stronger broad validation."
+}

@@ -502,20 +502,26 @@ func AdjustMateScore(score, depth int) int {
 // PosInf/NegInf are search sentinels, not board evaluations — skip normalization
 // to prevent them from corrupting TT entries as fake mate scores.
 func NormalizeMateScore(score, depth int) int {
-	if score >= WinScore && score < PosInf {
+	if score >= mateScoreThreshold && score < PosInf && score != OnEvaluation {
 		return score - depth
-	} else if score <= LossScore && score > NegInf {
+	} else if score <= -mateScoreThreshold && score > NegInf && score != -OnEvaluation {
 		return score + depth
 	}
 	return score
 }
 
+// Stored mate scores are relative to the cached position. Subtracting the
+// search depth can put a winning mate below WinScore (or a losing mate above
+// LossScore), so both directions must recognize this reserved score band.
+// Ordinary evaluations are many orders of magnitude smaller.
+const mateScoreThreshold = WinScore / 2
+
 // DenormalizeMateScore re-applies the depth component after reading a score
 // from the transposition table at a (possibly different) depth.
 func DenormalizeMateScore(score, depth int) int {
-	if score >= WinScore && score < PosInf {
+	if score >= mateScoreThreshold && score < PosInf && score != OnEvaluation {
 		return score + depth
-	} else if score <= LossScore && score > NegInf {
+	} else if score <= -mateScoreThreshold && score > NegInf && score != -OnEvaluation {
 		return score - depth
 	}
 	return score
@@ -544,11 +550,15 @@ type evaluationPair struct {
 // bitboard on the wrong color on every quiescence-search standPat call.
 func terminalScore(b *board.Board, whoMoves color.Color) (int, bool) {
 	hasLegalMove := b.HasLegalMove(whoMoves, nil)
-	kingInCheck := b.IsKingInCheck(whoMoves)
-	if !hasLegalMove && kingInCheck {
-		return LossScore, true
+	// With a legal move, check status cannot make the position terminal.
+	// Avoid rebuilding the opponent's attack map on every evaluation leaf.
+	if !hasLegalMove {
+		if b.IsKingInCheck(whoMoves) {
+			return LossScore, true
+		}
+		return StalemateScore, true
 	}
-	if (!hasLegalMove && !kingInCheck) || b.IsInsufficientMaterial() {
+	if b.IsInsufficientMaterial() {
 		return StalemateScore, true
 	}
 	return 0, false
@@ -605,7 +615,8 @@ func (p *AIPlayer) evaluateBoardCached(b *board.Board, whoMoves color.Color) *Ev
 			}
 		}
 	}
-	eval = EvaluateBoardNoCache(b, whoMoves)
+	// EvaluateBoard already checked terminal states before consulting this cache.
+	eval = evaluateNonTerminalBoard(b, whoMoves)
 
 	if p.evaluationMap != nil {
 		p.evaluationMap.Store(&hash, 0, &evaluationPair{
@@ -673,15 +684,20 @@ func kingSafety(b *board.Board, kingColor color.Color) int {
 }
 
 func EvaluateBoardNoCache(b *board.Board, whoMoves color.Color) *Evaluation {
-	eval := NewEvaluation()
 	// technically ignores en passant, but that should be ok
 	// Stalemate: the side to move has no legal moves and is not in check.
 	// Only check the side to move — checking whoMoves^1 (the side NOT to move)
 	// would misidentify positions where the opponent is boxed in (but can still
 	// be checkmated on the next move) as draws instead of wins.
 	if score, terminal := terminalScore(b, whoMoves); terminal {
-		eval.TotalScore = score
-	} else if config.Get().MaterialOnlyEval {
+		return &Evaluation{TotalScore: score}
+	}
+	return evaluateNonTerminalBoard(b, whoMoves)
+}
+
+func evaluateNonTerminalBoard(b *board.Board, whoMoves color.Color) *Evaluation {
+	eval := NewEvaluation()
+	if config.Get().MaterialOnlyEval {
 		// Material-only ablation eval: score is purely the sum of piece values,
 		// side-to-move relative. No PST, mobility, pawn structure, king safety, etc.
 		for row := location.CoordinateType(0); row < board.Height; row++ {

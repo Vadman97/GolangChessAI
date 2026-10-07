@@ -41,6 +41,41 @@ func TestABDADATTWriteUsesOriginalAlphaForExactScore(t *testing.T) {
 	}
 }
 
+func TestABDADATTReadRestoresMateDistanceAcrossDepths(t *testing.T) {
+	for _, sign := range []int{1, -1} {
+		b := &board.Board{}
+		b.ResetDefault()
+		p := NewAIPlayer(color.White, &ABDADA{})
+		p.TranspositionTableEnabled = true
+		ab := &ABDADA{player: p}
+		move := location.Move{Start: location.NewLocation(1, 3), End: location.NewLocation(3, 3)}
+		// A mate three plies away at depth five is WinScore+2. Its
+		// stored score is WinScore-3, below the old read threshold.
+		ab.syncTTWrite(b, color.White, 5, NegInf, PosInf, &ScoredMove{Move: move, Score: sign * (WinScore + 2)})
+		for _, depth := range []uint16{3, 4, 5} {
+			got := ab.ttRead(b, color.White, depth, NegInf, PosInf, false, true)
+			want := sign * (WinScore + int(depth) - 3)
+			if got.score != want {
+				t.Fatalf("sign=%d depth=%d: cached mate score=%d, want %d", sign, depth, got.score, want)
+			}
+		}
+	}
+}
+
+func TestMateScoreRoundTripPreservesDistanceAndSentinels(t *testing.T) {
+	for _, score := range []int{WinScore + 2, LossScore - 2, 137, -137, PosInf, NegInf, OnEvaluation, -OnEvaluation} {
+		stored := NormalizeMateScore(score, 5)
+		if got := DenormalizeMateScore(stored, 5); got != score {
+			t.Fatalf("round trip %d -> %d -> %d", score, stored, got)
+		}
+		if score == PosInf || score == NegInf || score == OnEvaluation || score == -OnEvaluation || score == 137 || score == -137 {
+			if got := DenormalizeMateScore(stored, 9); got != score {
+				t.Fatalf("ordinary score or sentinel changed with depth: %d -> %d", score, got)
+			}
+		}
+	}
+}
+
 func TestDefaultABDADAThreadsCapsRootParallelism(t *testing.T) {
 	tests := []struct {
 		cpus  int

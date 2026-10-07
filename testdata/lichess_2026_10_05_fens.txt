@@ -1,0 +1,9 @@
+# Fresh losses from /tmp/chess.lichess.log; Stockfish depth 16 diagnosis.
+# The matrix searches the algorithm directly and bypasses position-aware opening replies.
+rnbqkb1r/ppp2ppp/3p1n2/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 4 | XdvTuEuU before 4...d5 | f6e4
+rnbqkb1r/p2ppppp/8/1ppP4/4n3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 5 | wMrBp3gN before 5.Nbd2 | f1d3
+rn2kb1r/pb2ppp1/4q2p/1Ppp4/8/2N1B3/1PP2PPP/R2QKB1R w KQkq d6 0 13 | wMrBp3gN before 13.Ne2 | d1f3
+r2r2k1/ppp2ppp/4b3/3pq3/8/2PB1P2/P1PQ2PP/1K1R3R w - - 4 17 | BE927OLI before 17.Ka1 | f3f4
+r2r2k1/p4ppp/1p2bq2/2pp4/8/2PB1P2/P1PQ2PP/KR2R3 w - c6 0 20 | BE927OLI before 20.Bb5 | f3f4
+rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2 | p4uoHImi before 2.Nf3 | e4d5 | g1f3 | post-Petroff deployment; scripted move lost 157cp at SF depth 16
+1r1q1rk1/p3npp1/3ppn1p/1p6/5P2/1QNP1N2/PP4PP/2R1R1K1 w - b6 0 16 | p4uoHImi before 16.Nd4 | b3c2 | f3d4 | post-Petroff deployment; 226cp loss at SF depth 16

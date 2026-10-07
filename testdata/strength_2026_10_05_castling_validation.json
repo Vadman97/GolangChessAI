@@ -1,0 +1,1855 @@
+{
+  "beforeBinarySHA256": "7f5d384247fdf1e975b319258f7e6f9048e065bf7ad980dd5e7fbac854552afd",
+  "afterBinarySHA256": "c48627090ac90cf149cdcb2d764b5a59f0094675131c10e4bf751fd83257a0d8",
+  "fixedDepthComparison": {
+    "depth": 3,
+    "threads": 1,
+    "positions": [
+      {
+        "tag": "promotion-ordering",
+        "fen": "7k/P7/8/8/8/8/8/4K3 w - - 0 1",
+        "before": {
+          "move": "a7a8q",
+          "score": 1312,
+          "depth": 3
+        },
+        "after": {
+          "move": "a7a8q",
+          "score": 1312,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "zJwDU0vk-before-61Qb2",
+        "fen": "8/5k2/2Q4P/1P6/8/3KPP2/6q1/8 b - - 2 61",
+        "before": {
+          "move": "g2f1",
+          "score": -411,
+          "depth": 3
+        },
+        "after": {
+          "move": "g2f1",
+          "score": -411,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "zJwDU0vk-before-62Kg8",
+        "fen": "8/5k2/2Q4P/1P6/4K3/4PP2/1q6/8 b - - 4 62",
+        "before": {
+          "move": "f7g8",
+          "score": -465,
+          "depth": 3
+        },
+        "after": {
+          "move": "f7g8",
+          "score": -465,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-cdTsyKE6-ply19",
+        "fen": "r1bq1rk1/pp1n2bp/2p1pp1p/3pP3/3P4/2N1QN2/PPP2PPP/2KR1B1R w - - 0 10",
+        "before": {
+          "move": "e5f6",
+          "score": 15,
+          "depth": 3
+        },
+        "after": {
+          "move": "e5f6",
+          "score": 15,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-cdTsyKE6-ply25",
+        "fen": "r1bq1rk1/1p1n2bp/p3p2p/2ppP3/8/2NBQN2/PPP2PPP/2KR2R1 w - - 0 13",
+        "before": {
+          "move": "e3d2",
+          "score": -25,
+          "depth": 3
+        },
+        "after": {
+          "move": "e3d2",
+          "score": -25,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-cdTsyKE6-ply29",
+        "fen": "2b2rk1/rpqn2bp/p3p2p/2ppP3/8/1PNBQN2/P1P2PPP/2K1R1R1 w - - 3 15",
+        "before": {
+          "move": "e3d2",
+          "score": -49,
+          "depth": 3
+        },
+        "after": {
+          "move": "e3d2",
+          "score": -49,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-cdTsyKE6-ply31",
+        "fen": "2b2rk1/r1qn2bp/p3p2p/1pppP3/8/1PNB1N2/P1P1QPPP/2K1R1R1 w - b6 0 16",
+        "before": {
+          "move": "e2d2",
+          "score": -130,
+          "depth": 3
+        },
+        "after": {
+          "move": "e2d2",
+          "score": -130,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-cdTsyKE6-ply51",
+        "fen": "3Q4/1q1n1kbp/4p2p/1bp1P3/3p1rP1/1P2RN2/P1P2P1P/1K1R4 w - - 3 26",
+        "before": {
+          "move": "a2a4",
+          "score": -195,
+          "depth": 3
+        },
+        "after": {
+          "move": "a2a4",
+          "score": -195,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-cdTsyKE6-ply83",
+        "fen": "2q5/P6p/3Qpk1p/3bn3/7P/1P4R1/2P5/2K2r2 w - - 1 42",
+        "before": {
+          "move": "c1b2",
+          "score": -673,
+          "depth": 3
+        },
+        "after": {
+          "move": "c1b2",
+          "score": -673,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-cdTsyKE6-ply85",
+        "fen": "2q5/P6p/3Qpk1p/4n3/7P/1b4R1/1KP5/5r2 w - - 0 43",
+        "before": {
+          "move": "g3c3",
+          "score": -507,
+          "depth": 3
+        },
+        "after": {
+          "move": "g3c3",
+          "score": -507,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-cdTsyKE6-ply89",
+        "fen": "2q5/P6p/3Qpk1p/1r2n3/7P/K5R1/2P5/8 w - - 3 45",
+        "before": {
+          "move": "g3g4",
+          "score": -878,
+          "depth": 3
+        },
+        "after": {
+          "move": "g3g4",
+          "score": -878,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gdKA8SFK-ply99",
+        "fen": "8/8/1n1np3/4Kp1p/1P6/P1P5/6k1/5R2 w - - 4 50",
+        "before": {
+          "move": "f1c1",
+          "score": -17,
+          "depth": 3
+        },
+        "after": {
+          "move": "f1c1",
+          "score": -17,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gdKA8SFK-ply103",
+        "fen": "8/8/3nK3/5p2/1Pn4p/P1P5/6k1/2R5 w - - 0 52",
+        "before": {
+          "move": "c1d1",
+          "score": -72,
+          "depth": 3
+        },
+        "after": {
+          "move": "c1d1",
+          "score": -72,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gdKA8SFK-ply123",
+        "fen": "8/8/4K3/1P2R3/P7/2q3nk/8/5n2 w - - 0 62",
+        "before": {
+          "move": "b5b6",
+          "score": -1345,
+          "depth": 3
+        },
+        "after": {
+          "move": "b5b6",
+          "score": -1345,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-5Yxb8FI8-ply24",
+        "fen": "r4rk1/2p2ppp/b1pqpn2/p2p4/Pb1PP3/1PN2N2/2PB1PPP/R2QR1K1 b - - 0 12",
+        "before": {
+          "move": "b4c3",
+          "score": 137,
+          "depth": 3
+        },
+        "after": {
+          "move": "b4c3",
+          "score": 137,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-5Yxb8FI8-ply60",
+        "fen": "1r5k/2p2p1p/P1p1p3/5p2/2pP1P1P/3r4/4R1P1/R6K b - - 0 30",
+        "before": {
+          "move": "h8g7",
+          "score": 222,
+          "depth": 3
+        },
+        "after": {
+          "move": "h8g7",
+          "score": 222,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-5Yxb8FI8-ply68",
+        "fen": "r7/P1p2p1k/R1p1p2p/5p2/2pP1P1P/1r6/6P1/R6K b - - 6 34",
+        "before": {
+          "move": "b3b6",
+          "score": 174,
+          "depth": 3
+        },
+        "after": {
+          "move": "b3b6",
+          "score": 174,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply13",
+        "fen": "r1bq1rk1/ppp2ppp/2n1pn2/3p4/1b1P4/2NQBNP1/PPP1PP1P/R3KB1R w KQ - 1 7",
+        "before": {
+          "move": "f3e5",
+          "score": -14,
+          "depth": 3
+        },
+        "after": {
+          "move": "f3e5",
+          "score": -14,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply27",
+        "fen": "r1b2rk1/1pp1qppp/2n1pn2/3p2N1/p2P3P/P2QB1P1/1PP1PP2/2KR1B1R w - - 2 14",
+        "before": {
+          "move": "f1g2",
+          "score": 46,
+          "depth": 3
+        },
+        "after": {
+          "move": "f1g2",
+          "score": 46,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply33",
+        "fen": "2b2rk1/1pp1qp1p/r1n1pnp1/3p2N1/p2PP2P/P2Q2P1/1PPB1PB1/2KR3R w - - 0 17",
+        "before": {
+          "move": "e4e5",
+          "score": 137,
+          "depth": 3
+        },
+        "after": {
+          "move": "e4e5",
+          "score": 137,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply39",
+        "fen": "2b1r1k1/1pp1qp1p/r1n1p1p1/8/p2PB2P/P2Q2P1/1PPB1P2/2K1R2R w - - 1 20",
+        "before": {
+          "move": "d2g5",
+          "score": 497,
+          "depth": 3
+        },
+        "after": {
+          "move": "d2g5",
+          "score": 497,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply43",
+        "fen": "2b1r1k1/1pp2p1p/2r1pqp1/7P/p2P4/P2Q2P1/1PPB1P2/2K1R2R w - - 1 22",
+        "before": {
+          "move": "d2h6",
+          "score": 225,
+          "depth": 3
+        },
+        "after": {
+          "move": "d2h6",
+          "score": 225,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply51",
+        "fen": "6k1/1ppb1p1p/3rpqp1/3rR2P/p2P1P2/P2QB1P1/1PP5/1K5R w - - 7 26",
+        "before": {
+          "move": "c2c4",
+          "score": 196,
+          "depth": 3
+        },
+        "after": {
+          "move": "c2c4",
+          "score": 196,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply53",
+        "fen": "6k1/1ppb1p2/3rpqp1/3rR3/p2P1P2/P2QB1P1/1PP5/1K5R w - - 0 27",
+        "before": {
+          "move": "c2c4",
+          "score": 267,
+          "depth": 3
+        },
+        "after": {
+          "move": "c2c4",
+          "score": 267,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply59",
+        "fen": "6k1/1ppb1p2/3rp1p1/4P3/p1PPq3/P3B1P1/1P6/1K1Q3R w - - 3 30",
+        "before": {
+          "move": "b1a2",
+          "score": 122,
+          "depth": 3
+        },
+        "after": {
+          "move": "b1a2",
+          "score": 122,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply61",
+        "fen": "6k1/1ppb1p2/1r2p1p1/4P3/p1PPq3/P3B1P1/KP6/3Q3R w - - 5 31",
+        "before": {
+          "move": "e3h6",
+          "score": 219,
+          "depth": 3
+        },
+        "after": {
+          "move": "e3h6",
+          "score": 219,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply67",
+        "fen": "6k1/1ppb1p2/4p1p1/4P3/p1PP4/Pr4P1/KP3B2/5R2 w - - 1 34",
+        "before": {
+          "move": "f2e1",
+          "score": 17,
+          "depth": 3
+        },
+        "after": {
+          "move": "f2e1",
+          "score": 17,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply69",
+        "fen": "6k1/1pp2p2/2b1p1p1/4P3/p1PP4/Pr4P1/KP3B2/7R w - - 3 35",
+        "before": {
+          "move": "h1d1",
+          "score": -92,
+          "depth": 3
+        },
+        "after": {
+          "move": "h1d1",
+          "score": -92,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply75",
+        "fen": "8/1pp2pk1/2b1p1p1/4P3/p1PP2PR/P7/KP6/4Br2 w - - 3 38",
+        "before": {
+          "move": "e1d2",
+          "score": -93,
+          "depth": 3
+        },
+        "after": {
+          "move": "e1d2",
+          "score": -93,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply77",
+        "fen": "8/1pp2pk1/4p1p1/4P3/p1PPb1PR/P1B5/KP6/5r2 w - - 5 39",
+        "before": {
+          "move": "b2b4",
+          "score": -192,
+          "depth": 3
+        },
+        "after": {
+          "move": "b2b4",
+          "score": -192,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply83",
+        "fen": "8/1pp2pk1/4p1p1/4P1P1/pPPP3R/P1Bb4/6r1/K7 w - - 3 42",
+        "before": {
+          "move": "c4c5",
+          "score": -207,
+          "depth": 3
+        },
+        "after": {
+          "move": "c4c5",
+          "score": -207,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply85",
+        "fen": "8/1pp2pk1/4p1p1/2P1P1r1/pP1P3R/P1Bb4/8/K7 w - - 0 43",
+        "before": {
+          "move": "h4h2",
+          "score": -192,
+          "depth": 3
+        },
+        "after": {
+          "move": "h4h2",
+          "score": -192,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply87",
+        "fen": "8/1pp2pk1/4p1p1/2P1P3/pP1P4/P1Bb4/7R/K5r1 w - - 2 44",
+        "before": {
+          "move": "a1b2",
+          "score": -197,
+          "depth": 3
+        },
+        "after": {
+          "move": "a1b2",
+          "score": -197,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply89",
+        "fen": "8/1pp2pk1/4p1p1/2P1P3/pP1P4/P1Bb4/K6R/2r5 w - - 4 45",
+        "before": {
+          "move": "a2b2",
+          "score": -163,
+          "depth": 3
+        },
+        "after": {
+          "move": "a2b2",
+          "score": -163,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply99",
+        "fen": "8/1pp2pk1/4p1p1/2P1P3/pP1Pb3/Pr6/7R/K1B5 w - - 14 50",
+        "before": {
+          "move": "a1a2",
+          "score": -236,
+          "depth": 3
+        },
+        "after": {
+          "move": "a1a2",
+          "score": -236,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply103",
+        "fen": "8/2p2pk1/4p1p1/1pPbP3/pP1P4/Pr6/7R/K1B5 w - b6 0 52",
+        "before": {
+          "move": "c1h6",
+          "score": -258,
+          "depth": 3
+        },
+        "after": {
+          "move": "c1h6",
+          "score": -258,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply105",
+        "fen": "8/2p2pk1/4p3/1pPbP1p1/pP1P4/Pr6/1B5R/K7 w - - 0 53",
+        "before": {
+          "move": "a1b1",
+          "score": -278,
+          "depth": 3
+        },
+        "after": {
+          "move": "a1b1",
+          "score": -278,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply107",
+        "fen": "8/2p2pk1/4p3/1pPbP3/pP1P2p1/Pr6/1B2R3/K7 w - - 0 54",
+        "before": {
+          "move": "a1b1",
+          "score": -329,
+          "depth": 3
+        },
+        "after": {
+          "move": "a1b1",
+          "score": -329,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply121",
+        "fen": "8/2p2p2/4p3/1pPbP3/pP1Pk3/P3B3/1K4p1/6Rr w - - 8 61",
+        "before": {
+          "move": "g1g2",
+          "score": -712,
+          "depth": 3
+        },
+        "after": {
+          "move": "g1g2",
+          "score": -712,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply137",
+        "fen": "8/5p2/2p1pB2/1pPbP3/pP1k4/Pr6/1K6/8 w - - 2 69",
+        "before": {
+          "move": "b2c1",
+          "score": -1237,
+          "depth": 3
+        },
+        "after": {
+          "move": "b2c1",
+          "score": -1237,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-IN3a4FSp-ply139",
+        "fen": "8/5p2/2p1pB2/1pPbP3/pP6/Pr2k3/2K5/8 w - - 4 70",
+        "before": {
+          "move": "c2c1",
+          "score": -1187,
+          "depth": 3
+        },
+        "after": {
+          "move": "c2c1",
+          "score": -1187,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply8",
+        "fen": "rnbqkb1r/ppp1pppp/5n2/8/2pP4/2N2N2/PP2PPPP/R1BQKB1R b KQkq - 1 4",
+        "before": {
+          "move": "b8c6",
+          "score": -9,
+          "depth": 3
+        },
+        "after": {
+          "move": "b8c6",
+          "score": -9,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply10",
+        "fen": "r1bqkb1r/ppp1pppp/2n2n2/8/2pPP3/2N2N2/PP3PPP/R1BQKB1R b KQkq e3 0 5",
+        "before": {
+          "move": "c8g4",
+          "score": -28,
+          "depth": 3
+        },
+        "after": {
+          "move": "c8g4",
+          "score": -28,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply12",
+        "fen": "r1bqkb1r/ppp2ppp/2n2n2/3Pp3/2p1P3/2N2N2/PP3PPP/R1BQKB1R b KQkq - 0 6",
+        "before": {
+          "move": "c6d4",
+          "score": -93,
+          "depth": 3
+        },
+        "after": {
+          "move": "c6d4",
+          "score": -93,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply24",
+        "fen": "r1b1k2r/p1p2ppp/2P5/1p2p3/P1p5/2n1BN2/5PPP/R1K2B1R b kq - 1 12",
+        "before": {
+          "move": "c3a4",
+          "score": -232,
+          "depth": 3
+        },
+        "after": {
+          "move": "c3a4",
+          "score": -232,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply28",
+        "fen": "r3k2r/p1p3pp/2P1bp2/RP2p3/2p5/2n1BN2/5PPP/2K2B1R b kq - 2 14",
+        "before": {
+          "move": "a7a6",
+          "score": -269,
+          "depth": 3
+        },
+        "after": {
+          "move": "a7a6",
+          "score": -269,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply30",
+        "fen": "r4rk1/p1p3pp/2P1bp2/RP2p3/2p5/2n1B3/3N1PPP/2K2B1R b - - 4 15",
+        "before": {
+          "move": "f8d8",
+          "score": -303,
+          "depth": 3
+        },
+        "after": {
+          "move": "f8d8",
+          "score": -303,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply44",
+        "fen": "1r4k1/2p4p/2P2p2/R3p1p1/2Nr4/2K5/5PPP/R7 b - - 1 22",
+        "before": {
+          "move": "g8f7",
+          "score": -440,
+          "depth": 3
+        },
+        "after": {
+          "move": "g8f7",
+          "score": -440,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply58",
+        "fen": "2r5/R1p5/2Pk3p/4p1p1/4N3/2K5/5PPP/8 b - - 1 29",
+        "before": {
+          "move": "d6d5",
+          "score": -452,
+          "depth": 3
+        },
+        "after": {
+          "move": "d6d5",
+          "score": -452,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply64",
+        "fen": "2r5/2pN4/R6p/2k1p1p1/8/2K5/5PPP/8 b - - 5 32",
+        "before": {
+          "move": "c5b5",
+          "score": -410,
+          "depth": 3
+        },
+        "after": {
+          "move": "c5b5",
+          "score": -410,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply68",
+        "fen": "3r4/2p5/5N1R/3kp1p1/8/2K5/5PPP/8 b - - 2 34",
+        "before": {
+          "move": "d5e6",
+          "score": -400,
+          "depth": 3
+        },
+        "after": {
+          "move": "d5e6",
+          "score": -400,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply74",
+        "fen": "r7/2p5/4N2R/3kp3/8/2K5/5PPP/8 b - - 2 37",
+        "before": {
+          "move": "a8c8",
+          "score": -442,
+          "depth": 3
+        },
+        "after": {
+          "move": "a8c8",
+          "score": -442,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply116",
+        "fen": "8/4r2k/8/4N1R1/1K6/5P2/6PP/8 b - - 6 58",
+        "before": {
+          "move": "h7h6",
+          "score": -816,
+          "depth": 3
+        },
+        "after": {
+          "move": "h7h6",
+          "score": -816,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply130",
+        "fen": "8/7k/4r3/1K4RP/4N1P1/5P2/8/8 b - g3 0 65",
+        "before": {
+          "move": "h7h6",
+          "score": -903,
+          "depth": 3
+        },
+        "after": {
+          "move": "h7h6",
+          "score": -903,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-gAacjwE9-ply140",
+        "fen": "7r/6k1/2R5/2K4P/4N1P1/5P2/8/8 b - - 10 70",
+        "before": {
+          "move": "h8a8",
+          "score": -917,
+          "depth": 3
+        },
+        "after": {
+          "move": "h8a8",
+          "score": -917,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-4HkIRFy9-ply45",
+        "fen": "1r2r1k1/pb1n1p2/2pp2p1/3pp3/N2P3Q/qP1BP3/P1P3PP/R4RK1 w - - 0 23",
+        "before": {
+          "move": "d3g6",
+          "score": 96,
+          "depth": 3
+        },
+        "after": {
+          "move": "d3g6",
+          "score": 96,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-4HkIRFy9-ply47",
+        "fen": "1r4k1/pb1nrp2/2pp2pQ/3pp3/N2P4/qP1BP3/P1P3PP/R4RK1 w - - 2 24",
+        "before": {
+          "move": "f1f7",
+          "score": 188,
+          "depth": 3
+        },
+        "after": {
+          "move": "f1f7",
+          "score": 188,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-4HkIRFy9-ply51",
+        "fen": "4r1k1/p2nrp2/b1pp2p1/3pp1Q1/N1PP4/qP1BP3/P5PP/R4RK1 w - - 3 26",
+        "before": {
+          "move": "d3g6",
+          "score": 271,
+          "depth": 3
+        },
+        "after": {
+          "move": "d3g6",
+          "score": 271,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-4HkIRFy9-ply53",
+        "fen": "4r1k1/p2nrp2/b1pp2p1/3p2Q1/N1Pp4/qP2P3/P1B3PP/R4RK1 w - - 0 27",
+        "before": {
+          "move": "c2g6",
+          "score": 170,
+          "depth": 3
+        },
+        "after": {
+          "move": "c2g6",
+          "score": 170,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-4HkIRFy9-ply55",
+        "fen": "4r1k1/p2nrp2/b1pp2p1/6Q1/N1pP4/qP6/P1B3PP/R4RK1 w - - 0 28",
+        "before": {
+          "move": "c2g6",
+          "score": 163,
+          "depth": 3
+        },
+        "after": {
+          "move": "c2g6",
+          "score": 163,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-4HkIRFy9-ply95",
+        "fen": "6k1/p4p2/Q1ppn3/8/N5pP/5qP1/6K1/8 w - - 2 48",
+        "before": {
+          "move": "g2g1",
+          "score": -629,
+          "depth": 3
+        },
+        "after": {
+          "move": "g2g1",
+          "score": -629,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-4HkIRFy9-ply99",
+        "fen": "6k1/p4p2/Q1ppn3/8/N5pP/6q1/8/7K w - - 0 50",
+        "before": {
+          "move": "a6c6",
+          "score": -592,
+          "depth": 3
+        },
+        "after": {
+          "move": "a6c6",
+          "score": -592,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "selfplay-2026-07-06-g1m50",
+        "fen": "5k2/3R3p/8/1P1p1pp1/3Bn3/1P1r4/7K/8 w - - 6 50",
+        "before": {
+          "move": "d4e5",
+          "score": -154,
+          "depth": 3
+        },
+        "after": {
+          "move": "d4e5",
+          "score": -154,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "selfplay-2026-07-06-g1m55",
+        "fen": "3R4/5k1p/8/1Pnp1p2/6pK/1P1r4/8/8 w - - 2 55",
+        "before": {
+          "move": "b5b6",
+          "score": -601,
+          "depth": 3
+        },
+        "after": {
+          "move": "b5b6",
+          "score": -601,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-9OVaO5TG-ply23",
+        "fen": "r2q1rk1/pppnppb1/5npp/3p4/3P1B2/2NBPP1P/PPP4P/R2Q1RK1 w - - 1 12",
+        "before": {
+          "move": "c3b5",
+          "score": 120,
+          "depth": 3
+        },
+        "after": {
+          "move": "c3b5",
+          "score": 120,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-9OVaO5TG-ply33",
+        "fen": "2r2rk1/pp1np1b1/1q2pnBp/2pp4/3P1B2/3QPP1P/PPP4P/R4RK1 w - - 0 17",
+        "before": {
+          "move": "d4c5",
+          "score": 154,
+          "depth": 3
+        },
+        "after": {
+          "move": "d4c5",
+          "score": 154,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-9OVaO5TG-ply35",
+        "fen": "2r1nrk1/pp1np1b1/1q2p1Bp/2pp4/3P1B2/3QPP1P/PPP4P/R3R1K1 w - - 2 18",
+        "before": {
+          "move": "g6h7",
+          "score": 551,
+          "depth": 3
+        },
+        "after": {
+          "move": "g6h7",
+          "score": 551,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-9OVaO5TG-ply49",
+        "fen": "2r1n1k1/pp2p1b1/4prBp/2np3P/8/2q1PP2/2P3QP/R3R1K1 w - - 1 25",
+        "before": {
+          "move": "g2g3",
+          "score": -463,
+          "depth": 3
+        },
+        "after": {
+          "move": "g2g3",
+          "score": -463,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-9OVaO5TG-ply87",
+        "fen": "6k1/1p2p3/3np2p/8/4n3/5K2/2Bp4/b6r w - - 2 44",
+        "before": {
+          "move": "c2a4",
+          "score": -2246,
+          "depth": 3
+        },
+        "after": {
+          "move": "c2a4",
+          "score": -2246,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-o6lAdkjC-ply26",
+        "fen": "r1b1kb1r/ppp4p/6p1/3pP2P/3Q2n1/2N1P3/PPPKBq1P/R5NR b kq - 4 13",
+        "before": {
+          "move": "f8b4",
+          "score": 182,
+          "depth": 3
+        },
+        "after": {
+          "move": "f8b4",
+          "score": 182,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-o6lAdkjC-ply30",
+        "fen": "r1b1k2r/ppp4p/6p1/3pP2P/1Q4n1/2N1q3/PPP1B2P/R3K1NR b kq - 1 15",
+        "before": {
+          "move": "a7a5",
+          "score": 92,
+          "depth": 3
+        },
+        "after": {
+          "move": "a7a5",
+          "score": 92,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-o6lAdkjC-ply40",
+        "fen": "r4rk1/p6p/2Q3p1/3pPb1P/8/2N1n3/PPP1Bq1P/R1K3NR b - - 4 20",
+        "before": {
+          "move": "f2e1",
+          "score": 744,
+          "depth": 3
+        },
+        "after": {
+          "move": "f2e1",
+          "score": 744,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-o6lAdkjC-ply48",
+        "fen": "1r4k1/p4r1p/3Q2p1/3pP2P/8/2N1n3/PPb4P/R1KBq1NR b - - 7 24",
+        "before": {
+          "move": "f7b7",
+          "score": 1178,
+          "depth": 3
+        },
+        "after": {
+          "move": "f7b7",
+          "score": 1178,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-o6lAdkjC-ply50",
+        "fen": "6k1/pr3r1p/3QP1p1/3p3P/8/2N1n3/PPb4P/R1KBq1NR b - - 0 25",
+        "before": {
+          "move": "f7f2",
+          "score": 1306,
+          "depth": 3
+        },
+        "after": {
+          "move": "f7f2",
+          "score": 1306,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-33e5jNAp-ply19",
+        "fen": "rnbq1bnr/3pk1pp/2p1pp2/1p4B1/p2PP3/P1NB1N2/1PP2PPP/R2QR1K1 w - - 0 10",
+        "before": {
+          "move": "f3e5",
+          "score": 355,
+          "depth": 3
+        },
+        "after": {
+          "move": "f3e5",
+          "score": 355,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-33e5jNAp-ply59",
+        "fen": "2Q2b1r/3rk1pp/n3p2n/4P1p1/p2P1q2/P6P/1P3PP1/2R3K1 w - - 0 30",
+        "before": {
+          "move": "c1c6",
+          "score": -1211,
+          "depth": 3
+        },
+        "after": {
+          "move": "c1c6",
+          "score": -1211,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-33e5jNAp-ply69",
+        "fen": "1RQ2b1r/4k1pp/4p2n/4q1p1/p7/P5PP/1P1r1PK1/8 w - - 2 35",
+        "before": {
+          "move": "b8b6",
+          "score": -1407,
+          "depth": 3
+        },
+        "after": {
+          "move": "b8b6",
+          "score": -1407,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-mI9lFZZd-ply17",
+        "fen": "r1b2b1r/ppNk1ppp/1qn1pn2/3p4/3p1B1P/4PN2/PPP2PP1/R2QKB1R w KQ - 2 9",
+        "before": {
+          "move": "f1b5",
+          "score": 750,
+          "depth": 3
+        },
+        "after": {
+          "move": "f1b5",
+          "score": 750,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-mI9lFZZd-ply21",
+        "fen": "r1b4r/ppNk1ppp/1qn1pn2/1B1p4/1b3B1P/4pN2/PPP2PP1/R2Q1K1R w - - 0 11",
+        "before": {
+          "move": "f3g5",
+          "score": 814,
+          "depth": 3
+        },
+        "after": {
+          "move": "f3g5",
+          "score": 814,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-mI9lFZZd-ply105",
+        "fen": "8/1p6/6p1/5b2/1p3Kn1/8/P2kp2p/4R3 w - - 2 53",
+        "before": {
+          "move": "e1a1",
+          "score": -2525,
+          "depth": 3
+        },
+        "after": {
+          "move": "e1a1",
+          "score": -2525,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-mI9lFZZd-ply109",
+        "fen": "8/1p6/6p1/5b2/1p3Kn1/8/P6p/4k3 w - - 0 55",
+        "before": {
+          "move": "f4g3",
+          "score": -1000000001,
+          "depth": 3
+        },
+        "after": {
+          "move": "f4g3",
+          "score": -1000000001,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-hzqrcLk5-ply29",
+        "fen": "1nbq1b1r/r3kp1p/2p1pN1p/4N3/ppBP4/5Q2/PPP2PPP/R4RK1 w - - 4 15",
+        "before": {
+          "move": "g2g4",
+          "score": 1094,
+          "depth": 3
+        },
+        "after": {
+          "move": "g2g4",
+          "score": 1094,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-hzqrcLk5-ply37",
+        "fen": "1nb4r/r3kpbp/2p1pN2/4N1p1/ppB5/5Q2/PqP1RP1P/5RK1 w - - 0 19",
+        "before": {
+          "move": "f6g4",
+          "score": 425,
+          "depth": 3
+        },
+        "after": {
+          "move": "f6g4",
+          "score": 425,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-hzqrcLk5-ply39",
+        "fen": "1nb4r/4kpbp/2p1pN2/r3N1p1/ppB5/4Q3/PqP1RP1P/5RK1 w - - 2 20",
+        "before": {
+          "move": "c2c3",
+          "score": 357,
+          "depth": 3
+        },
+        "after": {
+          "move": "c2c3",
+          "score": 357,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-hzqrcLk5-ply43",
+        "fen": "1nb4r/4kNbp/2p1pN2/r5p1/ppq5/4Q3/P3RP1P/5RK1 w - - 0 22",
+        "before": {
+          "move": "f1c1",
+          "score": -103,
+          "depth": 3
+        },
+        "after": {
+          "move": "f1c1",
+          "score": -103,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-hzqrcLk5-ply61",
+        "fen": "1n5b/4k3/2p1b3/3rp2p/pR2Kp2/5P2/P3R2P/8 w - - 1 31",
+        "before": {
+          "move": "e2c2",
+          "score": -560,
+          "depth": 3
+        },
+        "after": {
+          "move": "e2c2",
+          "score": -560,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-vVm9J7Ja-ply30",
+        "fen": "r4rk1/pp2ppbp/2qp2p1/n4b2/1RP3n1/P2PP2N/2KN1PPP/2BQ1B1R b - - 0 15",
+        "before": {
+          "move": "g7c3",
+          "score": 444,
+          "depth": 3
+        },
+        "after": {
+          "move": "g7c3",
+          "score": 444,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-vVm9J7Ja-ply72",
+        "fen": "6k1/4pp2/6P1/4n3/r1P1PN2/P1KP1P2/4B2P/1qB3QR b - - 0 36",
+        "before": {
+          "move": "f7f6",
+          "score": -852,
+          "depth": 3
+        },
+        "after": {
+          "move": "f7f6",
+          "score": -852,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-vVm9J7Ja-ply74",
+        "fen": "5k2/4pP2/8/4n3/r1P1PN2/P1KP1P2/4B2P/1qB3QR b - - 0 37",
+        "before": {
+          "move": "f8f7",
+          "score": -1359,
+          "depth": 3
+        },
+        "after": {
+          "move": "f8f7",
+          "score": -1359,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-Shv7DOi0-ply54",
+        "fen": "1rb3k1/pp4pp/1q6/3pP1Q1/3b1P2/P2B4/6PP/5R1K b - - 0 27",
+        "before": {
+          "move": "d4f2",
+          "score": 627,
+          "depth": 3
+        },
+        "after": {
+          "move": "d4f2",
+          "score": 627,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-Shv7DOi0-ply56",
+        "fen": "1rb3k1/pp5p/1q4p1/3pPPQ1/3b4/P2B4/6PP/5R1K b - - 0 28",
+        "before": {
+          "move": "d4f2",
+          "score": 474,
+          "depth": 3
+        },
+        "after": {
+          "move": "d4f2",
+          "score": 474,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-9SUqYqfp-ply43",
+        "fen": "5rk1/3qppb1/3p1np1/rp4Bp/1R2P3/p1N5/P1PQ1PPP/1R4K1 w - - 4 22",
+        "before": {
+          "move": "c3b5",
+          "score": 81,
+          "depth": 3
+        },
+        "after": {
+          "move": "c3b5",
+          "score": 81,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-LIuIYRzg-ply38",
+        "fen": "2krr3/p4ppp/Pp6/n1p2b2/2PP4/2R1qN2/1B2B1PP/3QK2R b K - 3 19",
+        "before": {
+          "move": "e3e4",
+          "score": -172,
+          "depth": 3
+        },
+        "after": {
+          "move": "e3e4",
+          "score": -172,
+          "depth": 3
+        }
+      },
+      {
+        "tag": "lichess-ZnHWdJRD-ply6",
+        "fen": "r1bqkbnr/pp1ppppp/2n5/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq d3 0 3",
+        "before": {
+          "move": "c5d4",
+          "score": -10,
+          "depth": 3
+        },
+        "after": {
+          "move": "c5d4",
+          "score": -10,
+          "depth": 3
+        }
+      }
+    ]
+  },
+  "controlledTiming": {
+    "depth": 4,
+    "threads": 1,
+    "runs": 10,
+    "positions": [
+      {
+        "tag": "blocked-castling",
+        "before": {
+          "move": "c6e5",
+          "score": -86,
+          "count": 10,
+          "depth": 4,
+          "avgElapsedMs": 556,
+          "nodesPerSecond": 63187,
+          "prunedAb": 74928,
+          "prunedTt": 20229,
+          "timedOut": false
+        },
+        "after": {
+          "move": "c6e5",
+          "score": -86,
+          "count": 10,
+          "depth": 4,
+          "avgElapsedMs": 539,
+          "nodesPerSecond": 65201,
+          "prunedAb": 74928,
+          "prunedTt": 20229,
+          "timedOut": false
+        }
+      },
+      {
+        "tag": "open-castling",
+        "before": {
+          "move": "d6b4",
+          "score": 84,
+          "count": 10,
+          "depth": 4,
+          "avgElapsedMs": 606,
+          "nodesPerSecond": 64428,
+          "prunedAb": 175481,
+          "prunedTt": 26351,
+          "timedOut": false
+        },
+        "after": {
+          "move": "d6b4",
+          "score": 84,
+          "count": 10,
+          "depth": 4,
+          "avgElapsedMs": 599,
+          "nodesPerSecond": 65184,
+          "prunedAb": 175481,
+          "prunedTt": 26351,
+          "timedOut": false
+        }
+      },
+      {
+        "tag": "already-castled",
+        "before": {
+          "move": "f3d4",
+          "score": -27,
+          "count": 10,
+          "depth": 4,
+          "avgElapsedMs": 819,
+          "nodesPerSecond": 59626,
+          "prunedAb": 181483,
+          "prunedTt": 40054,
+          "timedOut": false
+        },
+        "after": {
+          "move": "f3d4",
+          "score": -27,
+          "count": 10,
+          "depth": 4,
+          "avgElapsedMs": 841,
+          "nodesPerSecond": 58056,
+          "prunedAb": 181483,
+          "prunedTt": 40054,
+          "timedOut": false
+        }
+      }
+    ]
+  },
+  "timedComparison": {
+    "thinkMS": 1200,
+    "threads": 4,
+    "runs": 3,
+    "stockfishDepth": 18,
+    "positions": [
+      {
+        "fen": "rnbqkb1r/ppp2ppp/3p1n2/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 4",
+        "tag": "XdvTuEuU before 4...d5",
+        "before": "b8d7",
+        "after": "b8d7",
+        "beforeLoss": 169,
+        "afterLoss": 169,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "rnbqkb1r/p2ppppp/8/1ppP4/4n3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 5",
+        "tag": "wMrBp3gN before 5.Nbd2",
+        "before": "f1d3",
+        "after": "f1d3",
+        "beforeLoss": 0,
+        "afterLoss": 0,
+        "beforeDepth": 4,
+        "afterDepth": 4
+      },
+      {
+        "fen": "rn2kb1r/pb2ppp1/4q2p/1Ppp4/8/2N1B3/1PP2PPP/R2QKB1R w KQkq d6 0 13",
+        "tag": "wMrBp3gN before 13.Ne2",
+        "before": "d1f3",
+        "after": "d1f3",
+        "beforeLoss": 0,
+        "afterLoss": 0,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "r2r2k1/ppp2ppp/4b3/3pq3/8/2PB1P2/P1PQ2PP/1K1R3R w - - 4 17",
+        "tag": "BE927OLI before 17.Ka1",
+        "before": "h2h4",
+        "after": "h2h4",
+        "beforeLoss": 35,
+        "afterLoss": 35,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "r2r2k1/p4ppp/1p2bq2/2pp4/8/2PB1P2/P1PQ2PP/KR2R3 w - c6 0 20",
+        "tag": "BE927OLI before 20.Bb5",
+        "before": "a1b2",
+        "after": "a1b2",
+        "beforeLoss": 27,
+        "afterLoss": 27,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
+        "tag": "p4uoHImi before 2.Nf3",
+        "before": "b1c3",
+        "after": "b1c3",
+        "beforeLoss": 96,
+        "afterLoss": 96,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "1r1q1rk1/p3npp1/3ppn1p/1p6/5P2/1QNP1N2/PP4PP/2R1R1K1 w - b6 0 16",
+        "tag": "p4uoHImi before 16.Nd4",
+        "before": "f3d4",
+        "after": "f3d4",
+        "beforeLoss": 229,
+        "afterLoss": 229,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "r2qkb1r/ppp1pppp/1nnp4/4P3/2PP2b1/2N2N2/PP3PPP/R1BQKB1R w KQkq - 1 7",
+        "tag": "local400-game5-ply13",
+        "before": "f1e2",
+        "after": "f1e2",
+        "beforeLoss": 17,
+        "afterLoss": 17,
+        "beforeDepth": 4,
+        "afterDepth": 4
+      },
+      {
+        "fen": "r3kb1r/ppp1pppp/2n1P3/2P1n3/8/4Nb2/PP3PPP/R1B1KB1R w KQkq - 1 12",
+        "tag": "local400-game5-ply23",
+        "before": "e6f7",
+        "after": "e6f7",
+        "beforeLoss": 0,
+        "afterLoss": 0,
+        "beforeDepth": 6,
+        "afterDepth": 6
+      },
+      {
+        "fen": "r1bqk2r/pppp1ppp/2n2n2/4N3/3PP3/2P5/P1P2PPP/R1BQKB1R b KQkq - 0 6",
+        "tag": "local400-game8-ply12",
+        "before": "c6e5",
+        "after": "c6e5",
+        "beforeLoss": 332,
+        "afterLoss": 332,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "r3k2r/2q2ppp/p1bbp3/1p6/2pPN2Q/8/PPP2PP1/R1B2R1K b kq - 3 17",
+        "tag": "local400-game10-ply34",
+        "before": "c6e4",
+        "after": "c6e4",
+        "beforeLoss": 76,
+        "afterLoss": 76,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "r4rk1/2q2p1p/p1bbpp1B/1p6/2pP3Q/8/PPP2PP1/R4R1K b - - 1 19",
+        "tag": "local400-game10-ply38",
+        "before": "d6f4",
+        "after": "d6f4",
+        "beforeLoss": 0,
+        "afterLoss": 0,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "r1b1k2r/p2p1ppp/1qp1p3/n3P1B1/1QnP4/2P2N2/P3BPPP/R4RK1 b kq - 3 13",
+        "tag": "local400-game12-ply26",
+        "before": "d7d6",
+        "after": "c6c5",
+        "beforeLoss": 0,
+        "afterLoss": 173,
+        "beforeDepth": 7,
+        "afterDepth": 7
+      },
+      {
+        "fen": "r3kb1r/1p1b1ppp/p1n1p3/2pqP3/8/2BB1N2/PP3PPP/R2QR1K1 w kq - 0 15",
+        "tag": "local400-game13-ply29",
+        "before": "d3e4",
+        "after": "d3e4",
+        "beforeLoss": 164,
+        "afterLoss": 164,
+        "beforeDepth": 5,
+        "afterDepth": 5
+      },
+      {
+        "fen": "1k5r/1p1bbpp1/p3p2p/4P3/1p1NB3/1P4P1/P4P1P/3R2K1 w - - 3 26",
+        "tag": "local400-game13-ply51",
+        "before": "d4f5",
+        "after": "d4f5",
+        "beforeLoss": 4,
+        "afterLoss": 4,
+        "beforeDepth": 6,
+        "afterDepth": 6
+      },
+      {
+        "fen": "2r1kb1r/pp1b1ppp/2n1p3/2pqP3/4B3/2B2N2/PP3PPP/R2QR1K1 b k - 7 15",
+        "tag": "local400-game14-ply30",
+        "before": "d5d1",
+        "after": "d5d1",
+        "beforeLoss": 0,
+        "afterLoss": 0,
+        "beforeDepth": 6,
+        "afterDepth": 6
+      },
+      {
+        "fen": "2r1k2r/pq1bbppp/4p3/1Pp1P3/3nN3/2BBR3/1P3PPP/R2Q2K1 b k - 2 21",
+        "tag": "local400-game14-ply42",
+        "before": "e8g8",
+        "after": "e8g8",
+        "beforeLoss": 255,
+        "afterLoss": 255,
+        "beforeDepth": 4,
+        "afterDepth": 4
+      },
+      {
+        "fen": "r1b1qrk1/pppp1ppp/2n1p3/3n2B1/3P3P/P1P2N2/2P1PPP1/R2QKB1R w KQ - 3 9",
+        "tag": "local400-game17-ply17",
+        "before": "c3c4",
+        "after": "c3c4",
+        "beforeLoss": 64,
+        "afterLoss": 64,
+        "beforeDepth": 6,
+        "afterDepth": 6
+      },
+      {
+        "fen": "r1b1qrk1/ppp2ppp/3p1n2/4n3/5B1P/P1P2NP1/2P1PP2/R2QKB1R w KQ - 0 13",
+        "tag": "local400-game17-ply25",
+        "before": "f1g2",
+        "after": "f1g2",
+        "beforeLoss": 4,
+        "afterLoss": 4,
+        "beforeDepth": 6,
+        "afterDepth": 6
+      },
+      {
+        "fen": "r1bqkb1r/ppppp1pp/5n2/2nP1pB1/8/P1N2N2/1PP1PPPP/R2QKB1R w KQkq - 3 7",
+        "tag": "local400-game19-ply13",
+        "before": "f3d4",
+        "after": "e2e3",
+        "beforeLoss": 88,
+        "afterLoss": 62,
+        "beforeDepth": 4,
+        "afterDepth": 5
+      },
+      {
+        "fen": "r1bqkb1r/pp2p1p1/2pp1n1p/2nP1p2/2B2B2/P1N1PN2/1PP2PPP/R2QK2R w KQkq - 0 10",
+        "tag": "local400-game19-ply19",
+        "before": "f3h4",
+        "after": "f3h4",
+        "beforeLoss": 157,
+        "afterLoss": 157,
+        "beforeDepth": 4,
+        "afterDepth": 4
+      }
+    ]
+  },
+  "regressionRepeat": {
+    "thinkMS": 1200,
+    "threads": 4,
+    "runs": 10,
+    "before": [
+      {
+        "move": "c6c5",
+        "score": -176,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 185077,
+        "prunedAb": 1580608,
+        "prunedTt": 274042,
+        "ttImproved": 8507,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 178653,
+        "prunedAb": 1465771,
+        "prunedTt": 241007,
+        "ttImproved": 7487,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 176078,
+        "prunedAb": 1448442,
+        "prunedTt": 231601,
+        "ttImproved": 7203,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 189187,
+        "prunedAb": 1584139,
+        "prunedTt": 262663,
+        "ttImproved": 8136,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 175266,
+        "prunedAb": 1430881,
+        "prunedTt": 233083,
+        "ttImproved": 7239,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1202,
+        "considered": 170788,
+        "prunedAb": 1383965,
+        "prunedTt": 225454,
+        "ttImproved": 6997,
+        "timedOut": true
+      },
+      {
+        "move": "c6c5",
+        "score": -176,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 171498,
+        "prunedAb": 1447885,
+        "prunedTt": 247832,
+        "ttImproved": 7695,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1203,
+        "considered": 187455,
+        "prunedAb": 1561452,
+        "prunedTt": 258798,
+        "ttImproved": 8021,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1202,
+        "considered": 168345,
+        "prunedAb": 1363967,
+        "prunedTt": 222812,
+        "ttImproved": 6900,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 167267,
+        "prunedAb": 1366116,
+        "prunedTt": 218921,
+        "ttImproved": 6789,
+        "timedOut": true
+      }
+    ],
+    "after": [
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 152177,
+        "prunedAb": 1219933,
+        "prunedTt": 200546,
+        "ttImproved": 6193,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 184435,
+        "prunedAb": 1529272,
+        "prunedTt": 257973,
+        "ttImproved": 7982,
+        "timedOut": true
+      },
+      {
+        "move": "c6c5",
+        "score": -176,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 181400,
+        "prunedAb": 1541775,
+        "prunedTt": 261615,
+        "ttImproved": 8134,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1202,
+        "considered": 183978,
+        "prunedAb": 1537682,
+        "prunedTt": 248501,
+        "ttImproved": 7727,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 183290,
+        "prunedAb": 1536625,
+        "prunedTt": 252653,
+        "ttImproved": 7816,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1202,
+        "considered": 179770,
+        "prunedAb": 1487890,
+        "prunedTt": 247127,
+        "ttImproved": 7664,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1203,
+        "considered": 190276,
+        "prunedAb": 1593785,
+        "prunedTt": 263938,
+        "ttImproved": 8147,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1202,
+        "considered": 185119,
+        "prunedAb": 1546272,
+        "prunedTt": 250427,
+        "ttImproved": 7772,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 164782,
+        "prunedAb": 1337147,
+        "prunedTt": 219246,
+        "ttImproved": 6800,
+        "timedOut": true
+      },
+      {
+        "move": "d7d6",
+        "score": -167,
+        "depth": 7,
+        "elapsedMs": 1201,
+        "considered": 174206,
+        "prunedAb": 1428466,
+        "prunedTt": 243051,
+        "ttImproved": 7566,
+        "timedOut": true
+      }
+    ]
+  }
+}

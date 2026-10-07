@@ -1,0 +1,333 @@
+{
+  "beforeBinarySHA256": "c48627090ac90cf149cdcb2d764b5a59f0094675131c10e4bf751fd83257a0d8",
+  "afterBinarySHA256": "09989e9b4191f3eda4a109f2c829db43bfbd8a12e0056f48df912cb2a2bb759c",
+  "change": "Hold parallel sibling scout windows fixed at the first root score",
+  "disposition": "rejected",
+  "reason": "All ten candidate searches choose c6c5; fresh full-window search ranks d7d6 higher and cold-hash Stockfish gives c6c5 173cp loss",
+  "before": {
+    "fenPath": "/tmp/chess-castling-regression-fen.txt",
+    "thinkTimeMs": 1200,
+    "runs": 10,
+    "positions": [
+      {
+        "fen": "r1b1k2r/p2p1ppp/1qp1p3/n3P1B1/1QnP4/2P2N2/P3BPPP/R4RK1 b kq - 3 13",
+        "tag": "local400-game12-ply26",
+        "expected": [
+          "d7d6"
+        ],
+        "bad": [
+          "c6c5"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d7d6",
+              "score": -167,
+              "count": 6,
+              "depth": 7,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 150345,
+              "prunedAb": 1510031,
+              "prunedTt": 252538,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 178651,
+                "prunedAb": 1471172,
+                "prunedTt": 242710,
+                "ttImproved": 7543,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 174082,
+                "prunedAb": 1419623,
+                "prunedTt": 232980,
+                "ttImproved": 7211,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 189791,
+                "prunedAb": 1614360,
+                "prunedTt": 276490,
+                "ttImproved": 8580,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 180457,
+                "prunedAb": 1496417,
+                "prunedTt": 244374,
+                "ttImproved": 7602,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 172435,
+                "prunedAb": 1465186,
+                "prunedTt": 245185,
+                "ttImproved": 7618,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 171220,
+                "prunedAb": 1407594,
+                "prunedTt": 227376,
+                "ttImproved": 7051,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 192104,
+                "prunedAb": 1635972,
+                "prunedTt": 281354,
+                "ttImproved": 8752,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1203,
+                "considered": 177653,
+                "prunedAb": 1467471,
+                "prunedTt": 244462,
+                "ttImproved": 7579,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 185451,
+                "prunedAb": 1580658,
+                "prunedTt": 271258,
+                "ttImproved": 8382,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 185108,
+                "prunedAb": 1541864,
+                "prunedTt": 259197,
+                "ttImproved": 8032,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 1,
+      "runs": 10,
+      "missedExpected": 0,
+      "knownBad": 0,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 1,
+        "missedExpected": 0,
+        "knownBad": 0,
+        "avgElapsedMs": 1201
+      }
+    ]
+  },
+  "after": {
+    "fenPath": "/tmp/chess-castling-regression-fen.txt",
+    "thinkTimeMs": 1200,
+    "runs": 10,
+    "positions": [
+      {
+        "fen": "r1b1k2r/p2p1ppp/1qp1p3/n3P1B1/1QnP4/2P2N2/P3BPPP/R4RK1 b kq - 3 13",
+        "tag": "local400-game12-ply26",
+        "expected": [
+          "d7d6"
+        ],
+        "bad": [
+          "c6c5"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "c6c5",
+              "score": -176,
+              "count": 10,
+              "depth": 7,
+              "avgElapsedMs": 1171,
+              "nodesPerSecond": 154236,
+              "prunedAb": 1559931,
+              "prunedTt": 259957,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 165648,
+                "prunedAb": 1408003,
+                "prunedTt": 226665,
+                "ttImproved": 7112,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 197148,
+                "prunedAb": 1723143,
+                "prunedTt": 293477,
+                "ttImproved": 9149,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 184457,
+                "prunedAb": 1597730,
+                "prunedTt": 263855,
+                "ttImproved": 8242,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 184803,
+                "prunedAb": 1594341,
+                "prunedTt": 262513,
+                "ttImproved": 8201,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 188183,
+                "prunedAb": 1634594,
+                "prunedTt": 273129,
+                "ttImproved": 8499,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 189087,
+                "prunedAb": 1640230,
+                "prunedTt": 273870,
+                "ttImproved": 8540,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 197751,
+                "prunedAb": 1722460,
+                "prunedTt": 297890,
+                "ttImproved": 9264,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 900,
+                "considered": 116222,
+                "prunedAb": 945443,
+                "prunedTt": 146828,
+                "ttImproved": 4468,
+                "timedOut": false
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 196715,
+                "prunedAb": 1718477,
+                "prunedTt": 293631,
+                "ttImproved": 9136,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 186792,
+                "prunedAb": 1614895,
+                "prunedTt": 267721,
+                "ttImproved": 8342,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 1,
+      "runs": 10,
+      "missedExpected": 1,
+      "knownBad": 1,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 1,
+        "missedExpected": 1,
+        "knownBad": 1,
+        "avgElapsedMs": 1171
+      }
+    ]
+  }
+}

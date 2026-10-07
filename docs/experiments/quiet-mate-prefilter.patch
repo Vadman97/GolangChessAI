@@ -1,0 +1,234 @@
+diff --git a/pkg/chessai/board/fast_check.go b/pkg/chessai/board/fast_check.go
+index 368d437..8d8d998 100644
+--- a/pkg/chessai/board/fast_check.go
++++ b/pkg/chessai/board/fast_check.go
+@@ -5,6 +5,55 @@ import (
+ 	"github.com/Vadman97/GolangChessAI/pkg/chessai/piece"
+ )
+ 
++// MoveGivesCheck tests a legal move without changing the board or its history.
++// Use a private value copy because root search workers can read the same board.
++func (b *Board) MoveGivesCheck(m location.Move) bool {
++	data := b.getPieceData(m.Start)
++	if data == 0 {
++		return false
++	}
++	opponent := data&1 ^ 1
++	kr, kc := b.KingLocations[opponent].Get()
++	sr, sc := m.Start.Get()
++	startRow, startCol := int(sr)-int(kr), int(sc)-int(kc)
++	// Moving a blocker can reveal a slider only along a king ray. For
++	// other starts, reject moves whose destination cannot directly check.
++	if startRow != 0 && startCol != 0 && startRow != startCol && startRow != -startCol {
++		er, ec := m.End.Get()
++		dr, dc := int(kr)-int(er), int(kc)-int(ec)
++		pt := (data & 0xE) >> 1
++		originalType := pt
++		if promotion, promoted := m.End.GetPawnPromotion(); promotion {
++			pt = promoted
++		}
++		possible := false
++		switch pt {
++		case piece.RookType:
++			possible = dr == 0 || dc == 0
++		case piece.BishopType:
++			possible = dr == dc || dr == -dc
++		case piece.QueenType:
++			possible = dr == 0 || dc == 0 || dr == dc || dr == -dc
++		case piece.KnightType:
++			possible = dr*dr+dc*dc == 5
++		case piece.PawnType:
++			possible = dr == 1-2*int(data&1) && (dc == 1 || dc == -1)
++		}
++		// Castling relocates a rook; en passant removes a second blocker.
++		castle := originalType == piece.KingType && (int(sc)-int(ec) == 2 || int(ec)-int(sc) == 2)
++		enPassant := originalType == piece.PawnType && sc != ec && b.getPieceData(m.End) == 0
++		if !possible && !castle && !enPassant {
++			return false
++		}
++	}
++	child := *b
++	child.makeFastMove(&m)
++	if promotion, pt := m.End.GetPawnPromotion(); promotion {
++		child.setPieceData(m.End, pt<<1|data&1)
++	}
++	return child.isKingInCheckFast(child.KingLocations[opponent], opponent)
++}
++
+ // fastUndo holds the minimal state needed to undo a makeFastMove.
+ type fastUndo struct {
+ 	startLoc, endLoc   location.Location
+diff --git a/pkg/chessai/player/ai/quiesce.go b/pkg/chessai/player/ai/quiesce.go
+index 09da99e..2342ab0 100644
+--- a/pkg/chessai/player/ai/quiesce.go
++++ b/pkg/chessai/player/ai/quiesce.go
+@@ -28,6 +28,23 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
+ 			alpha = standPat
+ 		}
+ 
++		// A quiet mate in one must remain visible at the search horizon.
++		// Probe only checking moves; ordinary quiet checks are not expanded.
++		for _, m := range *moves {
++			promotion, _ := m.End.GetPawnPromotion()
++			if promotion || !root.IsEmpty(m.End) || isEnPassantMove(root, m) || !root.MoveGivesCheck(m) {
++				continue
++			}
++			child := root.Copy()
++			lastMove := board.MakeMove(&m, child)
++			if !child.HasLegalMove(currentPlayer^1, lastMove) {
++				if WinScore >= beta {
++					return beta
++				}
++				return WinScore
++			}
++		}
++
+ 		// Global delta prune: if standPat + the best possible single capture (queen) still
+ 		// can't raise alpha, skip all captures — the position is too far behind.
+ 		const deltaMargin = 3 * PawnValueWeight // safety buffer for positional swings
+@@ -109,9 +126,7 @@ func (p *AIPlayer) Quiesce(root *board.Board, alpha, beta int, currentPlayer byt
+ }
+ 
+ func moveGivesCheck(root *board.Board, m location.Move, currentPlayer byte) bool {
+-	child := root.Copy()
+-	board.MakeMove(&m, child)
+-	return child.IsKingInCheck(currentPlayer ^ 1)
++	return root.MoveGivesCheck(m)
+ }
+ 
+ func isMajorCheckingCapture(root *board.Board, m location.Move, currentPlayer byte) bool {
+diff --git a/pkg/chessai/board/move_check_test.go b/pkg/chessai/board/move_check_test.go
+new file mode 100644
+index 0000000..d9bc983
+--- /dev/null
++++ b/pkg/chessai/board/move_check_test.go
+@@ -0,0 +1,51 @@
++package board_test
++
++import (
++	"github.com/Vadman97/GolangChessAI/pkg/chessai/analysis"
++	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
++	"os"
++	"strings"
++	"testing"
++)
++
++func TestMoveGivesCheckMatchesAppliedLegalMoves(t *testing.T) {
++	fens := []string{
++		"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
++		"8/5k1p/4n3/1P1p1p2/6pK/1P1r4/8/8 b - - 1 58",
++		"5k2/8/8/8/8/8/8/4K2R w K - 0 1",
++		"3k4/8/8/8/8/8/8/R3K3 w Q - 0 1",
++		"8/8/8/R2pP2k/8/8/8/4K3 w - d6 0 2",
++		"7k/1P6/8/8/8/8/8/4K3 w - - 0 1",
++		"4k3/8/8/8/8/8/1p6/7K b - - 0 1",
++		"8/1P1k4/8/8/8/8/8/4K3 w - - 0 1",
++		"8/8/8/8/8/8/7k/4K3 w - - 0 1",
++	}
++	data, err := os.ReadFile("../../../testdata/abdada_fens.txt")
++	if err != nil {
++		t.Fatal(err)
++	}
++	for _, line := range strings.Split(string(data), "\n") {
++		line = strings.TrimSpace(line)
++		if line != "" && !strings.HasPrefix(line, "#") {
++			fens = append(fens, strings.TrimSpace(strings.SplitN(line, "|", 2)[0]))
++		}
++	}
++	for _, fen := range fens {
++		p, err := analysis.ParseFEN(fen)
++		if err != nil {
++			t.Fatal(err)
++		}
++		hash, kings := p.Board.Hash(), p.Board.KingLocations
++		for _, m := range *p.Board.GetAllMoves(p.Active, p.Previous) {
++			child := p.Board.Copy()
++			board.MakeMove(&m, child)
++			want := child.IsKingInCheck(p.Active ^ 1)
++			if got := p.Board.MoveGivesCheck(m); got != want {
++				t.Fatalf("%s move %s: got %v, want %v", fen, analysis.MoveToUCI(m), got, want)
++			}
++			if p.Board.Hash() != hash || p.Board.KingLocations != kings {
++				t.Fatalf("check probe changed original board for %s", analysis.MoveToUCI(m))
++			}
++		}
++	}
++}
+diff --git a/pkg/chessai/player/ai/quiesce_quiet_mate_test.go b/pkg/chessai/player/ai/quiesce_quiet_mate_test.go
+new file mode 100644
+index 0000000..3ffd2ce
+--- /dev/null
++++ b/pkg/chessai/player/ai/quiesce_quiet_mate_test.go
+@@ -0,0 +1,72 @@
++package ai_test
++
++import (
++	"github.com/Vadman97/GolangChessAI/pkg/chessai/analysis"
++	"github.com/Vadman97/GolangChessAI/pkg/chessai/board"
++	"github.com/Vadman97/GolangChessAI/pkg/chessai/player/ai"
++	"testing"
++)
++
++func TestQuiesceFindsQuietRookMateAtHorizon(t *testing.T) {
++	position, err := analysis.ParseFEN("8/5k1p/4n3/1P1p1p2/6pK/1P1r4/8/8 b - - 1 58")
++	if err != nil {
++		t.Fatal(err)
++	}
++	mate, err := analysis.MatchUCIMove(position.Board, position.Active, position.Previous, "d3h3")
++	if err != nil {
++		t.Fatal(err)
++	}
++	child := position.Board.Copy()
++	prev := board.MakeMove(&mate, child)
++	if !child.IsInCheckmate(position.Active^1, prev) {
++		t.Fatal("fixture must allow Rh3 mate")
++	}
++	player := ai.NewAIPlayer(position.Active, &ai.ABDADA{NumThreads: 1})
++	score := player.Quiesce(position.Board, ai.NegInf, ai.PosInf, position.Active, position.Previous)
++	if score != ai.WinScore {
++		t.Fatalf("quiet mate was missed at the search horizon: got %d, want %d", score, ai.WinScore)
++	}
++}
++
++func TestQuiesceQuietCheckWithKingEscapeIsNotMate(t *testing.T) {
++	position, err := analysis.ParseFEN("8/5k1p/8/1P1p1p2/6pK/1P1r4/8/8 b - - 1 58")
++	if err != nil {
++		t.Fatal(err)
++	}
++	check, err := analysis.MatchUCIMove(position.Board, position.Active, position.Previous, "d3h3")
++	if err != nil {
++		t.Fatal(err)
++	}
++	child := position.Board.Copy()
++	prev := board.MakeMove(&check, child)
++	if !child.IsKingInCheck(position.Active^1) || child.IsInCheckmate(position.Active^1, prev) {
++		t.Fatal("fixture must allow a quiet check with a king escape")
++	}
++	player := ai.NewAIPlayer(position.Active, &ai.ABDADA{NumThreads: 1})
++	score := player.Quiesce(position.Board, ai.NegInf, ai.PosInf, position.Active, position.Previous)
++	if score >= ai.WinScore/2 {
++		t.Fatalf("a quiet check was misclassified as mate: score=%d", score)
++	}
++}
++
++func TestQuiesceQuietPawnCheckAllowsOnlyEnPassantReply(t *testing.T) {
++	position, err := analysis.ParseFEN("8/8/8/2PPk1P1/4P1p1/2P3K1/5P2/4R3 w - - 0 1")
++	if err != nil {
++		t.Fatal(err)
++	}
++	check, err := analysis.MatchUCIMove(position.Board, position.Active, position.Previous, "f2f4")
++	if err != nil {
++		t.Fatal(err)
++	}
++	child := position.Board.Copy()
++	prev := board.MakeMove(&check, child)
++	replies := *child.GetAllMoves(position.Active^1, prev)
++	if !child.IsKingInCheck(position.Active^1) || len(replies) != 1 || analysis.MoveToUCI(replies[0]) != "g4f3" {
++		t.Fatalf("fixture must have en passant as the only check evasion: %v", replies)
++	}
++	player := ai.NewAIPlayer(position.Active, &ai.ABDADA{NumThreads: 1})
++	score := player.Quiesce(position.Board, ai.NegInf, ai.PosInf, position.Active, position.Previous)
++	if score >= ai.WinScore/2 {
++		t.Fatalf("checking pawn push with en passant evasion was scored as mate: %d", score)
++	}
++}

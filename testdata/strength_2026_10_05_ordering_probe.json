@@ -1,0 +1,2919 @@
+{
+  "beforeBinarySHA256": "c48627090ac90cf149cdcb2d764b5a59f0094675131c10e4bf751fd83257a0d8",
+  "afterBinarySHA256": "c8002b3e816a0deadad5deaf0aa5186dd3782052d253da6b67cb50258a57f937",
+  "thinkMS": 1200,
+  "threads": 4,
+  "runs": 3,
+  "stockfishDepth": 18,
+  "before": {
+    "fenPath": "/tmp/chess-castling-timed-fens.txt",
+    "thinkTimeMs": 1200,
+    "runs": 3,
+    "positions": [
+      {
+        "fen": "rnbqkb1r/ppp2ppp/3p1n2/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 4",
+        "tag": "XdvTuEuU before 4...d5",
+        "expected": [
+          "f6e4"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "b8d7",
+              "score": -25,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 152736,
+              "prunedAb": 1028337,
+              "prunedTt": 171218,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "b8d7",
+                "score": -25,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 186642,
+                "prunedAb": 1045290,
+                "prunedTt": 172049,
+                "ttImproved": 5272,
+                "timedOut": true
+              },
+              {
+                "move": "b8d7",
+                "score": -25,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 192805,
+                "prunedAb": 1081837,
+                "prunedTt": 177538,
+                "ttImproved": 5443,
+                "timedOut": true
+              },
+              {
+                "move": "b8d7",
+                "score": -25,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 171364,
+                "prunedAb": 957885,
+                "prunedTt": 164069,
+                "ttImproved": 5012,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "rnbqkb1r/p2ppppp/8/1ppP4/4n3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 5",
+        "tag": "wMrBp3gN before 5.Nbd2",
+        "expected": [
+          "f1d3"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f1d3",
+              "score": 57,
+              "count": 3,
+              "depth": 4,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 174792,
+              "prunedAb": 511380,
+              "prunedTt": 78007,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f1d3",
+                "score": 57,
+                "depth": 4,
+                "elapsedMs": 1204,
+                "considered": 211323,
+                "prunedAb": 517976,
+                "prunedTt": 78627,
+                "ttImproved": 2317,
+                "timedOut": true
+              },
+              {
+                "move": "f1d3",
+                "score": 57,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 208752,
+                "prunedAb": 507632,
+                "prunedTt": 78303,
+                "ttImproved": 2317,
+                "timedOut": true
+              },
+              {
+                "move": "f1d3",
+                "score": 57,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 210742,
+                "prunedAb": 508532,
+                "prunedTt": 77091,
+                "ttImproved": 2284,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "rn2kb1r/pb2ppp1/4q2p/1Ppp4/8/2N1B3/1PP2PPP/R2QKB1R w KQkq d6 0 13",
+        "tag": "wMrBp3gN before 13.Ne2",
+        "expected": [
+          "d1f3"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d1f3",
+              "score": 59,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 963,
+              "nodesPerSecond": 151127,
+              "prunedAb": 312379,
+              "prunedTt": 75599,
+              "timedOut": false
+            },
+            "runs": [
+              {
+                "move": "d1f3",
+                "score": 59,
+                "depth": 5,
+                "elapsedMs": 1005,
+                "considered": 146536,
+                "prunedAb": 314118,
+                "prunedTt": 75183,
+                "ttImproved": 1864,
+                "timedOut": false
+              },
+              {
+                "move": "d1f3",
+                "score": 59,
+                "depth": 5,
+                "elapsedMs": 968,
+                "considered": 144135,
+                "prunedAb": 309423,
+                "prunedTt": 76388,
+                "ttImproved": 1880,
+                "timedOut": false
+              },
+              {
+                "move": "d1f3",
+                "score": 59,
+                "depth": 5,
+                "elapsedMs": 917,
+                "considered": 146297,
+                "prunedAb": 313598,
+                "prunedTt": 75228,
+                "ttImproved": 1862,
+                "timedOut": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r2r2k1/ppp2ppp/4b3/3pq3/8/2PB1P2/P1PQ2PP/1K1R3R w - - 4 17",
+        "tag": "BE927OLI before 17.Ka1",
+        "expected": [
+          "f3f4"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h2h4",
+              "score": -67,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 182529,
+              "prunedAb": 1523056,
+              "prunedTt": 261412,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "h2h4",
+                "score": -67,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 206732,
+                "prunedAb": 1437411,
+                "prunedTt": 258357,
+                "ttImproved": 6983,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -79,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 224193,
+                "prunedAb": 1535465,
+                "prunedTt": 253515,
+                "ttImproved": 6898,
+                "timedOut": true
+              },
+              {
+                "move": "h2h4",
+                "score": -67,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 227257,
+                "prunedAb": 1596294,
+                "prunedTt": 272366,
+                "ttImproved": 7384,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r2r2k1/p4ppp/1p2bq2/2pp4/8/2PB1P2/P1PQ2PP/KR2R3 w - c6 0 20",
+        "tag": "BE927OLI before 20.Bb5",
+        "expected": [
+          "f3f4"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "a1b2",
+              "score": -90,
+              "count": 2,
+              "depth": 5,
+              "avgElapsedMs": 1167,
+              "nodesPerSecond": 172782,
+              "prunedAb": 1319621,
+              "prunedTt": 236633,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "a1b2",
+                "score": -90,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 204193,
+                "prunedAb": 1330915,
+                "prunedTt": 238293,
+                "ttImproved": 6524,
+                "timedOut": true
+              },
+              {
+                "move": "a1b2",
+                "score": -90,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 202592,
+                "prunedAb": 1313544,
+                "prunedTt": 234914,
+                "ttImproved": 6438,
+                "timedOut": true
+              },
+              {
+                "move": "d3b5",
+                "score": -106,
+                "depth": 6,
+                "elapsedMs": 1098,
+                "considered": 198201,
+                "prunedAb": 1314405,
+                "prunedTt": 236692,
+                "ttImproved": 6460,
+                "timedOut": false
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
+        "tag": "p4uoHImi before 2.Nf3",
+        "expected": [
+          "e4d5"
+        ],
+        "bad": [
+          "g1f3"
+        ],
+        "notes": "post-Petroff deployment; scripted move lost 157cp at SF depth 16",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "b1c3",
+              "score": 41,
+              "count": 2,
+              "depth": 5,
+              "avgElapsedMs": 1206,
+              "nodesPerSecond": 145334,
+              "prunedAb": 590160,
+              "prunedTt": 127976,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "b1c3",
+                "score": 41,
+                "depth": 5,
+                "elapsedMs": 1210,
+                "considered": 170858,
+                "prunedAb": 579260,
+                "prunedTt": 124652,
+                "ttImproved": 4030,
+                "timedOut": true
+              },
+              {
+                "move": "d2d3",
+                "score": 41,
+                "depth": 5,
+                "elapsedMs": 1205,
+                "considered": 168968,
+                "prunedAb": 560907,
+                "prunedTt": 123033,
+                "ttImproved": 3978,
+                "timedOut": true
+              },
+              {
+                "move": "b1c3",
+                "score": 41,
+                "depth": 5,
+                "elapsedMs": 1203,
+                "considered": 186102,
+                "prunedAb": 630315,
+                "prunedTt": 136245,
+                "ttImproved": 4402,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "1r1q1rk1/p3npp1/3ppn1p/1p6/5P2/1QNP1N2/PP4PP/2R1R1K1 w - b6 0 16",
+        "tag": "p4uoHImi before 16.Nd4",
+        "expected": [
+          "b3c2"
+        ],
+        "bad": [
+          "f3d4"
+        ],
+        "notes": "post-Petroff deployment; 226cp loss at SF depth 16",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f3d4",
+              "score": -10,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1203,
+              "nodesPerSecond": 139011,
+              "prunedAb": 795359,
+              "prunedTt": 155460,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f3d4",
+                "score": -10,
+                "depth": 5,
+                "elapsedMs": 1203,
+                "considered": 166466,
+                "prunedAb": 790495,
+                "prunedTt": 154350,
+                "ttImproved": 3853,
+                "timedOut": true
+              },
+              {
+                "move": "f3d4",
+                "score": -10,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 170034,
+                "prunedAb": 800831,
+                "prunedTt": 160077,
+                "ttImproved": 4011,
+                "timedOut": true
+              },
+              {
+                "move": "f3d4",
+                "score": -10,
+                "depth": 5,
+                "elapsedMs": 1204,
+                "considered": 165222,
+                "prunedAb": 794751,
+                "prunedTt": 151954,
+                "ttImproved": 3812,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r2qkb1r/ppp1pppp/1nnp4/4P3/2PP2b1/2N2N2/PP3PPP/R1BQKB1R w KQkq - 1 7",
+        "tag": "local400-game5-ply13",
+        "expected": [
+          "e5d6"
+        ],
+        "bad": [
+          "c4c5"
+        ],
+        "notes": "SF14 loss 209cp; opening e2e4 g8f6 e4e5; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f1e2",
+              "score": 30,
+              "count": 3,
+              "depth": 4,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 155759,
+              "prunedAb": 366714,
+              "prunedTt": 68659,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f1e2",
+                "score": 30,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 195503,
+                "prunedAb": 389159,
+                "prunedTt": 71951,
+                "ttImproved": 1907,
+                "timedOut": true
+              },
+              {
+                "move": "f1e2",
+                "score": 30,
+                "depth": 4,
+                "elapsedMs": 1203,
+                "considered": 175489,
+                "prunedAb": 332500,
+                "prunedTt": 63371,
+                "ttImproved": 1682,
+                "timedOut": true
+              },
+              {
+                "move": "f1e2",
+                "score": 30,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 190772,
+                "prunedAb": 378483,
+                "prunedTt": 70657,
+                "ttImproved": 1872,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r3kb1r/ppp1pppp/2n1P3/2P1n3/8/4Nb2/PP3PPP/R1B1KB1R w KQkq - 1 12",
+        "tag": "local400-game5-ply23",
+        "expected": [
+          "e6f7"
+        ],
+        "bad": [
+          "g2f3"
+        ],
+        "notes": "SF14 loss 105cp; opening e2e4 g8f6 e4e5; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "e6f7",
+              "score": -164,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 151636,
+              "prunedAb": 1022733,
+              "prunedTt": 98019,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "e6f7",
+                "score": -164,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 192276,
+                "prunedAb": 1102577,
+                "prunedTt": 105002,
+                "ttImproved": 3686,
+                "timedOut": true
+              },
+              {
+                "move": "e6f7",
+                "score": -164,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 181477,
+                "prunedAb": 1009786,
+                "prunedTt": 94796,
+                "ttImproved": 3331,
+                "timedOut": true
+              },
+              {
+                "move": "e6f7",
+                "score": -164,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 172819,
+                "prunedAb": 955836,
+                "prunedTt": 94260,
+                "ttImproved": 3291,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1bqk2r/pppp1ppp/2n2n2/4N3/3PP3/2P5/P1P2PPP/R1BQKB1R b KQkq - 0 6",
+        "tag": "local400-game8-ply12",
+        "expected": [
+          "d8e7"
+        ],
+        "bad": [
+          "c6e5"
+        ],
+        "notes": "SF14 loss 315cp; opening e2e4 e7e5; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "c6e5",
+              "score": -31,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 155441,
+              "prunedAb": 676834,
+              "prunedTt": 112098,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "c6e5",
+                "score": -31,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 188817,
+                "prunedAb": 685095,
+                "prunedTt": 113002,
+                "ttImproved": 3380,
+                "timedOut": true
+              },
+              {
+                "move": "c6e5",
+                "score": -31,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 182632,
+                "prunedAb": 657579,
+                "prunedTt": 106060,
+                "ttImproved": 3164,
+                "timedOut": true
+              },
+              {
+                "move": "c6e5",
+                "score": -31,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 189195,
+                "prunedAb": 687828,
+                "prunedTt": 117232,
+                "ttImproved": 3488,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r3k2r/2q2ppp/p1bbp3/1p6/2pPN2Q/8/PPP2PP1/R1B2R1K b kq - 3 17",
+        "tag": "local400-game10-ply34",
+        "expected": [
+          "d6e7"
+        ],
+        "bad": [
+          "e8g8"
+        ],
+        "notes": "SF14 loss 501cp; opening e2e4 c7c5; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "c6e4",
+              "score": 124,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 172376,
+              "prunedAb": 1217860,
+              "prunedTt": 162131,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "c6e4",
+                "score": 124,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 208265,
+                "prunedAb": 1229901,
+                "prunedTt": 162968,
+                "ttImproved": 4388,
+                "timedOut": true
+              },
+              {
+                "move": "c6e4",
+                "score": 124,
+                "depth": 5,
+                "elapsedMs": 1203,
+                "considered": 195675,
+                "prunedAb": 1145930,
+                "prunedTt": 154016,
+                "ttImproved": 4105,
+                "timedOut": true
+              },
+              {
+                "move": "c6e4",
+                "score": 124,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 217671,
+                "prunedAb": 1277751,
+                "prunedTt": 169410,
+                "ttImproved": 4593,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r4rk1/2q2p1p/p1bbpp1B/1p6/2pP3Q/8/PPP2PP1/R4R1K b - - 1 19",
+        "tag": "local400-game10-ply38",
+        "expected": [
+          "d6f4"
+        ],
+        "bad": [
+          "c6e4"
+        ],
+        "notes": "SF14 loss 745cp; opening e2e4 c7c5; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d6f4",
+              "score": -286,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 198050,
+              "prunedAb": 1175035,
+              "prunedTt": 123424,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d6f4",
+                "score": -286,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 242203,
+                "prunedAb": 1189362,
+                "prunedTt": 126783,
+                "ttImproved": 4204,
+                "timedOut": true
+              },
+              {
+                "move": "d6f4",
+                "score": -286,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 227571,
+                "prunedAb": 1118871,
+                "prunedTt": 118947,
+                "ttImproved": 3902,
+                "timedOut": true
+              },
+              {
+                "move": "d6f4",
+                "score": -286,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 244320,
+                "prunedAb": 1216874,
+                "prunedTt": 124542,
+                "ttImproved": 4101,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1b1k2r/p2p1ppp/1qp1p3/n3P1B1/1QnP4/2P2N2/P3BPPP/R4RK1 b kq - 3 13",
+        "tag": "local400-game12-ply26",
+        "expected": [
+          "d7d6"
+        ],
+        "bad": [
+          "c6c5"
+        ],
+        "notes": "SF14 loss 130cp; opening e2e4 e7e6; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d7d6",
+              "score": -167,
+              "count": 3,
+              "depth": 7,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 151046,
+              "prunedAb": 1503933,
+              "prunedTt": 242348,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 182345,
+                "prunedAb": 1518402,
+                "prunedTt": 246210,
+                "ttImproved": 7649,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 185911,
+                "prunedAb": 1540559,
+                "prunedTt": 255369,
+                "ttImproved": 7959,
+                "timedOut": true
+              },
+              {
+                "move": "d7d6",
+                "score": -167,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 176465,
+                "prunedAb": 1452838,
+                "prunedTt": 225467,
+                "ttImproved": 7009,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r3kb1r/1p1b1ppp/p1n1p3/2pqP3/8/2BB1N2/PP3PPP/R2QR1K1 w kq - 0 15",
+        "tag": "local400-game13-ply29",
+        "expected": [
+          "d1b1"
+        ],
+        "bad": [
+          "d3e4"
+        ],
+        "notes": "SF14 loss 153cp; opening e2e4 c7c6; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d3e4",
+              "score": 63,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 145936,
+              "prunedAb": 1088057,
+              "prunedTt": 160193,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d3e4",
+                "score": 63,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 186255,
+                "prunedAb": 1162168,
+                "prunedTt": 168209,
+                "ttImproved": 4462,
+                "timedOut": true
+              },
+              {
+                "move": "d3e4",
+                "score": 63,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 169444,
+                "prunedAb": 1040486,
+                "prunedTt": 155262,
+                "ttImproved": 4029,
+                "timedOut": true
+              },
+              {
+                "move": "d3e4",
+                "score": 63,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 170399,
+                "prunedAb": 1061519,
+                "prunedTt": 157108,
+                "ttImproved": 4151,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "1k5r/1p1bbpp1/p3p2p/4P3/1p1NB3/1P4P1/P4P1P/3R2K1 w - - 3 26",
+        "tag": "local400-game13-ply51",
+        "expected": [
+          "d4f5"
+        ],
+        "bad": [
+          "g1g2"
+        ],
+        "notes": "SF14 loss 249cp; opening e2e4 c7c6; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d4f5",
+              "score": -64,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 170355,
+              "prunedAb": 1387382,
+              "prunedTt": 320596,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d4f5",
+                "score": -64,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 202391,
+                "prunedAb": 1374696,
+                "prunedTt": 321001,
+                "ttImproved": 9763,
+                "timedOut": true
+              },
+              {
+                "move": "d4f5",
+                "score": -64,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 209066,
+                "prunedAb": 1433657,
+                "prunedTt": 327351,
+                "ttImproved": 10067,
+                "timedOut": true
+              },
+              {
+                "move": "d4f5",
+                "score": -64,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 202742,
+                "prunedAb": 1353793,
+                "prunedTt": 313438,
+                "ttImproved": 9576,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "2r1kb1r/pp1b1ppp/2n1p3/2pqP3/4B3/2B2N2/PP3PPP/R2QR1K1 b k - 7 15",
+        "tag": "local400-game14-ply30",
+        "expected": [
+          "d5d1"
+        ],
+        "bad": [
+          "d5c4"
+        ],
+        "notes": "SF14 loss 210cp; opening e2e4 c7c6; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d5d1",
+              "score": -39,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 72721,
+              "prunedAb": 645670,
+              "prunedTt": 76684,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d5d1",
+                "score": -39,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 89587,
+                "prunedAb": 657753,
+                "prunedTt": 77196,
+                "ttImproved": 2087,
+                "timedOut": true
+              },
+              {
+                "move": "d5d1",
+                "score": -39,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 84522,
+                "prunedAb": 631625,
+                "prunedTt": 75841,
+                "ttImproved": 2050,
+                "timedOut": true
+              },
+              {
+                "move": "d5d1",
+                "score": -39,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 88150,
+                "prunedAb": 647633,
+                "prunedTt": 77015,
+                "ttImproved": 2081,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "2r1k2r/pq1bbppp/4p3/1Pp1P3/3nN3/2BBR3/1P3PPP/R2Q2K1 b k - 2 21",
+        "tag": "local400-game14-ply42",
+        "expected": [
+          "d7b5"
+        ],
+        "bad": [
+          "e8g8"
+        ],
+        "notes": "SF14 loss 247cp; opening e2e4 c7c6; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "e8g8",
+              "score": -19,
+              "count": 3,
+              "depth": 4,
+              "avgElapsedMs": 1203,
+              "nodesPerSecond": 175192,
+              "prunedAb": 425868,
+              "prunedTt": 83609,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "e8g8",
+                "score": -19,
+                "depth": 4,
+                "elapsedMs": 1205,
+                "considered": 222959,
+                "prunedAb": 460928,
+                "prunedTt": 89713,
+                "ttImproved": 2071,
+                "timedOut": true
+              },
+              {
+                "move": "e8g8",
+                "score": -19,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 212935,
+                "prunedAb": 433172,
+                "prunedTt": 84989,
+                "ttImproved": 1961,
+                "timedOut": true
+              },
+              {
+                "move": "e8g8",
+                "score": -19,
+                "depth": 4,
+                "elapsedMs": 1203,
+                "considered": 196885,
+                "prunedAb": 383506,
+                "prunedTt": 76125,
+                "ttImproved": 1757,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1b1qrk1/pppp1ppp/2n1p3/3n2B1/3P3P/P1P2N2/2P1PPP1/R2QKB1R w KQ - 3 9",
+        "tag": "local400-game17-ply17",
+        "expected": [
+          "e2e4"
+        ],
+        "bad": [
+          "g5d2"
+        ],
+        "notes": "SF14 loss 143cp; opening d2d4 g8f6; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "c3c4",
+              "score": 9,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 122731,
+              "prunedAb": 807463,
+              "prunedTt": 122520,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "c3c4",
+                "score": 9,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 155221,
+                "prunedAb": 859439,
+                "prunedTt": 132273,
+                "ttImproved": 4393,
+                "timedOut": true
+              },
+              {
+                "move": "c3c4",
+                "score": 9,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 147726,
+                "prunedAb": 811868,
+                "prunedTt": 123493,
+                "ttImproved": 4135,
+                "timedOut": true
+              },
+              {
+                "move": "c3c4",
+                "score": 9,
+                "depth": 6,
+                "elapsedMs": 1204,
+                "considered": 139902,
+                "prunedAb": 751084,
+                "prunedTt": 111794,
+                "ttImproved": 3746,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1b1qrk1/ppp2ppp/3p1n2/4n3/5B1P/P1P2NP1/2P1PP2/R2QKB1R w KQ - 0 13",
+        "tag": "local400-game17-ply25",
+        "expected": [
+          "f1g2"
+        ],
+        "bad": [
+          "e2e3"
+        ],
+        "notes": "SF14 loss 250cp; opening d2d4 g8f6; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f1g2",
+              "score": -61,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1195,
+              "nodesPerSecond": 108983,
+              "prunedAb": 532940,
+              "prunedTt": 74357,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f1g2",
+                "score": -61,
+                "depth": 6,
+                "elapsedMs": 1182,
+                "considered": 132491,
+                "prunedAb": 541065,
+                "prunedTt": 74610,
+                "ttImproved": 2271,
+                "timedOut": false
+              },
+              {
+                "move": "f1g2",
+                "score": -82,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 128870,
+                "prunedAb": 528890,
+                "prunedTt": 73982,
+                "ttImproved": 2237,
+                "timedOut": true
+              },
+              {
+                "move": "f1g2",
+                "score": -82,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 129520,
+                "prunedAb": 528865,
+                "prunedTt": 74479,
+                "ttImproved": 2258,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1bqkb1r/ppppp1pp/5n2/2nP1pB1/8/P1N2N2/1PP1PPPP/R2QKB1R w KQkq - 3 7",
+        "tag": "local400-game19-ply13",
+        "expected": [
+          "g5f6"
+        ],
+        "bad": [
+          "g5f4"
+        ],
+        "notes": "SF14 loss 159cp; opening d2d4 f7f5; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "e2e3",
+              "score": 74,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1115,
+              "nodesPerSecond": 124586,
+              "prunedAb": 373681,
+              "prunedTt": 83270,
+              "timedOut": false
+            },
+            "runs": [
+              {
+                "move": "e2e3",
+                "score": 74,
+                "depth": 5,
+                "elapsedMs": 1089,
+                "considered": 138173,
+                "prunedAb": 370758,
+                "prunedTt": 83342,
+                "ttImproved": 2477,
+                "timedOut": false
+              },
+              {
+                "move": "e2e3",
+                "score": 74,
+                "depth": 5,
+                "elapsedMs": 1174,
+                "considered": 141814,
+                "prunedAb": 382440,
+                "prunedTt": 86399,
+                "ttImproved": 2575,
+                "timedOut": false
+              },
+              {
+                "move": "e2e3",
+                "score": 74,
+                "depth": 5,
+                "elapsedMs": 1082,
+                "considered": 136960,
+                "prunedAb": 367846,
+                "prunedTt": 80070,
+                "ttImproved": 2366,
+                "timedOut": false
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1bqkb1r/pp2p1p1/2pp1n1p/2nP1p2/2B2B2/P1N1PN2/1PP2PPP/R2QK2R w KQkq - 0 10",
+        "tag": "local400-game19-ply19",
+        "expected": [
+          "f3d4"
+        ],
+        "bad": [
+          "f3h4"
+        ],
+        "notes": "SF14 loss 186cp; opening d2d4 f7f5; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f3h4",
+              "score": 264,
+              "count": 3,
+              "depth": 4,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 163157,
+              "prunedAb": 580743,
+              "prunedTt": 118529,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f3h4",
+                "score": 264,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 191723,
+                "prunedAb": 562073,
+                "prunedTt": 110047,
+                "ttImproved": 2771,
+                "timedOut": true
+              },
+              {
+                "move": "f3h4",
+                "score": 264,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 206949,
+                "prunedAb": 615638,
+                "prunedTt": 127643,
+                "ttImproved": 3211,
+                "timedOut": true
+              },
+              {
+                "move": "f3h4",
+                "score": 264,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 189737,
+                "prunedAb": 564519,
+                "prunedTt": 117899,
+                "ttImproved": 2948,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 21,
+      "runs": 63,
+      "missedExpected": 13,
+      "knownBad": 5,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 21,
+        "missedExpected": 13,
+        "knownBad": 5,
+        "avgElapsedMs": 1184
+      }
+    ]
+  },
+  "after": {
+    "fenPath": "/tmp/chess-castling-timed-fens.txt",
+    "thinkTimeMs": 1200,
+    "runs": 3,
+    "positions": [
+      {
+        "fen": "rnbqkb1r/ppp2ppp/3p1n2/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 4",
+        "tag": "XdvTuEuU before 4...d5",
+        "expected": [
+          "f6e4"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "b8c6",
+              "score": -8,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 156738,
+              "prunedAb": 1093437,
+              "prunedTt": 176654,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "b8c6",
+                "score": -8,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 202820,
+                "prunedAb": 1177346,
+                "prunedTt": 191862,
+                "ttImproved": 5716,
+                "timedOut": true
+              },
+              {
+                "move": "b8c6",
+                "score": -8,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 179275,
+                "prunedAb": 1041263,
+                "prunedTt": 166317,
+                "ttImproved": 4961,
+                "timedOut": true
+              },
+              {
+                "move": "b8c6",
+                "score": -8,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 183246,
+                "prunedAb": 1061703,
+                "prunedTt": 171784,
+                "ttImproved": 5120,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "rnbqkb1r/p2ppppp/8/1ppP4/4n3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 5",
+        "tag": "wMrBp3gN before 5.Nbd2",
+        "expected": [
+          "f1d3"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f1d3",
+              "score": 57,
+              "count": 2,
+              "depth": 4,
+              "avgElapsedMs": 1188,
+              "nodesPerSecond": 166641,
+              "prunedAb": 611016,
+              "prunedTt": 98035,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f1d3",
+                "score": 57,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 192765,
+                "prunedAb": 597482,
+                "prunedTt": 94891,
+                "ttImproved": 2864,
+                "timedOut": true
+              },
+              {
+                "move": "f1d3",
+                "score": 57,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 200923,
+                "prunedAb": 615566,
+                "prunedTt": 99110,
+                "ttImproved": 2972,
+                "timedOut": true
+              },
+              {
+                "move": "d1d3",
+                "score": 58,
+                "depth": 5,
+                "elapsedMs": 1160,
+                "considered": 200282,
+                "prunedAb": 620002,
+                "prunedTt": 100104,
+                "ttImproved": 3019,
+                "timedOut": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "rn2kb1r/pb2ppp1/4q2p/1Ppp4/8/2N1B3/1PP2PPP/R2QKB1R w KQkq d6 0 13",
+        "tag": "wMrBp3gN before 13.Ne2",
+        "expected": [
+          "d1f3"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d1f3",
+              "score": 59,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 161432,
+              "prunedAb": 887634,
+              "prunedTt": 203486,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d1f3",
+                "score": 59,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 186552,
+                "prunedAb": 835443,
+                "prunedTt": 196025,
+                "ttImproved": 5037,
+                "timedOut": true
+              },
+              {
+                "move": "d1f3",
+                "score": 59,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 201054,
+                "prunedAb": 935660,
+                "prunedTt": 208627,
+                "ttImproved": 5352,
+                "timedOut": true
+              },
+              {
+                "move": "d1f3",
+                "score": 59,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 194410,
+                "prunedAb": 891800,
+                "prunedTt": 205808,
+                "ttImproved": 5284,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r2r2k1/ppp2ppp/4b3/3pq3/8/2PB1P2/P1PQ2PP/1K1R3R w - - 4 17",
+        "tag": "BE927OLI before 17.Ka1",
+        "expected": [
+          "f3f4"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "b1a1",
+              "score": -68,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 181548,
+              "prunedAb": 1492863,
+              "prunedTt": 218077,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "b1a1",
+                "score": -68,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 215549,
+                "prunedAb": 1469881,
+                "prunedTt": 214691,
+                "ttImproved": 5882,
+                "timedOut": true
+              },
+              {
+                "move": "b1a1",
+                "score": -68,
+                "depth": 5,
+                "elapsedMs": 1203,
+                "considered": 222723,
+                "prunedAb": 1529870,
+                "prunedTt": 220048,
+                "ttImproved": 6024,
+                "timedOut": true
+              },
+              {
+                "move": "b1a1",
+                "score": -68,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 216748,
+                "prunedAb": 1478840,
+                "prunedTt": 219494,
+                "ttImproved": 5987,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r2r2k1/p4ppp/1p2bq2/2pp4/8/2PB1P2/P1PQ2PP/KR2R3 w - c6 0 20",
+        "tag": "BE927OLI before 20.Bb5",
+        "expected": [
+          "f3f4"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "a1b2",
+              "score": -90,
+              "count": 2,
+              "depth": 5,
+              "avgElapsedMs": 1196,
+              "nodesPerSecond": 179214,
+              "prunedAb": 1436835,
+              "prunedTt": 239713,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "a1b2",
+                "score": -90,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 216593,
+                "prunedAb": 1437992,
+                "prunedTt": 236148,
+                "ttImproved": 6513,
+                "timedOut": true
+              },
+              {
+                "move": "a1b2",
+                "score": -90,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 215586,
+                "prunedAb": 1418316,
+                "prunedTt": 236765,
+                "ttImproved": 6516,
+                "timedOut": true
+              },
+              {
+                "move": "d3a6",
+                "score": -106,
+                "depth": 6,
+                "elapsedMs": 1186,
+                "considered": 211161,
+                "prunedAb": 1454197,
+                "prunedTt": 246227,
+                "ttImproved": 6771,
+                "timedOut": false
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
+        "tag": "p4uoHImi before 2.Nf3",
+        "expected": [
+          "e4d5"
+        ],
+        "bad": [
+          "g1f3"
+        ],
+        "notes": "post-Petroff deployment; scripted move lost 157cp at SF depth 16",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d2d3",
+              "score": 41,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 174914,
+              "prunedAb": 986300,
+              "prunedTt": 215353,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d2d3",
+                "score": 41,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 200544,
+                "prunedAb": 930319,
+                "prunedTt": 205024,
+                "ttImproved": 6596,
+                "timedOut": true
+              },
+              {
+                "move": "d2d3",
+                "score": 41,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 218789,
+                "prunedAb": 1035326,
+                "prunedTt": 224703,
+                "ttImproved": 7225,
+                "timedOut": true
+              },
+              {
+                "move": "d2d3",
+                "score": 41,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 211316,
+                "prunedAb": 993256,
+                "prunedTt": 216332,
+                "ttImproved": 6960,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "1r1q1rk1/p3npp1/3ppn1p/1p6/5P2/1QNP1N2/PP4PP/2R1R1K1 w - b6 0 16",
+        "tag": "p4uoHImi before 16.Nd4",
+        "expected": [
+          "b3c2"
+        ],
+        "bad": [
+          "f3d4"
+        ],
+        "notes": "post-Petroff deployment; 226cp loss at SF depth 16",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f3d4",
+              "score": -10,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 163286,
+              "prunedAb": 1231000,
+              "prunedTt": 226713,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f3d4",
+                "score": -10,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 190523,
+                "prunedAb": 1186975,
+                "prunedTt": 223870,
+                "ttImproved": 5550,
+                "timedOut": true
+              },
+              {
+                "move": "f3d4",
+                "score": -10,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 192446,
+                "prunedAb": 1203298,
+                "prunedTt": 225866,
+                "ttImproved": 5600,
+                "timedOut": true
+              },
+              {
+                "move": "f3d4",
+                "score": -10,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 205718,
+                "prunedAb": 1302729,
+                "prunedTt": 230404,
+                "ttImproved": 5738,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r2qkb1r/ppp1pppp/1nnp4/4P3/2PP2b1/2N2N2/PP3PPP/R1BQKB1R w KQkq - 1 7",
+        "tag": "local400-game5-ply13",
+        "expected": [
+          "e5d6"
+        ],
+        "bad": [
+          "c4c5"
+        ],
+        "notes": "SF14 loss 209cp; opening e2e4 g8f6 e4e5; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f1e2",
+              "score": 30,
+              "count": 3,
+              "depth": 4,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 171779,
+              "prunedAb": 454399,
+              "prunedTt": 81566,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f1e2",
+                "score": 30,
+                "depth": 4,
+                "elapsedMs": 1203,
+                "considered": 192750,
+                "prunedAb": 418359,
+                "prunedTt": 75877,
+                "ttImproved": 2015,
+                "timedOut": true
+              },
+              {
+                "move": "f1e2",
+                "score": 30,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 211083,
+                "prunedAb": 468410,
+                "prunedTt": 83082,
+                "ttImproved": 2208,
+                "timedOut": true
+              },
+              {
+                "move": "f1e2",
+                "score": 30,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 215915,
+                "prunedAb": 476430,
+                "prunedTt": 85739,
+                "ttImproved": 2279,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r3kb1r/ppp1pppp/2n1P3/2P1n3/8/4Nb2/PP3PPP/R1B1KB1R w KQkq - 1 12",
+        "tag": "local400-game5-ply23",
+        "expected": [
+          "e6f7"
+        ],
+        "bad": [
+          "g2f3"
+        ],
+        "notes": "SF14 loss 105cp; opening e2e4 g8f6 e4e5; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "e6f7",
+              "score": -164,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 149441,
+              "prunedAb": 1027869,
+              "prunedTt": 114919,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "e6f7",
+                "score": -164,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 167570,
+                "prunedAb": 962219,
+                "prunedTt": 110879,
+                "ttImproved": 3841,
+                "timedOut": true
+              },
+              {
+                "move": "e6f7",
+                "score": -164,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 189820,
+                "prunedAb": 1085346,
+                "prunedTt": 118380,
+                "ttImproved": 4102,
+                "timedOut": true
+              },
+              {
+                "move": "e6f7",
+                "score": -164,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 181561,
+                "prunedAb": 1036042,
+                "prunedTt": 115499,
+                "ttImproved": 4000,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1bqk2r/pppp1ppp/2n2n2/4N3/3PP3/2P5/P1P2PPP/R1BQKB1R b KQkq - 0 6",
+        "tag": "local400-game8-ply12",
+        "expected": [
+          "d8e7"
+        ],
+        "bad": [
+          "c6e5"
+        ],
+        "notes": "SF14 loss 315cp; opening e2e4 e7e5; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "c6e5",
+              "score": -31,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1172,
+              "nodesPerSecond": 159985,
+              "prunedAb": 978017,
+              "prunedTt": 159051,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "c6e5",
+                "score": -62,
+                "depth": 6,
+                "elapsedMs": 1143,
+                "considered": 187673,
+                "prunedAb": 979037,
+                "prunedTt": 159163,
+                "ttImproved": 4740,
+                "timedOut": false
+              },
+              {
+                "move": "c6e5",
+                "score": -62,
+                "depth": 6,
+                "elapsedMs": 1172,
+                "considered": 187673,
+                "prunedAb": 979037,
+                "prunedTt": 159163,
+                "ttImproved": 4740,
+                "timedOut": false
+              },
+              {
+                "move": "c6e5",
+                "score": -31,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 187372,
+                "prunedAb": 975977,
+                "prunedTt": 158827,
+                "ttImproved": 4731,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r3k2r/2q2ppp/p1bbp3/1p6/2pPN2Q/8/PPP2PP1/R1B2R1K b kq - 3 17",
+        "tag": "local400-game10-ply34",
+        "expected": [
+          "d6e7"
+        ],
+        "bad": [
+          "e8g8"
+        ],
+        "notes": "SF14 loss 501cp; opening e2e4 c7c5; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d6e7",
+              "score": 146,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 186344,
+              "prunedAb": 1385619,
+              "prunedTt": 166900,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d6e7",
+                "score": 146,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 224260,
+                "prunedAb": 1385787,
+                "prunedTt": 169680,
+                "ttImproved": 4630,
+                "timedOut": true
+              },
+              {
+                "move": "d6e7",
+                "score": 146,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 214930,
+                "prunedAb": 1327325,
+                "prunedTt": 161650,
+                "ttImproved": 4424,
+                "timedOut": true
+              },
+              {
+                "move": "d6e7",
+                "score": 146,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 232555,
+                "prunedAb": 1443746,
+                "prunedTt": 169372,
+                "ttImproved": 4585,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r4rk1/2q2p1p/p1bbpp1B/1p6/2pP3Q/8/PPP2PP1/R4R1K b - - 1 19",
+        "tag": "local400-game10-ply38",
+        "expected": [
+          "d6f4"
+        ],
+        "bad": [
+          "c6e4"
+        ],
+        "notes": "SF14 loss 745cp; opening e2e4 c7c5; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d6f4",
+              "score": -246,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 154214,
+              "prunedAb": 898630,
+              "prunedTt": 152771,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d6f4",
+                "score": -246,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 179937,
+                "prunedAb": 866032,
+                "prunedTt": 134723,
+                "ttImproved": 4013,
+                "timedOut": true
+              },
+              {
+                "move": "d6f4",
+                "score": -246,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 188282,
+                "prunedAb": 926655,
+                "prunedTt": 167816,
+                "ttImproved": 4914,
+                "timedOut": true
+              },
+              {
+                "move": "d6f4",
+                "score": -246,
+                "depth": 5,
+                "elapsedMs": 1203,
+                "considered": 188088,
+                "prunedAb": 903204,
+                "prunedTt": 155775,
+                "ttImproved": 4688,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1b1k2r/p2p1ppp/1qp1p3/n3P1B1/1QnP4/2P2N2/P3BPPP/R4RK1 b kq - 3 13",
+        "tag": "local400-game12-ply26",
+        "expected": [
+          "d7d6"
+        ],
+        "bad": [
+          "c6c5"
+        ],
+        "notes": "SF14 loss 130cp; opening e2e4 e7e6; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "c6c5",
+              "score": -176,
+              "count": 3,
+              "depth": 7,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 164818,
+              "prunedAb": 1730552,
+              "prunedTt": 279945,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 197879,
+                "prunedAb": 1730235,
+                "prunedTt": 279129,
+                "ttImproved": 8718,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 188817,
+                "prunedAb": 1640209,
+                "prunedTt": 267725,
+                "ttImproved": 8395,
+                "timedOut": true
+              },
+              {
+                "move": "c6c5",
+                "score": -176,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 207581,
+                "prunedAb": 1821214,
+                "prunedTt": 292982,
+                "ttImproved": 9177,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r3kb1r/1p1b1ppp/p1n1p3/2pqP3/8/2BB1N2/PP3PPP/R2QR1K1 w kq - 0 15",
+        "tag": "local400-game13-ply29",
+        "expected": [
+          "d1b1"
+        ],
+        "bad": [
+          "d3e4"
+        ],
+        "notes": "SF14 loss 153cp; opening e2e4 c7c6; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d3e4",
+              "score": 63,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 146094,
+              "prunedAb": 1086737,
+              "prunedTt": 167059,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d3e4",
+                "score": 63,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 172957,
+                "prunedAb": 1063019,
+                "prunedTt": 164489,
+                "ttImproved": 4104,
+                "timedOut": true
+              },
+              {
+                "move": "d3e4",
+                "score": 63,
+                "depth": 5,
+                "elapsedMs": 1201,
+                "considered": 171318,
+                "prunedAb": 1061634,
+                "prunedTt": 162531,
+                "ttImproved": 4064,
+                "timedOut": true
+              },
+              {
+                "move": "d3e4",
+                "score": 63,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 182358,
+                "prunedAb": 1135559,
+                "prunedTt": 174159,
+                "ttImproved": 4336,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "1k5r/1p1bbpp1/p3p2p/4P3/1p1NB3/1P4P1/P4P1P/3R2K1 w - - 3 26",
+        "tag": "local400-game13-ply51",
+        "expected": [
+          "d4f5"
+        ],
+        "bad": [
+          "g1g2"
+        ],
+        "notes": "SF14 loss 249cp; opening e2e4 c7c6; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d4f5",
+              "score": -64,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 196344,
+              "prunedAb": 1595139,
+              "prunedTt": 350539,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d4f5",
+                "score": -64,
+                "depth": 6,
+                "elapsedMs": 1203,
+                "considered": 244203,
+                "prunedAb": 1660544,
+                "prunedTt": 372481,
+                "ttImproved": 11328,
+                "timedOut": true
+              },
+              {
+                "move": "d4f5",
+                "score": -64,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 226876,
+                "prunedAb": 1530191,
+                "prunedTt": 337544,
+                "ttImproved": 10233,
+                "timedOut": true
+              },
+              {
+                "move": "d4f5",
+                "score": -64,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 237051,
+                "prunedAb": 1594684,
+                "prunedTt": 341593,
+                "ttImproved": 10392,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "2r1kb1r/pp1b1ppp/2n1p3/2pqP3/4B3/2B2N2/PP3PPP/R2QR1K1 b k - 7 15",
+        "tag": "local400-game14-ply30",
+        "expected": [
+          "d5d1"
+        ],
+        "bad": [
+          "d5c4"
+        ],
+        "notes": "SF14 loss 210cp; opening e2e4 c7c6; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "d5d1",
+              "score": -39,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 74507,
+              "prunedAb": 642453,
+              "prunedTt": 60163,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d5d1",
+                "score": -39,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 91300,
+                "prunedAb": 652422,
+                "prunedTt": 60595,
+                "ttImproved": 1637,
+                "timedOut": true
+              },
+              {
+                "move": "d5d1",
+                "score": -39,
+                "depth": 6,
+                "elapsedMs": 1203,
+                "considered": 85119,
+                "prunedAb": 616933,
+                "prunedTt": 59192,
+                "ttImproved": 1593,
+                "timedOut": true
+              },
+              {
+                "move": "d5d1",
+                "score": -39,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 92339,
+                "prunedAb": 658006,
+                "prunedTt": 60703,
+                "ttImproved": 1640,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "2r1k2r/pq1bbppp/4p3/1Pp1P3/3nN3/2BBR3/1P3PPP/R2Q2K1 b k - 2 21",
+        "tag": "local400-game14-ply42",
+        "expected": [
+          "d7b5"
+        ],
+        "bad": [
+          "e8g8"
+        ],
+        "notes": "SF14 loss 247cp; opening e2e4 c7c6; corrected side 1",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "e8g8",
+              "score": -19,
+              "count": 3,
+              "depth": 4,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 178535,
+              "prunedAb": 620063,
+              "prunedTt": 104046,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "e8g8",
+                "score": -19,
+                "depth": 4,
+                "elapsedMs": 1203,
+                "considered": 212848,
+                "prunedAb": 615635,
+                "prunedTt": 104863,
+                "ttImproved": 2456,
+                "timedOut": true
+              },
+              {
+                "move": "e8g8",
+                "score": -19,
+                "depth": 4,
+                "elapsedMs": 1202,
+                "considered": 217078,
+                "prunedAb": 626041,
+                "prunedTt": 105163,
+                "ttImproved": 2464,
+                "timedOut": true
+              },
+              {
+                "move": "e8g8",
+                "score": -19,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 214156,
+                "prunedAb": 618514,
+                "prunedTt": 102113,
+                "ttImproved": 2387,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1b1qrk1/pppp1ppp/2n1p3/3n2B1/3P3P/P1P2N2/2P1PPP1/R2QKB1R w KQ - 3 9",
+        "tag": "local400-game17-ply17",
+        "expected": [
+          "e2e4"
+        ],
+        "bad": [
+          "g5d2"
+        ],
+        "notes": "SF14 loss 143cp; opening d2d4 g8f6; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "c3c4",
+              "score": 9,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 148542,
+              "prunedAb": 1006572,
+              "prunedTt": 137464,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "c3c4",
+                "score": 9,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 187926,
+                "prunedAb": 1066688,
+                "prunedTt": 143902,
+                "ttImproved": 4765,
+                "timedOut": true
+              },
+              {
+                "move": "c3c4",
+                "score": 9,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 179042,
+                "prunedAb": 1004666,
+                "prunedTt": 139916,
+                "ttImproved": 4640,
+                "timedOut": true
+              },
+              {
+                "move": "c3c4",
+                "score": 9,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 168630,
+                "prunedAb": 948362,
+                "prunedTt": 128576,
+                "ttImproved": 4276,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1b1qrk1/ppp2ppp/3p1n2/4n3/5B1P/P1P2NP1/2P1PP2/R2QKB1R w KQ - 0 13",
+        "tag": "local400-game17-ply25",
+        "expected": [
+          "f1g2"
+        ],
+        "bad": [
+          "e2e3"
+        ],
+        "notes": "SF14 loss 250cp; opening d2d4 g8f6; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f1g2",
+              "score": -78,
+              "count": 3,
+              "depth": 6,
+              "avgElapsedMs": 1201,
+              "nodesPerSecond": 162532,
+              "prunedAb": 1085876,
+              "prunedTt": 154878,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f1g2",
+                "score": -78,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 190833,
+                "prunedAb": 1055831,
+                "prunedTt": 149604,
+                "ttImproved": 4438,
+                "timedOut": true
+              },
+              {
+                "move": "f1g2",
+                "score": -78,
+                "depth": 6,
+                "elapsedMs": 1202,
+                "considered": 206503,
+                "prunedAb": 1158962,
+                "prunedTt": 162783,
+                "ttImproved": 4831,
+                "timedOut": true
+              },
+              {
+                "move": "f1g2",
+                "score": -78,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 188727,
+                "prunedAb": 1042835,
+                "prunedTt": 152249,
+                "ttImproved": 4503,
+                "timedOut": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1bqkb1r/ppppp1pp/5n2/2nP1pB1/8/P1N2N2/1PP1PPPP/R2QKB1R w KQkq - 3 7",
+        "tag": "local400-game19-ply13",
+        "expected": [
+          "g5f6"
+        ],
+        "bad": [
+          "g5f4"
+        ],
+        "notes": "SF14 loss 159cp; opening d2d4 f7f5; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "e2e3",
+              "score": 74,
+              "count": 3,
+              "depth": 5,
+              "avgElapsedMs": 1202,
+              "nodesPerSecond": 152253,
+              "prunedAb": 630103,
+              "prunedTt": 99247,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "e2e3",
+                "score": 74,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 184799,
+                "prunedAb": 635145,
+                "prunedTt": 96437,
+                "ttImproved": 2872,
+                "timedOut": true
+              },
+              {
+                "move": "e2e3",
+                "score": 74,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 178678,
+                "prunedAb": 601109,
+                "prunedTt": 95014,
+                "ttImproved": 2810,
+                "timedOut": true
+              },
+              {
+                "move": "e2e3",
+                "score": 58,
+                "depth": 5,
+                "elapsedMs": 1202,
+                "considered": 185585,
+                "prunedAb": 654055,
+                "prunedTt": 106291,
+                "ttImproved": 3118,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected"
+            ]
+          }
+        ]
+      },
+      {
+        "fen": "r1bqkb1r/pp2p1p1/2pp1n1p/2nP1p2/2B2B2/P1N1PN2/1PP2PPP/R2QK2R w KQkq - 0 10",
+        "tag": "local400-game19-ply19",
+        "expected": [
+          "f3d4"
+        ],
+        "bad": [
+          "f3h4"
+        ],
+        "notes": "SF14 loss 186cp; opening d2d4 f7f5; corrected side 0",
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "f3h4",
+              "score": 264,
+              "count": 2,
+              "depth": 4,
+              "avgElapsedMs": 1193,
+              "nodesPerSecond": 151922,
+              "prunedAb": 677706,
+              "prunedTt": 129761,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "f3h4",
+                "score": 264,
+                "depth": 4,
+                "elapsedMs": 1201,
+                "considered": 180396,
+                "prunedAb": 682772,
+                "prunedTt": 135561,
+                "ttImproved": 3455,
+                "timedOut": true
+              },
+              {
+                "move": "f4g3",
+                "score": 75,
+                "depth": 5,
+                "elapsedMs": 1174,
+                "considered": 181992,
+                "prunedAb": 685434,
+                "prunedTt": 124160,
+                "ttImproved": 3173,
+                "timedOut": false
+              },
+              {
+                "move": "f3h4",
+                "score": 264,
+                "depth": 4,
+                "elapsedMs": 1203,
+                "considered": 181360,
+                "prunedAb": 664914,
+                "prunedTt": 129563,
+                "ttImproved": 3304,
+                "timedOut": true
+              }
+            ],
+            "flags": [
+              "missed expected",
+              "known bad move"
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 21,
+      "runs": 63,
+      "missedExpected": 13,
+      "knownBad": 6,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 21,
+        "missedExpected": 13,
+        "knownBad": 6,
+        "avgElapsedMs": 1199
+      }
+    ]
+  },
+  "commonReferee": [
+    {
+      "fen": "rnbqkb1r/ppp2ppp/3p1n2/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 4",
+      "tag": "XdvTuEuU before 4...d5",
+      "before": "b8d7",
+      "after": "b8c6",
+      "beforeLoss": 169,
+      "afterLoss": 126,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "rnbqkb1r/p2ppppp/8/1ppP4/4n3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 5",
+      "tag": "wMrBp3gN before 5.Nbd2",
+      "before": "f1d3",
+      "after": "f1d3",
+      "beforeLoss": 0,
+      "afterLoss": 0,
+      "beforeDepth": 4,
+      "afterDepth": 4
+    },
+    {
+      "fen": "rn2kb1r/pb2ppp1/4q2p/1Ppp4/8/2N1B3/1PP2PPP/R2QKB1R w KQkq d6 0 13",
+      "tag": "wMrBp3gN before 13.Ne2",
+      "before": "d1f3",
+      "after": "d1f3",
+      "beforeLoss": 0,
+      "afterLoss": 0,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "r2r2k1/ppp2ppp/4b3/3pq3/8/2PB1P2/P1PQ2PP/1K1R3R w - - 4 17",
+      "tag": "BE927OLI before 17.Ka1",
+      "before": "h2h4",
+      "after": "b1a1",
+      "beforeLoss": 35,
+      "afterLoss": 55,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "r2r2k1/p4ppp/1p2bq2/2pp4/8/2PB1P2/P1PQ2PP/KR2R3 w - c6 0 20",
+      "tag": "BE927OLI before 20.Bb5",
+      "before": "a1b2",
+      "after": "a1b2",
+      "beforeLoss": 27,
+      "afterLoss": 27,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
+      "tag": "p4uoHImi before 2.Nf3",
+      "before": "b1c3",
+      "after": "d2d3",
+      "beforeLoss": 96,
+      "afterLoss": 74,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "1r1q1rk1/p3npp1/3ppn1p/1p6/5P2/1QNP1N2/PP4PP/2R1R1K1 w - b6 0 16",
+      "tag": "p4uoHImi before 16.Nd4",
+      "before": "f3d4",
+      "after": "f3d4",
+      "beforeLoss": 229,
+      "afterLoss": 229,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "r2qkb1r/ppp1pppp/1nnp4/4P3/2PP2b1/2N2N2/PP3PPP/R1BQKB1R w KQkq - 1 7",
+      "tag": "local400-game5-ply13",
+      "before": "f1e2",
+      "after": "f1e2",
+      "beforeLoss": 17,
+      "afterLoss": 17,
+      "beforeDepth": 4,
+      "afterDepth": 4
+    },
+    {
+      "fen": "r3kb1r/ppp1pppp/2n1P3/2P1n3/8/4Nb2/PP3PPP/R1B1KB1R w KQkq - 1 12",
+      "tag": "local400-game5-ply23",
+      "before": "e6f7",
+      "after": "e6f7",
+      "beforeLoss": 0,
+      "afterLoss": 0,
+      "beforeDepth": 6,
+      "afterDepth": 6
+    },
+    {
+      "fen": "r1bqk2r/pppp1ppp/2n2n2/4N3/3PP3/2P5/P1P2PPP/R1BQKB1R b KQkq - 0 6",
+      "tag": "local400-game8-ply12",
+      "before": "c6e5",
+      "after": "c6e5",
+      "beforeLoss": 332,
+      "afterLoss": 332,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "r3k2r/2q2ppp/p1bbp3/1p6/2pPN2Q/8/PPP2PP1/R1B2R1K b kq - 3 17",
+      "tag": "local400-game10-ply34",
+      "before": "c6e4",
+      "after": "d6e7",
+      "beforeLoss": 76,
+      "afterLoss": 0,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "r4rk1/2q2p1p/p1bbpp1B/1p6/2pP3Q/8/PPP2PP1/R4R1K b - - 1 19",
+      "tag": "local400-game10-ply38",
+      "before": "d6f4",
+      "after": "d6f4",
+      "beforeLoss": 0,
+      "afterLoss": 0,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "r1b1k2r/p2p1ppp/1qp1p3/n3P1B1/1QnP4/2P2N2/P3BPPP/R4RK1 b kq - 3 13",
+      "tag": "local400-game12-ply26",
+      "before": "d7d6",
+      "after": "c6c5",
+      "beforeLoss": 0,
+      "afterLoss": 173,
+      "beforeDepth": 7,
+      "afterDepth": 7
+    },
+    {
+      "fen": "r3kb1r/1p1b1ppp/p1n1p3/2pqP3/8/2BB1N2/PP3PPP/R2QR1K1 w kq - 0 15",
+      "tag": "local400-game13-ply29",
+      "before": "d3e4",
+      "after": "d3e4",
+      "beforeLoss": 164,
+      "afterLoss": 164,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "1k5r/1p1bbpp1/p3p2p/4P3/1p1NB3/1P4P1/P4P1P/3R2K1 w - - 3 26",
+      "tag": "local400-game13-ply51",
+      "before": "d4f5",
+      "after": "d4f5",
+      "beforeLoss": 4,
+      "afterLoss": 4,
+      "beforeDepth": 6,
+      "afterDepth": 6
+    },
+    {
+      "fen": "2r1kb1r/pp1b1ppp/2n1p3/2pqP3/4B3/2B2N2/PP3PPP/R2QR1K1 b k - 7 15",
+      "tag": "local400-game14-ply30",
+      "before": "d5d1",
+      "after": "d5d1",
+      "beforeLoss": 0,
+      "afterLoss": 0,
+      "beforeDepth": 6,
+      "afterDepth": 6
+    },
+    {
+      "fen": "2r1k2r/pq1bbppp/4p3/1Pp1P3/3nN3/2BBR3/1P3PPP/R2Q2K1 b k - 2 21",
+      "tag": "local400-game14-ply42",
+      "before": "e8g8",
+      "after": "e8g8",
+      "beforeLoss": 255,
+      "afterLoss": 255,
+      "beforeDepth": 4,
+      "afterDepth": 4
+    },
+    {
+      "fen": "r1b1qrk1/pppp1ppp/2n1p3/3n2B1/3P3P/P1P2N2/2P1PPP1/R2QKB1R w KQ - 3 9",
+      "tag": "local400-game17-ply17",
+      "before": "c3c4",
+      "after": "c3c4",
+      "beforeLoss": 64,
+      "afterLoss": 64,
+      "beforeDepth": 6,
+      "afterDepth": 6
+    },
+    {
+      "fen": "r1b1qrk1/ppp2ppp/3p1n2/4n3/5B1P/P1P2NP1/2P1PP2/R2QKB1R w KQ - 0 13",
+      "tag": "local400-game17-ply25",
+      "before": "f1g2",
+      "after": "f1g2",
+      "beforeLoss": 4,
+      "afterLoss": 4,
+      "beforeDepth": 6,
+      "afterDepth": 6
+    },
+    {
+      "fen": "r1bqkb1r/ppppp1pp/5n2/2nP1pB1/8/P1N2N2/1PP1PPPP/R2QKB1R w KQkq - 3 7",
+      "tag": "local400-game19-ply13",
+      "before": "e2e3",
+      "after": "e2e3",
+      "beforeLoss": 62,
+      "afterLoss": 62,
+      "beforeDepth": 5,
+      "afterDepth": 5
+    },
+    {
+      "fen": "r1bqkb1r/pp2p1p1/2pp1n1p/2nP1p2/2B2B2/P1N1PN2/1PP2PPP/R2QK2R w KQkq - 0 10",
+      "tag": "local400-game19-ply19",
+      "before": "f3h4",
+      "after": "f3h4",
+      "beforeLoss": 157,
+      "afterLoss": 157,
+      "beforeDepth": 4,
+      "afterDepth": 4
+    }
+  ]
+}

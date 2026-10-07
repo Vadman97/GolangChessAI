@@ -1,0 +1,12 @@
+# Fresh post-rebuild rapid losses, local Stockfish depth 16.
+# Referee preferences are provisional; validate depth 18 before strength claims.
+rn1qk2r/ppp2ppp/4bn2/8/1b1P4/5N2/PP1BPPPP/RN1QKB1R b KQkq - 3 6 | VgvKuO4X-ply12 | b4e7 | b8c6 | post-rebuild loss; SF16 94cp
+1r3rk1/p1pq2pp/5p2/3P4/1b1NP1b1/8/PPQN1PPP/R4RK1 b - - 2 17 | VgvKuO4X-ply34 | b4d6 | c7c5 | post-rebuild loss; SF16 68cp
+1r4k1/p5pp/5p2/2pP4/1b2P1q1/8/PPQ1bPPP/R1R2NK1 b - - 3 21 | VgvKuO4X-ply42 | f6f5 | b8c8 | post-rebuild loss; SF16 241cp
+r1b4r/pp2k3/2p2p1p/2b1p3/4P3/1BN5/PPP2PPP/R3K2R b KQ - 4 12 | Eqe2Dghi-ply24 | a7a5 | c8e6 | post-rebuild loss; SF16 94cp
+3r4/1p6/2p1k2p/p3p3/1b6/3P2N1/PP3PPP/3R2K1 b - - 1 22 | Eqe2Dghi-ply44 | b4c5 | d8f8 | post-rebuild loss; SF16 75cp
+6r1/1p2b3/2p4p/p3p3/3kN3/3PR3/PP3PPP/6K1 b - - 11 27 | Eqe2Dghi-ply54 | a5a4 | e7g5 | post-rebuild loss; SF16 100cp
+5r2/1R6/8/2p5/p3p3/3k3P/PP3PP1/6K1 b - - 2 37 | Eqe2Dghi-ply74 | c5c4 | f8f6 | post-rebuild loss; SF16 141cp
+1R6/8/5r2/2p5/p3p3/3k3P/PP3PP1/6K1 b - - 4 38 | Eqe2Dghi-ply76 | c5c4 | f6f7 | post-rebuild loss; SF16 127cp
+8/5r2/8/2p5/4p2P/pR1k4/PP3PP1/6K1 b - - 1 40 | Eqe2Dghi-ply80 | d3c2 | d3d4 | post-rebuild loss; SF16 239cp
+8/8/8/7P/4P1P1/P7/3k3r/K4R2 b - - 2 60 | Eqe2Dghi-ply120 | d2e2 | d2e3 | post-rebuild loss; SF16 96cp

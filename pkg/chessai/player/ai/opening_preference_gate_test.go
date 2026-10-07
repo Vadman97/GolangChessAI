@@ -89,6 +89,104 @@ func TestEarlyOpeningPreferenceAllowsEvenExchange(t *testing.T) {
 	assert.Equal(t, gateSquare(t, "d5"), got.End)
 }
 
+// Post-restart game p4uoHImi: the Italian script forced Nf3 against the
+// Scandinavian, even though ...dxe4 wins a pawn. The fallback preferences
+// already reject this move; the script must defer to search as well.
+func TestOpeningScriptRejectsHangingCentralPawn(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+	prev := gateApply(t, b, nil, color.White, "e2e4")
+	prev = gateApply(t, b, prev, color.Black, "d7d5")
+	exd5 := location.Move{Start: gateSquare(t, "e4"), End: gateSquare(t, "d5")}
+	p := NewAIPlayer(color.White, &fixedOpeningRegressionAlgorithm{move: exd5})
+	p.Opening = 0
+	p.TurnCount = 1
+	assert.True(t, p.preferenceMoveHangsMaterial(b, *OpeningMoves[color.White][0][1]))
+	assert.Nil(t, p.earlyOpeningPreference(b, prev))
+	got := p.GetBestMove(b, prev, nil)
+	assert.Equal(t, exd5, *got, "the script must release its unsafe developing move")
+	assert.Equal(t, OpeningNone, p.Opening)
+}
+
+func TestOpeningScriptKeepsSafeKnightDevelopment(t *testing.T) {
+	for _, response := range []string{"e7e5", "c7c5"} {
+		t.Run(response, func(t *testing.T) {
+			b := &board.Board{}
+			b.ResetDefault()
+			prev := gateApply(t, b, nil, color.White, "e2e4")
+			prev = gateApply(t, b, prev, color.Black, response)
+			p := NewAIPlayer(color.White, &fixedOpeningRegressionAlgorithm{
+				move: location.Move{Start: gateSquare(t, "b1"), End: gateSquare(t, "c3")},
+			})
+			p.Opening = 0
+			p.TurnCount = 1
+			got := p.GetBestMove(b, prev, nil)
+			assert.Equal(t, *OpeningMoves[color.White][0][1], *got)
+			assert.Equal(t, 0, p.Opening)
+		})
+	}
+}
+
+func TestOpeningScriptSavesAttackedKnight(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+	prev := gateApply(t, b, nil, color.White, "e2e4")
+	prev = gateApply(t, b, prev, color.Black, "g8f6")
+	prev = gateApply(t, b, prev, color.White, "e4e5")
+	nd5 := location.Move{Start: gateSquare(t, "f6"), End: gateSquare(t, "d5")}
+	p := NewAIPlayer(color.Black, &fixedOpeningRegressionAlgorithm{move: nd5})
+	p.Opening = 1 // ...Nc6 is legal but leaves the f6 knight hanging.
+	p.TurnCount = 1
+	got := p.GetBestMove(b, prev, nil)
+	assert.Equal(t, nd5, *got)
+	assert.Equal(t, OpeningNone, p.Opening)
+}
+
+func TestPositionAwareScandinavianResponse(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+	prev := gateApply(t, b, nil, color.White, "e2e4")
+	prev = gateApply(t, b, prev, color.Black, "d7d5")
+	nc3 := location.Move{Start: gateSquare(t, "b1"), End: gateSquare(t, "c3")}
+	p := NewAIPlayer(color.White, &fixedOpeningRegressionAlgorithm{move: nc3})
+	p.Opening = OpeningNone
+	p.TurnCount = 1
+	got := p.GetBestMove(b, prev, nil)
+	assert.Equal(t, gateSquare(t, "e4"), got.Start)
+	assert.Equal(t, gateSquare(t, "d5"), got.End)
+	assert.Nil(t, p.positionAwareOpeningResponse(b, nil))
+	b.SetFlag(board.FlagKingMoved, color.White, true)
+	assert.Nil(t, p.positionAwareOpeningResponse(b, prev))
+	b.SetFlag(board.FlagKingMoved, color.White, false)
+	gateApply(t, b, prev, color.White, "c2c3")
+	assert.Nil(t, p.positionAwareOpeningResponse(b, prev), "full position must match")
+}
+
+func TestPositionAwarePetroffDevelopment(t *testing.T) {
+	b := &board.Board{}
+	b.ResetDefault()
+	var prev *board.LastMove
+	for i, uci := range []string{"e2e4", "e7e5", "g1f3"} {
+		prev = gateApply(t, b, prev, color.Color(i%2), uci)
+	}
+	p := NewAIPlayer(color.Black, &fixedOpeningRegressionAlgorithm{
+		move: location.Move{Start: gateSquare(t, "b8"), End: gateSquare(t, "c6")},
+	})
+	p.Opening = 0
+	p.TurnCount = 1
+	nf6 := location.Move{Start: gateSquare(t, "g8"), End: gateSquare(t, "f6")}
+	assert.True(t, p.preferenceMoveHangsMaterial(b, nf6), "SEE overlooks Petroff counterplay")
+	got := p.GetBestMove(b, prev, nil)
+	assert.Equal(t, nf6.Start, got.Start)
+	assert.Equal(t, nf6.End, got.End)
+	assert.Nil(t, p.positionAwareOpeningResponse(b, nil))
+	b.SetFlag(board.FlagKingMoved, color.Black, true)
+	assert.Nil(t, p.positionAwareOpeningResponse(b, prev))
+	b.SetFlag(board.FlagKingMoved, color.Black, false)
+	gateApply(t, b, prev, color.White, "a2a3")
+	assert.Nil(t, p.positionAwareOpeningResponse(b, prev), "complete position must match")
+}
+
 // Game B3cQwXvN: after the position-blind script played 1...e5 and 2...Nf6,
 // White entered the main Petroff forcing line with 3.Nxe5. The 1.2s search
 // completed depth 5 and chose 3...Nc6?!; 3...d6 avoids the structural concession.
@@ -110,6 +208,47 @@ func TestPositionAwarePetroffResponsePlaysD6(t *testing.T) {
 	got := p.GetBestMove(b, prev, nil)
 	assert.Equal(t, gateSquare(t, "d7"), got.Start)
 	assert.Equal(t, gateSquare(t, "d6"), got.End)
+}
+
+// XdvTuEuU played 4...d5 instead of recovering the e4 pawn. The reply must
+// work even when the search would choose that move, and must reject deviations.
+func TestPositionAwarePetroffRecapture(t *testing.T) {
+	for _, deviation := range []string{"", "d2d4", "f1c4", "b1c3"} {
+		t.Run("deviation="+deviation, func(t *testing.T) {
+			b := &board.Board{}
+			b.ResetDefault()
+			var prev *board.LastMove
+			for i, uci := range []string{"e2e4", "e7e5", "g1f3", "g8f6", "f3e5", "d7d6", "e5f3"} {
+				if i == 6 && deviation != "" {
+					uci = deviation
+				}
+				prev = gateApply(t, b, prev, color.Color(i%2), uci)
+			}
+			p := NewAIPlayer(color.Black, &fixedOpeningRegressionAlgorithm{
+				move: location.Move{Start: gateSquare(t, "d6"), End: gateSquare(t, "d5")},
+			})
+			p.Opening = OpeningNone
+			p.TurnCount = 3
+			if deviation != "" {
+				assert.Nil(t, p.positionAwareOpeningResponse(b, prev))
+				return
+			}
+			got := p.GetBestMove(b, prev, nil)
+			assert.Equal(t, gateSquare(t, "f6"), got.Start)
+			assert.Equal(t, gateSquare(t, "e4"), got.End)
+			b.SetFlag(board.FlagKingMoved, color.Black, true)
+			assert.Nil(t, p.positionAwareOpeningResponse(b, prev), "castling rights must match")
+			b.SetFlag(board.FlagKingMoved, color.Black, false)
+			assert.Nil(t, p.positionAwareOpeningResponse(b, nil), "last move must be known")
+			wrongLast := *prev
+			wrongLast.Move.Start = gateSquare(t, "d4")
+			assert.Nil(t, p.positionAwareOpeningResponse(b, &wrongLast), "last move must match")
+			// Moving an unrelated pawn changes the position while retaining Nf3
+			// as the last move. Partial piece/last-move matching must not suffice.
+			gateApply(t, b, prev, color.White, "a2a3")
+			assert.Nil(t, p.positionAwareOpeningResponse(b, prev))
+		})
+	}
 }
 
 // Reproduces game DW9hIjlh: after 1.d4 Nf6 2.Nf3 g6 3.Bf4 d6 4.e3 Nh5 5.Bd3 Nxf4, the

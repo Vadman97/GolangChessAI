@@ -1,0 +1,65 @@
+diff --git a/pkg/chessai/board/game_board.go b/pkg/chessai/board/game_board.go
+index f23c71d..ea52418 100644
+--- a/pkg/chessai/board/game_board.go
++++ b/pkg/chessai/board/game_board.go
+@@ -362,15 +362,12 @@ func (b *Board) GetAllMoves(color color.Color, previousMove *LastMove) *[]locati
+ 		movesPtr = &moves
+ 	} else {
+ 		// MVV-LVA ordering: captures first (high-value victim, low-value attacker), non-captures after.
+-		// Pre-compute scores to avoid calling mvvLvaScore twice per sort comparison.
+ 		moves := make([]location.Move, len(*movesPtr))
+ 		copy(moves, *movesPtr)
+-		scores := make([]int, len(moves))
+-		for i, m := range moves {
+-			scores[i] = b.mvvLvaScore(m)
+-		}
++		// Compare the current moves: precomputed scores indexed by their old
++		// positions become detached when the sorter swaps moves.
+ 		sort.Slice(moves, func(i, j int) bool {
+-			return scores[i] > scores[j]
++			return b.mvvLvaScore(moves[i]) > b.mvvLvaScore(moves[j])
+ 		})
+ 		movesPtr = &moves
+ 	}
+diff --git a/pkg/chessai/board/move_order_test.go b/pkg/chessai/board/move_order_test.go
+new file mode 100644
+index 0000000..2a206c0
+--- /dev/null
++++ b/pkg/chessai/board/move_order_test.go
+@@ -0,0 +1,36 @@
++package board_test
++
++import (
++	"reflect"
++	"testing"
++
++	"github.com/Vadman97/GolangChessAI/pkg/chessai/analysis"
++	"github.com/Vadman97/GolangChessAI/pkg/chessai/config"
++	"github.com/Vadman97/GolangChessAI/pkg/chessai/location"
++)
++
++func TestGetAllMovesRanksCapturesByVictimAndAttacker(t *testing.T) {
++	oldRandom := config.Get().RandomMoveOrder
++	config.Get().RandomMoveOrder = false
++	defer func() { config.Get().RandomMoveOrder = oldRandom }()
++	for _, cached := range []bool{false, true} {
++		position, err := analysis.ParseFEN("4k3/6q1/7P/3b4/8/8/1B6/3RK3 w - - 0 1")
++		if err != nil {
++			t.Fatal(err)
++		}
++		position.Board.CacheGetAllMoves = cached
++		original := append([]location.Move(nil), (*position.Board.GetAllMovesUnShuffled(position.Active, position.Previous))...)
++		for repeat := 0; repeat < 2; repeat++ {
++			moves := *position.Board.GetAllMoves(position.Active, position.Previous)
++			// Pawn takes queen, bishop takes queen, then rook takes bishop.
++			for i, want := range []string{"h6g7", "b2g7", "d1d5"} {
++				if got := analysis.MoveToUCI(moves[i]); got != want {
++					t.Fatalf("cache=%v move %d: got %s, want %s", cached, i, got, want)
++				}
++			}
++		}
++		if after := *position.Board.GetAllMovesUnShuffled(position.Active, position.Previous); !reflect.DeepEqual(original, after) {
++			t.Fatalf("cache=%v: ordering mutated the source move list", cached)
++		}
++	}
++}

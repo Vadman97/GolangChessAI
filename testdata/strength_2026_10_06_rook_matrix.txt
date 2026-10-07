@@ -1,0 +1,43 @@
+FEN 1/3: 5r2/1R6/8/2p5/p3p3/3k3P/PP3PP1/6K1 b - - 2 37
+Tag: Eqe2Dghi-ply74
+Stockfish depth=18 best=c5c4 score=-6
+abdada-1-tt      move=c5c4 score=+8 stable=1/1 avg=10.002s depth=8 nodes/s=95238 tt-pruned=923965 timeout=true loss=0cp
+abdada-8-tt      move=f8f6 score=-10 stable=1/1 avg=10.001s depth=7 nodes/s=153949 tt-pruned=821076 timeout=true loss=142cp Flag: worse than baseline Flag: missed expected Flag: known bad move
+abdada-8-no-null move=f8f6 score=-9 stable=1/1 avg=10.001s depth=7 nodes/s=155569 tt-pruned=804387 timeout=true loss=140cp Flag: worse than baseline Flag: missed expected Flag: known bad move
+abdada-8-no-lmr  move=d3e2 score=+0 stable=1/1 avg=10.001s depth=6 nodes/s=149686 tt-pruned=1169902 timeout=true loss=68cp Flag: worse than baseline Flag: missed expected
+abdada-8-safe    move=f8f6 score=+0 stable=1/1 avg=10.001s depth=5 nodes/s=149676 tt-pruned=822506 timeout=true loss=120cp Flag: worse than baseline Flag: missed expected Flag: known bad move
+  Diagnosis: parallel TT differs from abdada-1-tt (f8f6 vs c5c4)
+  Diagnosis: parallel TT loses 142cp more than abdada-1-tt
+  Diagnosis: parallel no-null differs from abdada-1-tt (f8f6 vs c5c4)
+  Diagnosis: parallel no-null loses 140cp more than abdada-1-tt
+  Diagnosis: parallel no-LMR differs from abdada-1-tt (d3e2 vs c5c4)
+  Diagnosis: parallel no-LMR loses 68cp more than abdada-1-tt
+  Diagnosis: parallel no-pruning differs from abdada-1-tt (f8f6 vs c5c4)
+  Diagnosis: parallel no-pruning loses 120cp more than abdada-1-tt
+
+FEN 2/3: 1R6/8/5r2/2p5/p3p3/3k3P/PP3PP1/6K1 b - - 4 38
+Tag: Eqe2Dghi-ply76
+Stockfish depth=18 best=c5c4 score=-1
+abdada-1-tt      move=c5c4 score=+12 stable=1/1 avg=10.002s depth=8 nodes/s=106338 tt-pruned=1108366 timeout=true loss=0cp
+abdada-8-tt      move=f6f7 score=-15 stable=1/1 avg=10.002s depth=7 nodes/s=153451 tt-pruned=824042 timeout=true loss=158cp Flag: worse than baseline Flag: missed expected Flag: known bad move
+abdada-8-no-null move=f6f7 score=-15 stable=1/1 avg=10.001s depth=7 nodes/s=160163 tt-pruned=895036 timeout=true loss=148cp Flag: worse than baseline Flag: missed expected Flag: known bad move
+abdada-8-no-lmr  move=c5c4 score=+12 stable=1/1 avg=10.002s depth=6 nodes/s=161387 tt-pruned=1333788 timeout=true loss=0cp
+abdada-8-safe    move=f6f7 score=+0 stable=1/1 avg=10.001s depth=5 nodes/s=154460 tt-pruned=843274 timeout=true loss=156cp Flag: worse than baseline Flag: missed expected Flag: known bad move
+  Diagnosis: parallel TT differs from abdada-1-tt (f6f7 vs c5c4)
+  Diagnosis: parallel TT loses 158cp more than abdada-1-tt
+  Diagnosis: parallel no-null differs from abdada-1-tt (f6f7 vs c5c4)
+  Diagnosis: parallel no-null loses 148cp more than abdada-1-tt
+  Diagnosis: parallel no-pruning differs from abdada-1-tt (f6f7 vs c5c4)
+  Diagnosis: parallel no-pruning loses 156cp more than abdada-1-tt
+
+FEN 3/3: 8/5r2/8/2p5/4p2P/pR1k4/PP3PP1/6K1 b - - 1 40
+Tag: Eqe2Dghi-ply80
+Stockfish depth=18 best=d3c2 score=-88
+abdada-1-tt      move=d3d4 score=-80 stable=1/1 avg=10.002s depth=10 nodes/s=110169 tt-pruned=1137556 timeout=true loss=290cp Flag: missed expected Flag: known bad move
+abdada-8-tt      move=d3d4 score=-69 stable=1/1 avg=10.002s depth=8 nodes/s=124676 tt-pruned=898500 timeout=true loss=294cp Flag: missed expected Flag: known bad move
+abdada-8-no-null move=d3d4 score=-80 stable=1/1 avg=10.002s depth=8 nodes/s=128094 tt-pruned=940129 timeout=true loss=302cp Flag: missed expected Flag: known bad move
+abdada-8-no-lmr  move=d3c2 score=-28 stable=1/1 avg=10.002s depth=7 nodes/s=127436 tt-pruned=1526340 timeout=true loss=2cp
+abdada-8-safe    move=d3d4 score=-64 stable=1/1 avg=10.002s depth=6 nodes/s=140922 tt-pruned=1603037 timeout=true loss=299cp Flag: missed expected Flag: known bad move
+  Diagnosis: parallel no-LMR differs from abdada-1-tt (d3c2 vs d3d4)
+
+Matrix summary: positions=3 modes=5 runs-per-mode=1 flags=28

@@ -1,0 +1,15 @@
+# FEN | tag | Stockfish depth-14 candidate | played move | local corrected-build 400ms loss; provisional cold-hash cp loss
+r2qkb1r/ppp1pppp/1nnp4/4P3/2PP2b1/2N2N2/PP3PPP/R1BQKB1R w KQkq - 1 7 | local400-game5-ply13 | e5d6 | c4c5 | SF14 loss 209cp; opening e2e4 g8f6 e4e5; corrected side 0
+r3kb1r/ppp1pppp/2n1P3/2P1n3/8/4Nb2/PP3PPP/R1B1KB1R w KQkq - 1 12 | local400-game5-ply23 | e6f7 | g2f3 | SF14 loss 105cp; opening e2e4 g8f6 e4e5; corrected side 0
+r1bqk2r/pppp1ppp/2n2n2/4N3/3PP3/2P5/P1P2PPP/R1BQKB1R b KQkq - 0 6 | local400-game8-ply12 | d8e7 | c6e5 | SF14 loss 315cp; opening e2e4 e7e5; corrected side 1
+r3k2r/2q2ppp/p1bbp3/1p6/2pPN2Q/8/PPP2PP1/R1B2R1K b kq - 3 17 | local400-game10-ply34 | d6e7 | e8g8 | SF14 loss 501cp; opening e2e4 c7c5; corrected side 1
+r4rk1/2q2p1p/p1bbpp1B/1p6/2pP3Q/8/PPP2PP1/R4R1K b - - 1 19 | local400-game10-ply38 | d6f4 | c6e4 | SF14 loss 745cp; opening e2e4 c7c5; corrected side 1
+r1b1k2r/p2p1ppp/1qp1p3/n3P1B1/1QnP4/2P2N2/P3BPPP/R4RK1 b kq - 3 13 | local400-game12-ply26 | d7d6 | c6c5 | SF14 loss 130cp; opening e2e4 e7e6; corrected side 1
+r3kb1r/1p1b1ppp/p1n1p3/2pqP3/8/2BB1N2/PP3PPP/R2QR1K1 w kq - 0 15 | local400-game13-ply29 | d1b1 | d3e4 | SF14 loss 153cp; opening e2e4 c7c6; corrected side 0
+1k5r/1p1bbpp1/p3p2p/4P3/1p1NB3/1P4P1/P4P1P/3R2K1 w - - 3 26 | local400-game13-ply51 | d4f5 | g1g2 | SF14 loss 249cp; opening e2e4 c7c6; corrected side 0
+2r1kb1r/pp1b1ppp/2n1p3/2pqP3/4B3/2B2N2/PP3PPP/R2QR1K1 b k - 7 15 | local400-game14-ply30 | d5d1 | d5c4 | SF14 loss 210cp; opening e2e4 c7c6; corrected side 1
+2r1k2r/pq1bbppp/4p3/1Pp1P3/3nN3/2BBR3/1P3PPP/R2Q2K1 b k - 2 21 | local400-game14-ply42 | d7b5 | e8g8 | SF14 loss 247cp; opening e2e4 c7c6; corrected side 1
+r1b1qrk1/pppp1ppp/2n1p3/3n2B1/3P3P/P1P2N2/2P1PPP1/R2QKB1R w KQ - 3 9 | local400-game17-ply17 | e2e4 | g5d2 | SF14 loss 143cp; opening d2d4 g8f6; corrected side 0
+r1b1qrk1/ppp2ppp/3p1n2/4n3/5B1P/P1P2NP1/2P1PP2/R2QKB1R w KQ - 0 13 | local400-game17-ply25 | f1g2 | e2e3 | SF14 loss 250cp; opening d2d4 g8f6; corrected side 0
+r1bqkb1r/ppppp1pp/5n2/2nP1pB1/8/P1N2N2/1PP1PPPP/R2QKB1R w KQkq - 3 7 | local400-game19-ply13 | g5f6 | g5f4 | SF14 loss 159cp; opening d2d4 f7f5; corrected side 0
+r1bqkb1r/pp2p1p1/2pp1n1p/2nP1p2/2B2B2/P1N1PN2/1PP2PPP/R2QK2R w KQkq - 0 10 | local400-game19-ply19 | f3d4 | f3h4 | SF14 loss 186cp; opening d2d4 f7f5; corrected side 0

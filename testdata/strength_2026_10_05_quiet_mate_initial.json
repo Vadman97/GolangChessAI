@@ -1,0 +1,326 @@
+{
+  "note": "Initial quiet-mate prototypes before checking-capture detector reused fast probe; these root repeats predate the final candidate binaries",
+  "standalone": {
+    "fenPath": "/tmp/chess-ordering-mate-regression-fen.txt",
+    "thinkTimeMs": 1200,
+    "runs": 10,
+    "positions": [
+      {
+        "fen": "3R4/5k1p/8/1Pnp1p2/6pK/1P1r4/8/8 w - - 2 55",
+        "tag": "ordering-mate-regression",
+        "expected": [
+          "h4g5"
+        ],
+        "bad": [
+          "d8c8"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h4g5",
+              "score": -1142,
+              "count": 10,
+              "depth": 7,
+              "avgElapsedMs": 1166,
+              "nodesPerSecond": 154632,
+              "prunedAb": 524173,
+              "prunedTt": 80151,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1203,
+                "considered": 169002,
+                "prunedAb": 497952,
+                "prunedTt": 80741,
+                "ttImproved": 5965,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1194,
+                "considered": 196526,
+                "prunedAb": 550651,
+                "prunedTt": 82768,
+                "ttImproved": 6774,
+                "timedOut": false
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1202,
+                "considered": 196700,
+                "prunedAb": 564586,
+                "prunedTt": 80782,
+                "ttImproved": 6286,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1126,
+                "considered": 185749,
+                "prunedAb": 529350,
+                "prunedTt": 77641,
+                "ttImproved": 6006,
+                "timedOut": false
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 186976,
+                "prunedAb": 543057,
+                "prunedTt": 85985,
+                "ttImproved": 6396,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1203,
+                "considered": 178640,
+                "prunedAb": 521644,
+                "prunedTt": 81579,
+                "ttImproved": 6011,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1201,
+                "considered": 187071,
+                "prunedAb": 543784,
+                "prunedTt": 82275,
+                "ttImproved": 6251,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1105,
+                "considered": 157280,
+                "prunedAb": 462806,
+                "prunedTt": 76693,
+                "ttImproved": 5709,
+                "timedOut": false
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1118,
+                "considered": 182289,
+                "prunedAb": 542534,
+                "prunedTt": 76848,
+                "ttImproved": 6008,
+                "timedOut": false
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1103,
+                "considered": 162819,
+                "prunedAb": 485375,
+                "prunedTt": 76206,
+                "ttImproved": 5875,
+                "timedOut": false
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 1,
+      "runs": 10,
+      "missedExpected": 0,
+      "knownBad": 0,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 1,
+        "missedExpected": 0,
+        "knownBad": 0,
+        "avgElapsedMs": 1166
+      }
+    ]
+  },
+  "combined": {
+    "fenPath": "/tmp/chess-ordering-mate-regression-fen.txt",
+    "thinkTimeMs": 1200,
+    "runs": 10,
+    "positions": [
+      {
+        "fen": "3R4/5k1p/8/1Pnp1p2/6pK/1P1r4/8/8 w - - 2 55",
+        "tag": "ordering-mate-regression",
+        "expected": [
+          "h4g5"
+        ],
+        "bad": [
+          "d8c8"
+        ],
+        "threads": [
+          {
+            "threads": 4,
+            "summary": {
+              "move": "h4g5",
+              "score": -1088,
+              "count": 6,
+              "depth": 6,
+              "avgElapsedMs": 1191,
+              "nodesPerSecond": 155441,
+              "prunedAb": 547410,
+              "prunedTt": 82627,
+              "timedOut": true
+            },
+            "runs": [
+              {
+                "move": "d8h8",
+                "score": -1087,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 188154,
+                "prunedAb": 563885,
+                "prunedTt": 84449,
+                "ttImproved": 6117,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1169,
+                "considered": 183559,
+                "prunedAb": 546278,
+                "prunedTt": 78133,
+                "ttImproved": 6192,
+                "timedOut": false
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1200,
+                "considered": 183559,
+                "prunedAb": 546278,
+                "prunedTt": 78133,
+                "ttImproved": 6192,
+                "timedOut": true
+              },
+              {
+                "move": "d8h8",
+                "score": -1087,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 198116,
+                "prunedAb": 590480,
+                "prunedTt": 89426,
+                "ttImproved": 6655,
+                "timedOut": true
+              },
+              {
+                "move": "d8h8",
+                "score": -1087,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 185064,
+                "prunedAb": 540921,
+                "prunedTt": 87135,
+                "ttImproved": 6502,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1088,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 178766,
+                "prunedAb": 531065,
+                "prunedTt": 75710,
+                "ttImproved": 5871,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1189,
+                "considered": 187248,
+                "prunedAb": 544854,
+                "prunedTt": 88009,
+                "ttImproved": 6541,
+                "timedOut": false
+              },
+              {
+                "move": "d8h8",
+                "score": -1087,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 195709,
+                "prunedAb": 581925,
+                "prunedTt": 88949,
+                "ttImproved": 6504,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1088,
+                "depth": 6,
+                "elapsedMs": 1201,
+                "considered": 170169,
+                "prunedAb": 492750,
+                "prunedTt": 78994,
+                "ttImproved": 5921,
+                "timedOut": true
+              },
+              {
+                "move": "h4g5",
+                "score": -1142,
+                "depth": 7,
+                "elapsedMs": 1146,
+                "considered": 181688,
+                "prunedAb": 535669,
+                "prunedTt": 77338,
+                "ttImproved": 6119,
+                "timedOut": false
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "positions": 1,
+      "runs": 10,
+      "missedExpected": 0,
+      "knownBad": 0,
+      "parallelRegressions": 0
+    },
+    "threadSummaries": [
+      {
+        "threads": 4,
+        "positions": 1,
+        "missedExpected": 0,
+        "knownBad": 0,
+        "avgElapsedMs": 1191
+      }
+    ]
+  },
+  "principalVariations": "h4g5 info depth 18 seldepth 37 multipv 1 score cp -804 nodes 136308 nps 2310305 hashfull 31 tbhits 0 time 59 pv h4g5 c5e6 g5f5 e6d8 f5g4 f7f6 b3b4 d3d4 g4f3 f6g5 b5b6 d4b4 b6b7 b4b7 f3e3 b7f7 e3d4 f7f5 d4c5 g5g4 c5d6 h7h5 d6e7 f5f7 e7d6\nh4h5 info depth 18 seldepth 9 multipv 1 score mate -4 nodes 19459 nps 1945900 hashfull 6 tbhits 0 time 10 pv h4h5 c5e6 d8d7 f7f6 d7f7 f6f7 h5h4 d3h3\nd8c8 info depth 18 seldepth 9 multipv 1 score mate -4 nodes 10056 nps 1676000 hashfull 4 tbhits 0 time 6 pv d8c8 c5e6 c8c7 f7f6 c7f7 f6f7 b5b6 d3h3\n"
+}
